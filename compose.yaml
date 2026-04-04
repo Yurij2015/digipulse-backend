@@ -1,5 +1,5 @@
 services:
-  laravel.test:
+  laravel.digipulse:
     build:
       context: ./vendor/laravel/sail/runtimes/8.5
       dockerfile: Dockerfile
@@ -34,7 +34,7 @@ services:
       selenium:
         condition: service_started
   pgsql:
-    image: 'postgres:18-alpine'
+    image: 'postgres:18.3-alpine'
     container_name: digipulse-db
     ports:
       - '${FORWARD_DB_PORT:-5432}:5432'
@@ -44,7 +44,7 @@ services:
       POSTGRES_USER: '${DB_USERNAME}'
       POSTGRES_PASSWORD: '${DB_PASSWORD:-secret}'
     volumes:
-      - 'sail-pgsql:/var/lib/postgresql/data'
+      - 'sail-pgsql:/var/lib/postgresql'
       - './vendor/laravel/sail/database/pgsql/create-testing-database.sql:/docker-entrypoint-initdb.d/10-create-testing-database.sql'
     networks:
       - sail
