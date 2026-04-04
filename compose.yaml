@@ -22,13 +22,18 @@ services:
     networks:
       - sail
     depends_on:
-      - pgsql
-      - redis
-      - meilisearch
-      - mailpit
-      - selenium
+      pgsql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+      selenium:
+        condition: service_started
   pgsql:
-    image: 'postgres:17-alpine'
+    image: 'postgres:18-alpine'
     ports:
       - '${FORWARD_DB_PORT:-5432}:5432'
     environment:
@@ -37,7 +42,7 @@ services:
       POSTGRES_USER: '${DB_USERNAME}'
       POSTGRES_PASSWORD: '${DB_PASSWORD:-secret}'
     volumes:
-      - 'sail-postgresql:/var/lib/postgresql/data'
+      - 'sail-pgsql:/var/lib/postgresql/data'
       - './vendor/laravel/sail/database/pgsql/create-testing-database.sql:/docker-entrypoint-initdb.d/10-create-testing-database.sql'
     networks:
       - sail
@@ -90,7 +95,7 @@ networks:
   sail:
     driver: bridge
 volumes:
-  sail-postgresql:
+  sail-pgsql:
     driver: local
   sail-redis:
     driver: local
