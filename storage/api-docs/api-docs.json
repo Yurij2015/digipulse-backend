@@ -1,0 +1,279 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "DigiPulse API",
+        "description": "API documentation for the DigiPulse monitoring system. **Authentication:** Use these endpoints to register, login, and manage user tokens.",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost",
+            "description": "Local Development Server"
+        }
+    ],
+    "paths": {
+        "/api/register": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Register a new user",
+                "operationId": "58fe5a217ef88ae75e9b530a5e5817d1",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RegisterRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "User registered successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "user": {
+                                            "$ref": "#/components/schemas/UserSchema"
+                                        },
+                                        "token": {
+                                            "type": "string",
+                                            "example": "1|abcd1234..."
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation failed"
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    }
+                ]
+            }
+        },
+        "/api/login": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Login user",
+                "description": "Authenticate a user and return a token",
+                "operationId": "loginUser",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoginRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful login",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "token": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    }
+                ]
+            }
+        },
+        "/api/logout": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Logout user",
+                "description": "Revoke the authenticated user's tokens",
+                "operationId": "logoutUser",
+                "responses": {
+                    "200": {
+                        "description": "Successful logout",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Successfully logged out"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    },
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "UserSchema": {
+                "required": [
+                    "id",
+                    "name",
+                    "email",
+                    "first_name",
+                    "last_name",
+                    "created_at",
+                    "updated_at"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "johndoug"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "johtdouj@gmail.pro"
+                    },
+                    "first_name": {
+                        "type": "string",
+                        "example": "John"
+                    },
+                    "last_name": {
+                        "type": "string",
+                        "example": "Doe"
+                    },
+                    "email_verified_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-11-16T09:01:11.000000Z"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-11-16T09:01:11.000000Z"
+                    }
+                },
+                "type": "object"
+            },
+            "LoginRequest": {
+                "required": [
+                    "email",
+                    "password"
+                ],
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "example": "yurii@example.com"
+                    },
+                    "password": {
+                        "type": "string",
+                        "example": "StrongPass123!"
+                    }
+                },
+                "type": "object"
+            },
+            "RegisterRequest": {
+                "required": [
+                    "name",
+                    "email",
+                    "first_name",
+                    "last_name",
+                    "password",
+                    "password_confirmation"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "example": "johndou"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "johndou@gmail.pro"
+                    },
+                    "first_name": {
+                        "type": "string",
+                        "example": "John"
+                    },
+                    "last_name": {
+                        "type": "string",
+                        "example": "Dou"
+                    },
+                    "password": {
+                        "type": "string",
+                        "format": "password",
+                        "example": "StrongPass123!"
+                    },
+                    "password_confirmation": {
+                        "type": "string",
+                        "format": "password",
+                        "example": "StrongPass123!"
+                    }
+                },
+                "type": "object"
+            }
+        },
+        "securitySchemes": {
+            "frontendKey": {
+                "type": "apiKey",
+                "description": "Custom frontend key for API access",
+                "name": "X-Frontend-Key",
+                "in": "header"
+            },
+            "bearerAuth": {
+                "type": "http",
+                "description": "BearerAuth access token",
+                "bearerFormat": "JWT",
+                "scheme": "bearer"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Auth",
+            "description": "Auth"
+        }
+    ]
+}
