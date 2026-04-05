@@ -54,9 +54,8 @@ class RegisterRequest extends FormRequest
                 'max:255',
                 'unique:users',
             ],
-            'first_name' => 'nullable|string|max:255',
-            'last_name' => 'nullable|string|max:255',
-            'organization' => 'nullable|string|max:255',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
             'password' => [
                 'required',
                 'string',
