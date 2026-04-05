@@ -2,6 +2,9 @@
 
 namespace App\Filament\Admin\Resources\CheckTypes\Schemas;
 
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 
 class CheckTypeForm
@@ -10,19 +13,19 @@ class CheckTypeForm
     {
         return $schema
             ->components([
-                \Filament\Forms\Components\TextInput::make('name')
+                TextInput::make('name')
                     ->required()
                     ->maxLength(255),
-                \Filament\Forms\Components\TextInput::make('slug')
+                TextInput::make('slug')
                     ->required()
                     ->unique(ignoreRecord: true)
                     ->maxLength(255),
-                \Filament\Forms\Components\Textarea::make('description')
+                Textarea::make('description')
                     ->maxLength(65535)
                     ->columnSpanFull(),
-                \Filament\Forms\Components\TextInput::make('icon')
+                TextInput::make('icon')
                     ->maxLength(255),
-                \Filament\Forms\Components\Toggle::make('is_active')
+                Toggle::make('is_active')
                     ->default(true)
                     ->required(),
             ]);

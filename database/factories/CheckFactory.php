@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Check;
+use App\Models\SiteCheckConfiguration;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -18,7 +19,7 @@ class CheckFactory extends Factory
     public function definition(): array
     {
         return [
-            'site_check_configuration_id' => \App\Models\SiteCheckConfiguration::factory(),
+            'site_check_configuration_id' => SiteCheckConfiguration::factory(),
             'is_successful' => $this->faker->boolean(80),
             'response_time' => $this->faker->numberBetween(100, 2000),
             'results' => ['status' => 200, 'method' => 'GET'],

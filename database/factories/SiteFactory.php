@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Site;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -18,7 +19,7 @@ class SiteFactory extends Factory
     public function definition(): array
     {
         return [
-            'user_id' => \App\Models\User::factory(),
+            'user_id' => User::factory(),
             'name' => $this->faker->company(),
             'url' => $this->faker->url(),
             'update_interval' => $this->faker->randomElement([60, 300, 3600]),

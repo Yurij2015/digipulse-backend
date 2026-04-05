@@ -16,7 +16,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'last_name', type: 'string', example: 'Doe'),
         new OA\Property(property: 'email_verified_at', type: 'string', format: 'date-time', nullable: true),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time', example: '2025-11-16T09:01:11.000000Z'),
-        new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', example: '2025-11-16T09:01:11.000000Z')
+        new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', example: '2025-11-16T09:01:11.000000Z'),
     ]
 )]
 class UserSchema {}

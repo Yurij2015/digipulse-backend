@@ -2,6 +2,11 @@
 
 namespace App\Filament\Admin\Resources\Checks\Schemas;
 
+use Filament\Forms\Components\KeyValue;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 
 class CheckForm
@@ -10,19 +15,19 @@ class CheckForm
     {
         return $schema
             ->components([
-                \Filament\Forms\Components\Select::make('site_check_configuration_id')
+                Select::make('site_check_configuration_id')
                     ->relationship('configuration', 'id')
                     ->label('Configuration')
                     ->disabled(),
-                \Filament\Forms\Components\Toggle::make('is_successful')
+                Toggle::make('is_successful')
                     ->disabled(),
-                \Filament\Forms\Components\TextInput::make('response_time')
+                TextInput::make('response_time')
                     ->suffix('ms')
                     ->disabled(),
-                \Filament\Forms\Components\KeyValue::make('results')
+                KeyValue::make('results')
                     ->columnSpanFull()
                     ->disabled(),
-                \Filament\Forms\Components\Textarea::make('error_message')
+                Textarea::make('error_message')
                     ->columnSpanFull()
                     ->disabled(),
             ]);

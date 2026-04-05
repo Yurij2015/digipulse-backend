@@ -5,6 +5,8 @@ namespace App\Filament\Admin\Resources\Sites\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
 class SitesTable
@@ -13,21 +15,21 @@ class SitesTable
     {
         return $table
             ->columns([
-                \Filament\Tables\Columns\TextColumn::make('name')
+                TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
-                \Filament\Tables\Columns\TextColumn::make('url')
+                TextColumn::make('url')
                     ->searchable()
                     ->sortable()
                     ->copyable(),
-                \Filament\Tables\Columns\IconColumn::make('is_active')
+                IconColumn::make('is_active')
                     ->boolean()
                     ->sortable(),
-                \Filament\Tables\Columns\TextColumn::make('configurations_count')
+                TextColumn::make('configurations_count')
                     ->counts('configurations')
                     ->label('Checks')
                     ->badge(),
-                \Filament\Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

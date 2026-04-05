@@ -2,6 +2,9 @@
 
 namespace App\Filament\Admin\Resources\Checks\Schemas;
 
+use Filament\Infolists\Components\IconEntry;
+use Filament\Infolists\Components\KeyValueEntry;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Schema;
 
 class CheckInfolist
@@ -10,21 +13,21 @@ class CheckInfolist
     {
         return $schema
             ->components([
-                \Filament\Infolists\Components\TextEntry::make('configuration.site.name')
+                TextEntry::make('configuration.site.name')
                     ->label('Site'),
-                \Filament\Infolists\Components\TextEntry::make('configuration.checkType.name')
+                TextEntry::make('configuration.checkType.name')
                     ->label('Type')
                     ->badge(),
-                \Filament\Infolists\Components\IconEntry::make('is_successful')
+                IconEntry::make('is_successful')
                     ->boolean(),
-                \Filament\Infolists\Components\TextEntry::make('response_time')
+                TextEntry::make('response_time')
                     ->suffix(' ms'),
-                \Filament\Infolists\Components\TextEntry::make('created_at')
+                TextEntry::make('created_at')
                     ->label('Checked At')
                     ->dateTime(),
-                \Filament\Infolists\Components\KeyValueEntry::make('results')
+                KeyValueEntry::make('results')
                     ->columnSpanFull(),
-                \Filament\Infolists\Components\TextEntry::make('error_message')
+                TextEntry::make('error_message')
                     ->columnSpanFull()
                     ->color('danger'),
             ]);

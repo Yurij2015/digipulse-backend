@@ -2,6 +2,10 @@
 
 namespace App\Filament\Admin\Resources\Sites\Schemas;
 
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 
 class SiteForm
@@ -10,17 +14,17 @@ class SiteForm
     {
         return $schema
             ->components([
-                \Filament\Forms\Components\Hidden::make('user_id')
+                Hidden::make('user_id')
                     ->default(fn () => auth()->id()),
-                \Filament\Forms\Components\TextInput::make('name')
+                TextInput::make('name')
                     ->required()
                     ->maxLength(255),
-                \Filament\Forms\Components\TextInput::make('url')
+                TextInput::make('url')
                     ->required()
                     ->url()
                     ->maxLength(255)
                     ->suffixIcon('heroicon-m-globe-alt'),
-                \Filament\Forms\Components\Select::make('update_interval')
+                Select::make('update_interval')
                     ->options([
                         60 => '1 minute',
                         300 => '5 minutes',
@@ -29,7 +33,7 @@ class SiteForm
                     ])
                     ->default(300)
                     ->required(),
-                \Filament\Forms\Components\Toggle::make('is_active')
+                Toggle::make('is_active')
                     ->default(true)
                     ->required(),
             ]);

@@ -2,7 +2,6 @@
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Config;
 
 uses(RefreshDatabase::class);
 
@@ -36,7 +35,7 @@ describe('User Registration', function () {
         $response->assertStatus(201)
             ->assertJsonStructure([
                 'user' => ['id', 'name', 'email', 'first_name', 'last_name', 'email_verified_at', 'created_at', 'updated_at'],
-                'token'
+                'token',
             ]);
 
         $this->assertDatabaseHas('users', [
@@ -88,7 +87,7 @@ describe('User Authentication', function () {
             'X-Frontend-Key' => FRONTEND_KEY,
             'Authorization' => "Bearer $token",
         ])->assertStatus(200)
-          ->assertJson(['success' => true]);
+            ->assertJson(['success' => true]);
 
         $this->assertCount(0, $user->fresh()->tokens);
     });

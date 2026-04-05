@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\CheckType;
 use Illuminate\Database\Seeder;
 
 class CheckTypeSeeder extends Seeder
@@ -40,7 +40,7 @@ class CheckTypeSeeder extends Seeder
         ];
 
         foreach ($types as $type) {
-            \App\Models\CheckType::updateOrCreate(['slug' => $type['slug']], $type);
+            CheckType::updateOrCreate(['slug' => $type['slug']], $type);
         }
     }
 }

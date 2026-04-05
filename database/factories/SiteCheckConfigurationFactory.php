@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Models\CheckType;
+use App\Models\Site;
 use App\Models\SiteCheckConfiguration;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -18,8 +20,8 @@ class SiteCheckConfigurationFactory extends Factory
     public function definition(): array
     {
         return [
-            'site_id' => \App\Models\Site::factory(),
-            'check_type_id' => \App\Models\CheckType::where('is_active', true)->first()?->id ?? 1,
+            'site_id' => Site::factory(),
+            'check_type_id' => CheckType::where('is_active', true)->first()?->id ?? 1,
             'params' => [],
             'is_active' => true,
         ];

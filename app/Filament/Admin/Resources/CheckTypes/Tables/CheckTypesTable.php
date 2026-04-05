@@ -5,6 +5,8 @@ namespace App\Filament\Admin\Resources\CheckTypes\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
 class CheckTypesTable
@@ -13,15 +15,15 @@ class CheckTypesTable
     {
         return $table
             ->columns([
-                \Filament\Tables\Columns\TextColumn::make('name')
+                TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
-                \Filament\Tables\Columns\TextColumn::make('slug')
+                TextColumn::make('slug')
                     ->badge()
                     ->sortable(),
-                \Filament\Tables\Columns\TextColumn::make('icon')
+                TextColumn::make('icon')
                     ->fontFamily('mono'),
-                \Filament\Tables\Columns\IconColumn::make('is_active')
+                IconColumn::make('is_active')
                     ->boolean()
                     ->sortable(),
             ])

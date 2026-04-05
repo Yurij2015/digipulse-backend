@@ -1,16 +1,18 @@
 <?php
 
-use App\Models\Site;
-use App\Models\CheckType;
-use App\Models\SiteCheckConfiguration;
 use App\Models\Check;
+use App\Models\CheckType;
+use App\Models\Site;
+use App\Models\SiteCheckConfiguration;
 use App\Models\User;
+use Database\Seeders\CheckTypeSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
-uses(\Illuminate\Foundation\Testing\RefreshDatabase::class);
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     // Run seeders to have check types available
-    $this->seed(\Database\Seeders\CheckTypeSeeder::class);
+    $this->seed(CheckTypeSeeder::class);
 });
 
 it('can create a site with check configurations', function () {
