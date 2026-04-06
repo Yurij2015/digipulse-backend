@@ -18,7 +18,7 @@ class InternalCheckResultController extends Controller
     {
         $validated = $request->validate([
             'configuration_id' => ['required', 'exists:site_check_configurations,id'],
-            'status' => ['required', 'string', 'in:up,down', 'slow'],
+            'status' => ['required', 'string', 'in:up,down,slow'],
             'response_time_ms' => ['nullable', 'integer'],
             'error_message' => ['nullable', 'string', 'max:1000'],
             'metadata' => ['nullable', 'array'],
@@ -38,9 +38,9 @@ class InternalCheckResultController extends Controller
                 'site_id' => $config->site_id,
                 'configuration_id' => $config->id,
                 'status' => $validated['status'],
-                'response_time_ms' => $validated['response_time_ms'],
-                'error_message' => $validated['error_message'],
-                'metadata' => $validated['metadata'],
+                'response_time_ms' => $validated['response_time_ms'] ?? null,
+                'error_message' => $validated['error_message'] ?? null,
+                'metadata' => $validated['metadata'] ?? null,
                 'checked_at' => now(),
             ]);
         });

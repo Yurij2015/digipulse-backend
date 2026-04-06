@@ -17,8 +17,8 @@ Route::middleware(['frontend.key'])->group(function () {
         Route::apiResource('sites', SiteController::class);
         Route::get('/check-types', [CheckTypeController::class, 'index'])->name('check-types.index');
     });
+});
 
-    Route::prefix('internal')->middleware(InternalMonitorMiddleware::class)->group(function () {
-        Route::post('/results', [InternalCheckResultController::class, 'store'])->name('internal.results.store');
-    });
+Route::prefix('internal')->middleware(InternalMonitorMiddleware::class)->group(function () {
+    Route::post('/results', [InternalCheckResultController::class, 'store'])->name('internal.results.store');
 });
