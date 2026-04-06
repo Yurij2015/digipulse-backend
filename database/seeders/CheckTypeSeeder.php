@@ -16,25 +16,37 @@ class CheckTypeSeeder extends Seeder
             [
                 'name' => 'HTTP Status',
                 'slug' => 'http',
-                'description' => 'Verifies if the website returns a successful HTTP status code (e.g., 200 OK).',
+                'description' => 'Verifies if the website returns a successful HTTP status code (e.g., 200 OK). Extremely fast.',
                 'icon' => 'heroicon-o-globe-alt',
             ],
             [
                 'name' => 'Keyword Presence',
                 'slug' => 'keyword',
-                'description' => 'Checks if a specific string of text exists on the page.',
+                'description' => 'Checks if specific text exists on the page. Simple content verification.',
                 'icon' => 'heroicon-o-magnifying-glass',
             ],
             [
                 'name' => 'SSL Certificate',
                 'slug' => 'ssl',
-                'description' => 'Monitors the SSL certificate expiration date and validity.',
+                'description' => 'Monitors SSL certificate validity and upcoming expiration.',
                 'icon' => 'heroicon-o-lock-closed',
+            ],
+            [
+                'name' => 'DNS Check',
+                'slug' => 'dns',
+                'description' => 'Ensures your domain name resolves correctly to an IP address. Very fast.',
+                'icon' => 'heroicon-o-at-symbol',
+            ],
+            [
+                'name' => 'Port Check',
+                'slug' => 'port',
+                'description' => 'Verifies if a specific TCP port (like 443, 8080) is open and reachable.',
+                'icon' => 'heroicon-o-hashtag',
             ],
             [
                 'name' => 'ICMP Ping',
                 'slug' => 'ping',
-                'description' => 'Measures the network latency and server availability via ICMP ping.',
+                'description' => 'Measures network latency and server availability via ICMP ping.',
                 'icon' => 'heroicon-o-signal',
             ],
         ];

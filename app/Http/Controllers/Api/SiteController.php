@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Sites\StoreSiteRequest;
+use App\Http\Requests\Api\Sites\UpdateSiteRequest;
 use App\Http\Resources\SiteResource;
 use App\Models\Site;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use OpenApi\Attributes as OA;
 
 class SiteController extends Controller
@@ -16,8 +18,8 @@ class SiteController extends Controller
     #[OA\Get(
         path: '/api/sites',
         summary: 'List user sites',
-        tags: ['Sites'],
         security: [['frontendKey' => []], ['bearerAuth' => []]],
+        tags: ['Sites'],
         responses: [
             new OA\Response(
                 response: 200,
@@ -35,20 +37,20 @@ class SiteController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         return SiteResource::collection(
-            $request->user()->sites()->latest()->get()
+            $request->user()->sites()->with('configurations.checkType')->latest()->get()
         );
     }
 
     #[OA\Post(
         path: '/api/sites',
-        summary: 'Store a new site',
         description: 'Creates a new site for monitoring. You can optionally pass an array of checks to be configured for this site.',
-        tags: ['Sites'],
+        summary: 'Store a new site',
         security: [['frontendKey' => []], ['bearerAuth' => []]],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(ref: '#/components/schemas/StoreSiteRequest')
         ),
+        tags: ['Sites'],
         responses: [
             new OA\Response(
                 response: 201,
@@ -63,10 +65,12 @@ class SiteController extends Controller
     )]
     /**
      * Store a newly created site in storage.
+     *
+     * @throws \Throwable
      */
     public function store(StoreSiteRequest $request): SiteResource
     {
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($request) {
+        return DB::transaction(static function () use ($request) {
             $site = $request->user()->sites()->create($request->safe()->except('checks'));
 
             if ($request->has('checks')) {
@@ -80,5 +84,151 @@ class SiteController extends Controller
 
             return new SiteResource($site->load('configurations.checkType'));
         });
+    }
+
+    #[OA\Get(
+        path: '/api/sites/{site}',
+        summary: 'Get site record',
+        tags: ['Sites'],
+        security: [['frontendKey' => []], ['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(
+                name: 'site',
+                in: 'path',
+                description: 'The site ID',
+                required: true,
+                schema: new OA\Schema(type: 'integer')
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Successful operation',
+                content: new OA\JsonContent(ref: '#/components/schemas/SiteSchema')
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Site not found'
+            ),
+        ]
+    )]
+    /**
+     * Display the specified site.
+     */
+    public function show(Request $request, Site $site): SiteResource
+    {
+        if ($site->user_id !== $request->user()->id) {
+            abort(404);
+        }
+
+        return new SiteResource($site->load('configurations.checkType'));
+    }
+
+    #[OA\Put(
+        path: '/api/sites/{site}',
+        summary: 'Update existing site',
+        security: [['frontendKey' => []], ['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(ref: '#/components/schemas/UpdateSiteRequest')
+        ),
+        tags: ['Sites'],
+        parameters: [
+            new OA\Parameter(
+                name: 'site',
+                description: 'The site ID',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer')
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Site updated successfully',
+                content: new OA\JsonContent(ref: '#/components/schemas/SiteSchema')
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Site not found'
+            ),
+            new OA\Response(
+                response: 422,
+                description: 'Validation failed'
+            ),
+        ]
+    )]
+    /**
+     * Update the specified site in storage.
+     */
+    public function update(UpdateSiteRequest $request, Site $site): SiteResource
+    {
+        if ($site->user_id !== $request->user()->id) {
+            abort(404);
+        }
+
+        return DB::transaction(function () use ($request, $site) {
+            $site->update($request->safe()->except('checks'));
+
+            if ($request->has('checks')) {
+                // For simplicity, we'll sync by deleting and re-creating if ID is missing.
+                // Or better, handle matching IDs.
+                $updatedCheckIds = [];
+                foreach ($request->checks as $checkData) {
+                    if (isset($checkData['id'])) {
+                        $config = $site->configurations()->findOrFail($checkData['id']);
+                        $config->update($checkData);
+                        $updatedCheckIds[] = $config->id;
+                    } else {
+                        $config = $site->configurations()->create($checkData);
+                        $updatedCheckIds[] = $config->id;
+                    }
+                }
+
+                // Optionally delete configs not in the request:
+                $site->configurations()->whereNotIn('id', $updatedCheckIds)->delete();
+            }
+
+            return new SiteResource($site->load('configurations.checkType'));
+        });
+    }
+
+    #[OA\Delete(
+        path: '/api/sites/{site}',
+        summary: 'Delete site',
+        tags: ['Sites'],
+        security: [['frontendKey' => []], ['bearerAuth' => []]],
+        parameters: [
+            new OA\Parameter(
+                name: 'site',
+                in: 'path',
+                description: 'The site ID',
+                required: true,
+                schema: new OA\Schema(type: 'integer')
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 204,
+                description: 'Site deleted successfully'
+            ),
+            new OA\Response(
+                response: 404,
+                description: 'Site not found'
+            ),
+        ]
+    )]
+    /**
+     * Remove the specified site from storage.
+     */
+    public function destroy(Request $request, Site $site): Response
+    {
+        if ($site->user_id !== $request->user()->id) {
+            abort(404);
+        }
+
+        $site->delete();
+
+        return response()->noContent();
     }
 }
