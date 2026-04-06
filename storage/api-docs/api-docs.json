@@ -143,10 +143,241 @@
                     }
                 ]
             }
+        },
+        "/api/check-types": {
+            "get": {
+                "tags": [
+                    "Check Types"
+                ],
+                "summary": "List available check types",
+                "description": "Display a listing of available check types.",
+                "operationId": "84421a098ff2c520c3c691114b6f9c54",
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/CheckTypeSchema"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    },
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/sites": {
+            "get": {
+                "tags": [
+                    "Sites"
+                ],
+                "summary": "List user sites",
+                "description": "Display a listing of the user's sites.",
+                "operationId": "a80e31c61764092a9710da892b4f6281",
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/SiteSchema"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    },
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Sites"
+                ],
+                "summary": "Store a new site",
+                "description": "Creates a new site for monitoring. You can optionally pass an array of checks to be configured for this site.",
+                "operationId": "1c99621d9a5bfd1e1ba8c7e8b2859cb2",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreSiteRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Site created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SiteSchema"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation failed"
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    },
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
         "schemas": {
+            "CheckTypeSchema": {
+                "required": [
+                    "id",
+                    "name",
+                    "slug",
+                    "is_active"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "HTTP Status"
+                    },
+                    "slug": {
+                        "type": "string",
+                        "example": "http"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "Verifies the website returns a 200 OK.",
+                        "nullable": true
+                    },
+                    "icon": {
+                        "type": "string",
+                        "example": "heroicon-o-globe-alt",
+                        "nullable": true
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "example": true
+                    }
+                },
+                "type": "object"
+            },
+            "ConfigurationSchema": {
+                "required": [
+                    "id",
+                    "is_active"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 10
+                    },
+                    "check_type": {
+                        "$ref": "#/components/schemas/CheckTypeSchema"
+                    },
+                    "params": {
+                        "type": "object",
+                        "example": {
+                            "keyword": "test"
+                        },
+                        "nullable": true
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "last_status": {
+                        "type": "string",
+                        "example": "up",
+                        "nullable": true
+                    },
+                    "last_checked_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "SiteSchema": {
+                "required": [
+                    "id",
+                    "name",
+                    "url",
+                    "update_interval",
+                    "is_active",
+                    "created_at",
+                    "updated_at"
+                ],
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Example.com"
+                    },
+                    "url": {
+                        "type": "string",
+                        "example": "https://example.com"
+                    },
+                    "update_interval": {
+                        "type": "integer",
+                        "example": 300
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "configurations": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ConfigurationSchema"
+                        }
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-11-16T09:01:11.000000Z"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-11-16T09:01:11.000000Z"
+                    }
+                },
+                "type": "object"
+            },
             "UserSchema": {
                 "required": [
                     "id",
@@ -253,6 +484,52 @@
                     }
                 },
                 "type": "object"
+            },
+            "StoreSiteRequest": {
+                "required": [
+                    "name",
+                    "url"
+                ],
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "example": "Example Site"
+                    },
+                    "url": {
+                        "type": "string",
+                        "format": "url",
+                        "example": "https://example.com"
+                    },
+                    "update_interval": {
+                        "description": "Interval in seconds",
+                        "type": "integer",
+                        "example": 300
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "checks": {
+                        "type": "array",
+                        "items": {
+                            "properties": {
+                                "check_type_id": {
+                                    "type": "integer",
+                                    "example": 1
+                                },
+                                "params": {
+                                    "type": "object",
+                                    "example": {
+                                        "keyword": "test"
+                                    },
+                                    "nullable": true
+                                }
+                            },
+                            "type": "object"
+                        }
+                    }
+                },
+                "type": "object"
             }
         },
         "securitySchemes": {
@@ -274,6 +551,14 @@
         {
             "name": "Auth",
             "description": "Auth"
+        },
+        {
+            "name": "Check Types",
+            "description": "Check Types"
+        },
+        {
+            "name": "Sites",
+            "description": "Sites"
         }
     ]
 }

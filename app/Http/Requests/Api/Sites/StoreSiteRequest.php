@@ -5,6 +5,30 @@ namespace App\Http\Requests\Api\Sites;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
+use OpenApi\Attributes as OA;
+
+#[OA\Schema(
+    schema: 'StoreSiteRequest',
+    type: 'object',
+    required: ['name', 'url'],
+    properties: [
+        new OA\Property(property: 'name', type: 'string', example: 'Example Site'),
+        new OA\Property(property: 'url', type: 'string', format: 'url', example: 'https://example.com'),
+        new OA\Property(property: 'update_interval', type: 'integer', example: 300, description: 'Interval in seconds'),
+        new OA\Property(property: 'is_active', type: 'boolean', example: true),
+        new OA\Property(
+            property: 'checks',
+            type: 'array',
+            items: new OA\Items(
+                properties: [
+                    new OA\Property(property: 'check_type_id', type: 'integer', example: 1),
+                    new OA\Property(property: 'params', type: 'object', example: ['keyword' => 'test'], nullable: true),
+                ],
+                type: 'object'
+            )
+        ),
+    ]
+)]
 class StoreSiteRequest extends FormRequest
 {
     /**
