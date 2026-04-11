@@ -14,6 +14,8 @@ class ScheduleChecks extends Command
 {
     /**
      * Execute the console command.
+     *
+     * @throws \JsonException
      */
     public function handle(): void
     {
@@ -40,12 +42,15 @@ class ScheduleChecks extends Command
 
             Redis::lpush('monitoring:tasks', $payload);
 
-            $this->line(sprintf(
-                'Scheduled [%s] check for Site: %s (ID: %d)',
-                strtoupper($config->checkType->slug),
-                $config->site->url,
-                $config->id
-            ));
+            $config->checkType->slug
+                |> strtoupper(...)
+                |> (static fn ($x) => sprintf(
+                    'Scheduled [%s] check for Site: %s (ID: %d)',
+                    $x,
+                    $config->site->url,
+                    $config->id
+                ))
+                |> $this->info(...);
         }
 
         $this->info(sprintf('Successfully scheduled %d check(s).', $dueConfigs->count()));

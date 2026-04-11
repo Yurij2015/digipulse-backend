@@ -45,6 +45,10 @@ Boost provides your agent 15+ tools and skills that help agents build Laravel ap
 
 For information on how to run tests in different environments, please refer to the [Testing Documentation](TESTING.md).
 
+## Scheduling
+
+For information on how automated monitoring checks are scheduled and how to run the scheduler locally, please refer to the [Scheduling Documentation](SCHEDULING.md).
+
 
 ## Contributing
 

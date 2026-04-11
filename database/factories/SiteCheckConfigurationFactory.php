@@ -21,7 +21,7 @@ class SiteCheckConfigurationFactory extends Factory
     {
         return [
             'site_id' => Site::factory(),
-            'check_type_id' => CheckType::where('is_active', true)->first()?->id ?? 1,
+            'check_type_id' => CheckType::where('is_active', true)->first()?->id ?? CheckType::factory(),
             'params' => [],
             'is_active' => true,
         ];

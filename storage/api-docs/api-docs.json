@@ -250,6 +250,216 @@
                     }
                 ]
             }
+        },
+        "/api/sites/{site}": {
+            "get": {
+                "tags": [
+                    "Sites"
+                ],
+                "summary": "Get site record",
+                "description": "Display the specified site.",
+                "operationId": "de9e22139a42ea7cd4944910230d17f3",
+                "parameters": [
+                    {
+                        "name": "site",
+                        "in": "path",
+                        "description": "The site ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SiteSchema"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Site not found"
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    },
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Sites"
+                ],
+                "summary": "Update existing site",
+                "description": "Update the specified site in storage.",
+                "operationId": "c3015a0e584490e7657e48f6080151a5",
+                "parameters": [
+                    {
+                        "name": "site",
+                        "in": "path",
+                        "description": "The site ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateSiteRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Site updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SiteSchema"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Site not found"
+                    },
+                    "422": {
+                        "description": "Validation failed"
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    },
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Sites"
+                ],
+                "summary": "Delete site",
+                "description": "Remove the specified site from storage.",
+                "operationId": "b1c78bebaff88b90ddea188faf446ded",
+                "parameters": [
+                    {
+                        "name": "site",
+                        "in": "path",
+                        "description": "The site ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Site deleted successfully"
+                    },
+                    "404": {
+                        "description": "Site not found"
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    },
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/sites/{site}/history": {
+            "get": {
+                "tags": [
+                    "Sites"
+                ],
+                "summary": "Get aggregated check history for a site",
+                "description": "Returns hourly aggregated stats (avg response time, uptime %) and a list of individual \"down\" incidents for the given ISO week. Defaults to the current week if no `week` param is provided. For past weeks (older than 7 days), data is served from the weekly archive.",
+                "operationId": "3b0b3e7ba2b9fba26b264a12dcfd67ad",
+                "parameters": [
+                    {
+                        "name": "site",
+                        "in": "path",
+                        "description": "The site ID",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "example": 1
+                        }
+                    },
+                    {
+                        "name": "week",
+                        "in": "query",
+                        "description": "ISO-8601 week string (e.g. 2024-W15). Defaults to the current week.",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "2024-W15"
+                        }
+                    },
+                    {
+                        "name": "configuration_id",
+                        "in": "query",
+                        "description": "Filter results to a single check configuration.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "example": 3
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Aggregated history returned",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/SiteHistorySchema"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthenticated"
+                    },
+                    "404": {
+                        "description": "Site not found"
+                    },
+                    "422": {
+                        "description": "Validation error (invalid week format)"
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    },
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
@@ -324,6 +534,86 @@
                         "type": "string",
                         "format": "date-time",
                         "nullable": true
+                    }
+                },
+                "type": "object"
+            },
+            "HistoryIncident": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 123,
+                        "nullable": true
+                    },
+                    "configuration_id": {
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "status": {
+                        "type": "string",
+                        "example": "down"
+                    },
+                    "response_time_ms": {
+                        "type": "integer",
+                        "example": null,
+                        "nullable": true
+                    },
+                    "error_message": {
+                        "type": "string",
+                        "example": "Connection timeout",
+                        "nullable": true
+                    },
+                    "metadata": {
+                        "type": "object",
+                        "nullable": true
+                    },
+                    "checked_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2024-04-07T10:15:22"
+                    }
+                },
+                "type": "object"
+            },
+            "HistoryStatBucket": {
+                "properties": {
+                    "timestamp": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2024-04-07T10:00:00+00:00"
+                    },
+                    "avg_response_time": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 142.5
+                    },
+                    "uptime_percentage": {
+                        "type": "number",
+                        "format": "float",
+                        "example": 98.33
+                    },
+                    "count": {
+                        "type": "integer",
+                        "example": 60
+                    }
+                },
+                "type": "object"
+            },
+            "SiteHistorySchema": {
+                "properties": {
+                    "stats": {
+                        "description": "Hourly aggregated check data for graphing",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/HistoryStatBucket"
+                        }
+                    },
+                    "incidents": {
+                        "description": "Individual \"down\" events for incident markers on the chart",
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/HistoryIncident"
+                        }
                     }
                 },
                 "type": "object"
@@ -513,6 +803,53 @@
                         "type": "array",
                         "items": {
                             "properties": {
+                                "check_type_id": {
+                                    "type": "integer",
+                                    "example": 1
+                                },
+                                "params": {
+                                    "type": "object",
+                                    "example": {
+                                        "keyword": "test"
+                                    },
+                                    "nullable": true
+                                }
+                            },
+                            "type": "object"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "UpdateSiteRequest": {
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "example": "Example Site Updated"
+                    },
+                    "url": {
+                        "type": "string",
+                        "format": "url",
+                        "example": "https://example-updated.com"
+                    },
+                    "update_interval": {
+                        "description": "Interval in seconds",
+                        "type": "integer",
+                        "example": 300
+                    },
+                    "is_active": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "checks": {
+                        "type": "array",
+                        "items": {
+                            "properties": {
+                                "id": {
+                                    "description": "Existing configuration ID to update, if provided",
+                                    "type": "integer",
+                                    "example": 1
+                                },
                                 "check_type_id": {
                                     "type": "integer",
                                     "example": 1

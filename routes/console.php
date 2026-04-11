@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('app:schedule-checks')->everyMinute();
+Schedule::command('app:archive-check-results')->dailyAt('01:00');

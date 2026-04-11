@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class CheckResult extends Model
+class CheckResultArchive extends Model
 {
     use HasFactory;
 
@@ -14,21 +14,19 @@ class CheckResult extends Model
     protected $fillable = [
         'site_id',
         'configuration_id',
-        'status',
-        'response_time_ms',
-        'error_message',
-        'metadata',
-        'checked_at',
+        'year',
+        'week',
+        'data',
+        'size_bytes',
     ];
 
     /** @var array<string, string> */
     protected $casts = [
-        'metadata' => 'array',
-        'checked_at' => 'datetime',
+        'data' => 'array',
     ];
 
     /**
-     * @return BelongsTo<Site, CheckResult>
+     * @return BelongsTo<Site, CheckResultArchive>
      */
     public function site(): BelongsTo
     {
@@ -36,7 +34,7 @@ class CheckResult extends Model
     }
 
     /**
-     * @return BelongsTo<SiteCheckConfiguration, CheckResult>
+     * @return BelongsTo<SiteCheckConfiguration, CheckResultArchive>
      */
     public function configuration(): BelongsTo
     {
