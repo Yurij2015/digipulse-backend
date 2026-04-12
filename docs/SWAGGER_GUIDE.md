@@ -93,7 +93,7 @@ You're now authenticated and can test protected endpoints!
 
 Click on the "Schema" tab (next to "Example Value") to see:
 - All available fields
-- Data types (string, boolean, integer, etc.)
+- Data types (`string`, `boolean`, `integer`, etc.)
 - Required vs. optional fields
 - Validation rules
 - Descriptions

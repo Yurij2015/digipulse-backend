@@ -60,7 +60,28 @@ To test if Laravel can talk to Redis at all:
 
 2. Check the **Key Browser** in RedisInsight. If you see `test_connection`, the connection is working.
 
-## 3. Monitor Logs (Go)
+## 3. Laravel Scheduler & Queue
+
+### Scheduler (Critical for Monitoring)
+
+The scheduler triggers the site checks every minute. In production, this is handled by CRON, but in development, you should run:
+
+```bash
+./vendor/bin/sail artisan schedule:work
+```
+
+### Queue Worker
+
+While real-time monitoring results are dispatched via Pub/Sub, other background tasks (like email alerts) use the standard Laravel Queue:
+
+```bash
+./vendor/bin/sail artisan queue:work
+```
+
+* **Purpose**: `schedule:work` triggers tasks, `queue:work` processes background jobs.
+* **Telescope Connection**: Monitor both in **Telescope -> Commands** and **Telescope -> Jobs**.
+
+## 4. Monitor Logs (Go)
 
 The Go-based monitor service logs its activity to the Docker stdout.
 
