@@ -13,11 +13,13 @@ class CheckResultSchema
     {
         return $schema
             ->components([
-                TextInput::make('site.url')
+                TextInput::make('site_url')
                     ->label('Site URL')
+                    ->afterStateHydrated(fn ($component, $record) => $component->state($record?->site?->url))
                     ->disabled(),
-                TextInput::make('configuration.checkType.name')
+                TextInput::make('check_type_name')
                     ->label('Check Type')
+                    ->afterStateHydrated(fn ($component, $record) => $component->state($record?->configuration?->checkType?->name))
                     ->disabled(),
                 TextInput::make('status')
                     ->disabled(),
@@ -30,11 +32,13 @@ class CheckResultSchema
                 TextInput::make('error_message')
                     ->label('Error Message')
                     ->disabled()
-                    ->columnSpanFull(),
+                    ->columnSpanFull()
+                    ->visible(fn ($record) => !empty($record?->error_message)),
                 KeyValue::make('metadata')
                     ->label('Metadata')
                     ->disabled()
-                    ->columnSpanFull(),
+                    ->columnSpanFull()
+                    ->visible(fn ($record) => !empty($record?->metadata)),
             ]);
     }
 }
