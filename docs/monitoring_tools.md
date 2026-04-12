@@ -1,50 +1,57 @@
 # Monitoring & Inspection Tools
 
-DigiPulse includes several tools to help you monitor the system's state, debug issues, and inspect Redis queues.
+DigiPulse includes several tools to help you monitor the system's state, debug issues, and inspect real-time events.
 
 ## 1. Laravel Telescope
 
 Telescope provides a beautiful dashboard for debugging your Laravel application. It records all requests, commands, Redis interactions, and more.
 
 * **Local URL**: [http://localhost/telescope](http://localhost/telescope)
-* **Purpose**: Inspecting commands sent from Laravel to Redis (Scheduler), API requests, and application logs.
+* **Purpose**: Inspecting commands sent from Laravel to Redis, incoming API requests (results from Go), and application logs.
 * **Documentation**: [Laravel Telescope Docs](https://laravel.com/docs/telescope)
 
-## 2. RedisInsight
+## 2. RedisInsight (Pub/Sub Mode)
 
-RedisInsight is a powerful visualization tool for managing and optimizing data in Redis.
+We use **Redis Pub/Sub** for real-time task dispatching. This means tasks do NOT stay in Redis; they are broadcast and processed instantly.
 
 * **Local URL**: [http://localhost:8001](http://localhost:8001)
-* **Purpose**: Visualizing the state of Redis keys, monitoring queue lengths, and inspecting task payloads.
+* **Purpose**: Visualizing live task broadcasts and verifying connectivity.
 * **Connection Details**:
-  * **Host**: `redis` (or `digipulse-redis` depending on your compose config)
+  * **Host**: `redis`
   * **Port**: `6379`
   * **Database**: `0`
-* **Documentation**: [RedisInsight Docs](https://redis.io/docs/latest/develop/tools/insight/)
+
+### How to Monitor Live Tasks (Pub/Sub)
+Since tasks are no longer stored as Lists, the standard Key Browser will be empty. To see activity:
+1. Open RedisInsight and click the **Pub/Sub** icon in the sidebar.
+2. Click **Add Subscription**.
+3. Channel name: `laravel_database_monitoring:tasks` (or check `monitoring:tasks`).
+4. Click **Subscribe**.
+5. When the Laravel scheduler runs, you will see JSON payloads appearing in this window in real-time.
 
 ### Verifying Connection
-
-If you see an empty database, it might be because tasks are processed too fast. To test the connection:
-
-1. Run this command to set a persistent test key:
-
+To test if Laravel can talk to Redis at all:
+1. Run this command:
    ```bash
-   ./vendor/bin/sail artisan tinker --execute="\Illuminate\Support\Facades\Redis::set('test_connection', 'hello_from_laravel')"
+   ./vendor/bin/sail artisan tinker --execute="\Illuminate\Support\Facades\Redis::set('test_connection', 'hello')"
    ```
-
-2. Click **Refresh** in RedisInsight. You should see the `test_connection` key.
+2. Check the **Key Browser** in RedisInsight. If you see `test_connection`, the connection is working.
 
 ## 3. Monitor Logs (Go)
 
 The Go-based monitor service logs its activity to the Docker stdout.
 
 * **Command**: `vendor/bin/sail logs -f monitor`
-* **Purpose**: Seeing real-time task processing and reporting results back to the API.
+* **Purpose**: Seeing real-time task reception, execution, and reporting.
 
 ---
 
-### How to use these together for debugging
+### How to use these together for debugging (The Flow)
 
-1. **Telescope**: Verify that `app:schedule-checks` pushed a command to Redis.
-2. **RedisInsight**: Check if the task is sitting in the `laravel-database-monitoring:tasks` list.
-3. **Monitor Logs**: Confirm that the worker picked up the task and completed the check.
+1.  **Laravel Schedule**: Check **Telescope -> Commands** to see if `app:schedule-checks` executed.
+2.  **Redis Broadcast**: Use **RedisInsight -> Pub/Sub** to see if the message was published.
+3.  **Go Worker**: Check **Worker Logs** to see if it received the message.
+4.  **Result Reporting**:
+    *   **Go Logs**: Should say `Successfully reported result`.
+    *   **Telescope -> Requests**: Should show a `POST /api/internal/results` with a `200` status.
+5.  **Database**: Check the **Sites Dashboard** in the browser to see the updated status.
