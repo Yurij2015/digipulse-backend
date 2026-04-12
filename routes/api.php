@@ -21,6 +21,6 @@ Route::middleware(['frontend.key'])->group(function () {
     });
 });
 
-Route::prefix('internal')->middleware(InternalMonitorMiddleware::class)->group(function () {
-    Route::post('/results', [InternalCheckResultController::class, 'store'])->name('internal.results.store');
+Route::prefix('webhooks')->name('webhooks.')->middleware(InternalMonitorMiddleware::class)->group(function () {
+    Route::post('/results', [InternalCheckResultController::class, 'store'])->name('results');
 });
