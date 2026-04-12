@@ -66,9 +66,21 @@ class SiteHistoryController extends Controller
      */
     public function index(Request $request, Site $site): SiteHistoryResource
     {
+        if ($site->user_id !== $request->user()->id) {
+            abort(404);
+        }
+
         $validated = $request->validate([
             'week' => ['nullable', 'string', 'regex:/^\d{4}-W\d{2}$/'],
-            'configuration_id' => ['nullable', 'exists:site_check_configurations,id'],
+            'configuration_id' => [
+                'nullable',
+                'exists:site_check_configurations,id',
+                function ($attribute, $value, $fail) use ($site) {
+                    if ($value && ! $site->configurations()->where('id', $value)->exists()) {
+                        $fail('The selected configuration does not belong to this site.');
+                    }
+                },
+            ],
         ]);
 
         $weekStr = $validated['week'] ?? now()->format('o-\WW');
@@ -84,6 +96,11 @@ class SiteHistoryController extends Controller
             $data = $this->getLiveData($site, $year, $week, $validated['configuration_id'] ?? null);
         } else {
             $data = $this->getArchivedData($site, $year, $week, $validated['configuration_id'] ?? null);
+
+            // Fallback to live data if archive is empty (useful for testing or recent history not yet archived)
+            if (empty($data['stats'])) {
+                $data = $this->getLiveData($site, $year, $week, $validated['configuration_id'] ?? null);
+            }
         }
 
         return new SiteHistoryResource($data);
