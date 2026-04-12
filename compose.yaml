@@ -80,6 +80,9 @@ services:
       - '../monitor:/app'
     env_file:
       - ../monitor/.env
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     networks:
       - sail
     depends_on:
