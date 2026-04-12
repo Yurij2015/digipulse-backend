@@ -49,6 +49,8 @@ To see all scheduled tasks and when they are next due to run, use:
 
 The Go-based monitor service is integrated into the main `compose.yaml`. This means it starts automatically when you run:
 
+For technical details on how each type of check (HTTP, SSL, etc.) is implemented, see the [Checkers Documentation](checkers.md).
+
 ```bash
 ./vendor/bin/sail up -d
 ```

@@ -46,6 +46,7 @@ Boost provides your agent 15+ tools and skills that help agents build Laravel ap
 - [Testing](docs/testing.md) - How to run tests in different environments.
 - [Scheduling](docs/scheduling.md) - How automated checks are scheduled and executed.
 - [Monitoring & Inspection Tools](docs/monitoring_tools.md) - How to use Telescope and RedisInsight.
+- [Verification Methods (Checkers)](docs/checkers.md) - Technical details of how site checks are performed.
 
 
 ## Contributing
