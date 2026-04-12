@@ -162,7 +162,7 @@ The changes will be immediately available in Swagger UI (refresh the page).
 
 **Problem:** Token not accepted  
 **Solution:**
-- Ensure you include `Bearer ` prefix (with space)
+- Ensure you include the `Bearer` prefix (followed by a space)
 - Check token is valid and not expired
 - Verify `X-Frontend-Key` is correct
 
