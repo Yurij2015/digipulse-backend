@@ -40,7 +40,9 @@ class ScheduleChecks extends Command
                 'scheduled_at' => now()->toIso8601String(),
             ], JSON_THROW_ON_ERROR);
 
-            Redis::lpush('monitoring:tasks', $payload);
+            Redis::publish('monitoring:tasks', $payload);
+
+            $config->update(['last_checked_at' => now()]);
 
             $config->checkType->slug
                 |> strtoupper(...)
