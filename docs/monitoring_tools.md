@@ -22,19 +22,42 @@ We use **Redis Pub/Sub** for real-time task dispatching. This means tasks do NOT
   * **Database**: `0`
 
 ### How to Monitor Live Tasks (Pub/Sub)
+
 Since tasks are no longer stored as Lists, the standard Key Browser will be empty. To see activity:
+
 1. Open RedisInsight and click the **Pub/Sub** icon in the sidebar.
 2. Click **Add Subscription**.
 3. Channel name: `laravel_database_monitoring:tasks` (or check `monitoring:tasks`).
 4. Click **Subscribe**.
 5. When the Laravel scheduler runs, you will see JSON payloads appearing in this window in real-time.
 
+### Advanced: Redis Workbench (CLI)
+
+If you prefer the command line within RedisInsight:
+
+1. Open **Workbench**.
+2. Run the command to subscribe to all events:
+
+   ```bash
+   PSUBSCRIBE *
+   ```
+
+3. To trigger immediate activity, run the scheduler manually in your terminal:
+
+   ```bash
+   ./vendor/bin/sail artisan app:schedule-checks
+   ```
+
 ### Verifying Connection
+
 To test if Laravel can talk to Redis at all:
+
 1. Run this command:
+
    ```bash
    ./vendor/bin/sail artisan tinker --execute="\Illuminate\Support\Facades\Redis::set('test_connection', 'hello')"
    ```
+
 2. Check the **Key Browser** in RedisInsight. If you see `test_connection`, the connection is working.
 
 ## 3. Monitor Logs (Go)
@@ -48,10 +71,10 @@ The Go-based monitor service logs its activity to the Docker stdout.
 
 ### How to use these together for debugging (The Flow)
 
-1.  **Laravel Schedule**: Check **Telescope -> Commands** to see if `app:schedule-checks` executed.
-2.  **Redis Broadcast**: Use **RedisInsight -> Pub/Sub** to see if the message was published.
-3.  **Go Worker**: Check **Worker Logs** to see if it received the message.
-4.  **Result Reporting**:
-    *   **Go Logs**: Should say `Successfully reported result`.
-    *   **Telescope -> Requests**: Should show a `POST /api/internal/results` with a `200` status.
-5.  **Database**: Check the **Sites Dashboard** in the browser to see the updated status.
+1. **Laravel Schedule**: Check **Telescope -> Commands** to see if `app:schedule-checks` executed.
+2. **Redis Broadcast**: Use **RedisInsight -> Pub/Sub** to see if the message was published.
+3. **Go Worker**: Check **Worker Logs** to see if it received the message.
+4. **Result Reporting**:
+   * **Go Logs**: Should say `Successfully reported result`.
+   * **Telescope -> Requests**: Should show a `POST /api/internal/results` with a `200` status.
+5. **Database**: Check the **Sites Dashboard** in the browser to see the updated status.
