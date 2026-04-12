@@ -22,7 +22,7 @@ class CheckResultResource extends JsonResource
             'error_message' => data_get($this->resource, 'error_message'),
             'metadata' => data_get($this->resource, 'metadata'),
             'checked_at' => data_get($this->resource, 'checked_at') instanceof Carbon
-                ? data_get($this->resource, 'checked_at')->toDateTimeString()
+                ? data_get($this->resource, 'checked_at')->toIso8601String()
                 : data_get($this->resource, 'checked_at'),
         ];
     }

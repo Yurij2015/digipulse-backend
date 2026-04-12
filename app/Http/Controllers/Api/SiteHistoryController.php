@@ -71,14 +71,14 @@ class SiteHistoryController extends Controller
             'configuration_id' => ['nullable', 'exists:site_check_configurations,id'],
         ]);
 
-        $weekStr = $validated['week'] ?? now()->format('Y-\WW');
+        $weekStr = $validated['week'] ?? now()->format('o-\WW');
 
         [$year, $weekPart] = explode('-W', $weekStr);
         $year = (int)$year;
         $week = (int)$weekPart;
 
         // Determine if it's the current ISO week
-        $isCurrentWeek = $weekStr === now()->format('Y-\WW');
+        $isCurrentWeek = $weekStr === now()->format('o-\WW');
 
         if ($isCurrentWeek) {
             $data = $this->getLiveData($site, $year, $week, $validated['configuration_id'] ?? null);
@@ -118,7 +118,9 @@ class SiteHistoryController extends Controller
             ->map(fn($row) => [
                 'timestamp' => Carbon::parse($row->hour)->toIso8601String(),
                 'avg_response_time' => round((float)$row->avg_response_time, 2),
+                'response_time' => round((float)$row->avg_response_time, 2), // Alias for frontend
                 'uptime_percentage' => round(($row->up_checks / $row->total_checks) * 100, 2),
+                'uptime' => round(($row->up_checks / $row->total_checks) * 100, 2), // Alias for frontend
                 'count' => $row->total_checks,
             ]);
 
@@ -163,7 +165,9 @@ class SiteHistoryController extends Controller
                 return [
                     'timestamp' => $hour,
                     'avg_response_time' => round((float)$avgResponse, 2),
+                    'response_time' => round((float)$avgResponse, 2), // Alias
                     'uptime_percentage' => round(($upCount / $totalCount) * 100, 2),
+                    'uptime' => round(($upCount / $totalCount) * 100, 2), // Alias
                     'count' => $totalCount,
                 ];
             })
