@@ -100,10 +100,12 @@ services:
   monitor:
     build:
       context: ../monitor
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: monitor-service
     ports:
       - '${FORWARD_MONITOR_PORT:-8081}:8080'
+    volumes:
+      - '../monitor:/app'
     env_file:
       - ../monitor/.env
     networks:

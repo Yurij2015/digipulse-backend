@@ -61,11 +61,31 @@ To see what the monitor service is doing in real-time:
 ./vendor/bin/sail logs -f monitor
 ```
 
+## Development & Hot-Reloading (Go)
+
+The monitor service supports **Hot-Reloading** using [Air](https://github.com/air-verse/air), so you don't need to restart Docker when changing Go code.
+
+### How it Works
+
+1. **Shared Volume**: The `../monitor` directory is mounted into the container at `/app`.
+2. **Live Watcher**: The container uses `Dockerfile.dev` which runs `air`.
+3. **Auto Rebuild**: When you save any `.go` file in the `monitor` directory, the service automatically recompiles and restarts within seconds.
+
+### Troubleshooting Hot-Reload
+
+* **View rebuild status**: Use `./vendor/bin/sail logs -f monitor`. You will see `main.go has changed` and `building...` messages.
+* **Dependency changes**: If you add new packages via `go get` or change `go.mod`, you must rebuild the container:
+
+    ```bash
+    ./vendor/bin/sail up -d --build monitor
+    ```
+
 ## Inspecting Redis
 
 If the scheduling command is working but checks aren't being processed, check the state of Redis.
 
 ### Checking the Task Queue
+
 To see if there are tasks waiting in the queue:
 
 ```bash
