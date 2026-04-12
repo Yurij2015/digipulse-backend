@@ -51,8 +51,9 @@ class ConfigurationsRelationManager extends RelationManager
                 TextColumn::make('last_status')
                     ->badge()
                     ->color(fn (?string $state): string => match ($state) {
-                        'success' => 'success',
-                        'error' => 'danger',
+                        'up' => 'success',
+                        'down' => 'danger',
+                        'slow' => 'warning',
                         default => 'gray',
                     }),
                 TextColumn::make('last_checked_at')

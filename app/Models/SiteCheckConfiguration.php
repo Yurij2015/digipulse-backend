@@ -29,9 +29,9 @@ class SiteCheckConfiguration extends Model
         return $this->belongsTo(CheckType::class);
     }
 
-    public function checks(): HasMany
+    public function results(): HasMany
     {
-        return $this->hasMany(Check::class, 'site_check_configuration_id');
+        return $this->hasMany(CheckResult::class, 'configuration_id');
     }
 
     /**

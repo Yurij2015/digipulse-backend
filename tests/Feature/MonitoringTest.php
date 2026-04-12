@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Check;
+use App\Models\CheckResult;
 use App\Models\CheckType;
 use App\Models\Site;
 use App\Models\SiteCheckConfiguration;
@@ -36,13 +36,15 @@ it('can create a site with check configurations', function () {
 it('can record a check result', function () {
     $config = SiteCheckConfiguration::factory()->create();
 
-    $check = Check::factory()->create([
-        'site_check_configuration_id' => $config->id,
-        'is_successful' => true,
-        'response_time' => 250,
+    $check = CheckResult::create([
+        'site_id' => $config->site_id,
+        'configuration_id' => $config->id,
+        'status' => 'up',
+        'response_time_ms' => 250,
+        'checked_at' => now(),
     ]);
 
-    expect($config->refresh()->checks)->toHaveCount(1);
-    expect($config->checks->first()->is_successful)->toBeTrue();
-    expect($config->checks->first()->response_time)->toBe(250);
+    expect($config->refresh()->results)->toHaveCount(1);
+    expect($config->results->first()->status)->toBe('up');
+    expect($config->results->first()->response_time_ms)->toBe(250);
 });
