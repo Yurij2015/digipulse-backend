@@ -41,13 +41,11 @@ php artisan boost:install
 
 Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
 
-## Testing
+## Documentation
 
-For information on how to run tests in different environments, please refer to the [Testing Documentation](TESTING.md).
-
-## Scheduling
-
-For information on how automated monitoring checks are scheduled and how to run the scheduler locally, please refer to the [Scheduling Documentation](SCHEDULING.md).
+- [Testing](docs/testing.md) - How to run tests in different environments.
+- [Scheduling](docs/scheduling.md) - How automated checks are scheduled and executed.
+- [Monitoring & Inspection Tools](docs/monitoring_tools.md) - How to use Telescope and RedisInsight.
 
 
 ## Contributing

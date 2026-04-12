@@ -106,6 +106,6 @@ In a production environment, you should not use `schedule:work`. Instead, a stan
 
 ## Troubleshooting
 
-- **Checks not triggering:** Ensure `./vendor/bin/sail artisan schedule:work` is running.
-- **Queue not processing:** Ensure the `monitor-service` container is running (`sail ps`).
-- **Check Intervals:** Sites are only picked up if their `last_checked_at` is older than the site's `update_interval`.
+* **Checks not triggering:** Ensure `./vendor/bin/sail artisan schedule:work` is running.
+* **Queue not processing:** Ensure the `monitor-service` container is running (`sail ps`).
+* **Check Intervals:** Sites are only picked up if their `last_checked_at` is older than the site's `update_interval`.

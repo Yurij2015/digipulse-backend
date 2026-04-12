@@ -85,6 +85,15 @@ services:
     depends_on:
       - redis
       - laravel.digipulse
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: digipulse-redisinsight
+    ports:
+      - '8001:5540'
+    networks:
+      - sail
+    depends_on:
+      - redis
 networks:
   sail:
     driver: bridge
