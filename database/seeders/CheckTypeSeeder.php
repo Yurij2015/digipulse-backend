@@ -20,12 +20,6 @@ class CheckTypeSeeder extends Seeder
                 'icon' => 'heroicon-o-globe-alt',
             ],
             [
-                'name' => 'Keyword Presence',
-                'slug' => 'keyword',
-                'description' => 'Checks if specific text exists on the page. Simple content verification.',
-                'icon' => 'heroicon-o-magnifying-glass',
-            ],
-            [
                 'name' => 'SSL Certificate',
                 'slug' => 'ssl',
                 'description' => 'Monitors SSL certificate validity and upcoming expiration.',
