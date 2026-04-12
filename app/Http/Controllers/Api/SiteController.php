@@ -10,6 +10,7 @@ use App\Models\Site;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use OpenApi\Attributes as OA;
 
@@ -34,11 +35,22 @@ class SiteController extends Controller
     /**
      * Display a listing of the user's sites.
      */
-    public function index(Request $request): AnonymousResourceCollection
+    public function index(Request $request): array
     {
-        return SiteResource::collection(
-            $request->user()->sites()->with('configurations.checkType')->latest()->get()
-        );
+        $userId = $request->user()->id;
+        $cacheKey = "user_sites_v3:{$userId}";
+
+        return Cache::remember($cacheKey, 60, function () use ($request) {
+            $sites = $request->user()->sites()
+                ->with('configurations.checkType')
+                ->latest()
+                ->get();
+
+            $data = SiteResource::collection($sites)->resolve();
+
+            // Force deep conversion to plain arrays to avoid serialization issues with nested resources/carbon
+            return json_decode(json_encode($data, JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR);
+        });
     }
 
     #[OA\Post(
@@ -82,6 +94,8 @@ class SiteController extends Controller
                 }
             }
 
+            self::clearUserSitesCache($request->user()->id);
+
             return new SiteResource($site->load('configurations.checkType'));
         });
     }
@@ -89,13 +103,13 @@ class SiteController extends Controller
     #[OA\Get(
         path: '/api/sites/{site}',
         summary: 'Get site record',
-        tags: ['Sites'],
         security: [['frontendKey' => []], ['bearerAuth' => []]],
+        tags: ['Sites'],
         parameters: [
             new OA\Parameter(
                 name: 'site',
-                in: 'path',
                 description: 'The site ID',
+                in: 'path',
                 required: true,
                 schema: new OA\Schema(type: 'integer')
             ),
@@ -160,6 +174,7 @@ class SiteController extends Controller
     )]
     /**
      * Update the specified site in storage.
+     * @throws \Throwable
      */
     public function update(UpdateSiteRequest $request, Site $site): SiteResource
     {
@@ -189,6 +204,8 @@ class SiteController extends Controller
                 $site->configurations()->whereNotIn('id', $updatedCheckIds)->delete();
             }
 
+            self::clearUserSitesCache($request->user()->id);
+
             return new SiteResource($site->load('configurations.checkType'));
         });
     }
@@ -196,13 +213,13 @@ class SiteController extends Controller
     #[OA\Delete(
         path: '/api/sites/{site}',
         summary: 'Delete site',
-        tags: ['Sites'],
         security: [['frontendKey' => []], ['bearerAuth' => []]],
+        tags: ['Sites'],
         parameters: [
             new OA\Parameter(
                 name: 'site',
-                in: 'path',
                 description: 'The site ID',
+                in: 'path',
                 required: true,
                 schema: new OA\Schema(type: 'integer')
             ),
@@ -227,8 +244,20 @@ class SiteController extends Controller
             abort(404);
         }
 
+        $userId = $site->user_id;
+
         $site->delete();
 
+        self::clearUserSitesCache($userId);
+
         return response()->noContent();
+    }
+
+    /**
+     * Clear the site cache for a specific user.
+     */
+    public static function clearUserSitesCache(int $userId): void
+    {
+        Cache::forget("user_sites_v3:{$userId}");
     }
 }

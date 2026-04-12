@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Internal;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\SiteController;
 use App\Models\CheckResult;
 use App\Models\SiteCheckConfiguration;
 use Illuminate\Http\JsonResponse;
@@ -13,6 +14,7 @@ class InternalCheckResultController extends Controller
 {
     /**
      * Store a new check result from the monitor service.
+     * @throws \Throwable
      */
     public function store(Request $request): JsonResponse
     {
@@ -24,7 +26,7 @@ class InternalCheckResultController extends Controller
             'metadata' => ['nullable', 'array'],
         ]);
 
-        $config = SiteCheckConfiguration::findOrFail($validated['configuration_id']);
+        $config = SiteCheckConfiguration::with('site')->findOrFail($validated['configuration_id']);
 
         DB::transaction(function () use ($config, $validated) {
             // Update the configuration status
@@ -44,6 +46,9 @@ class InternalCheckResultController extends Controller
                 'checked_at' => now(),
             ]);
         });
+
+        // Invalidate the site cache for the user who owns the site
+        SiteController::clearUserSitesCache($config->site->user_id);
 
         return response()->json(['success' => true]);
     }

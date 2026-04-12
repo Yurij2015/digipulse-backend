@@ -26,6 +26,6 @@ class Site extends Model
 
     public function checks(): HasManyThrough
     {
-        return $this->hasManyThrough(Check::class, SiteCheckConfiguration::class);
+        return $this->hasManyThrough(CheckResult::class, SiteCheckConfiguration::class);
     }
 }

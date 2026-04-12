@@ -21,9 +21,9 @@ class CheckResultResource extends JsonResource
             'response_time_ms' => data_get($this->resource, 'response_time_ms'),
             'error_message' => data_get($this->resource, 'error_message'),
             'metadata' => data_get($this->resource, 'metadata'),
-            'checked_at' => data_get($this->resource, 'checked_at') instanceof Carbon
-                ? data_get($this->resource, 'checked_at')->toIso8601String()
-                : data_get($this->resource, 'checked_at'),
+            'checked_at' => ($checkedAt = data_get($this->resource, 'checked_at'))
+                ? ($checkedAt instanceof Carbon ? $checkedAt : \Illuminate\Support\Carbon::parse($checkedAt))->toIso8601String()
+                : null,
         ];
     }
 }

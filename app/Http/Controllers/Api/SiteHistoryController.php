@@ -9,6 +9,7 @@ use App\Models\CheckResultArchive;
 use App\Models\Site;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use OpenApi\Attributes as OA;
 
@@ -16,29 +17,29 @@ class SiteHistoryController extends Controller
 {
     #[OA\Get(
         path: '/api/sites/{site}/history',
-        summary: 'Get aggregated check history for a site',
         description: 'Returns hourly aggregated stats (avg response time, uptime %) and a list of individual "down" incidents for the given ISO week. Defaults to the current week if no `week` param is provided. For past weeks (older than 7 days), data is served from the weekly archive.',
+        summary: 'Get aggregated check history for a site',
         security: [['frontendKey' => []], ['bearerAuth' => []]],
         tags: ['Sites'],
         parameters: [
             new OA\Parameter(
                 name: 'site',
-                in: 'path',
                 description: 'The site ID',
+                in: 'path',
                 required: true,
                 schema: new OA\Schema(type: 'integer', example: 1)
             ),
             new OA\Parameter(
                 name: 'week',
-                in: 'query',
                 description: 'ISO-8601 week string (e.g. 2024-W15). Defaults to the current week.',
+                in: 'query',
                 required: false,
                 schema: new OA\Schema(type: 'string', example: '2024-W15')
             ),
             new OA\Parameter(
                 name: 'configuration_id',
-                in: 'query',
                 description: 'Filter results to a single check configuration.',
+                in: 'query',
                 required: false,
                 schema: new OA\Schema(type: 'integer', example: 3)
             ),
@@ -84,30 +85,37 @@ class SiteHistoryController extends Controller
         ]);
 
         $weekStr = $validated['week'] ?? now()->format('o-\WW');
+        $configId = $validated['configuration_id'] ?? null;
 
-        [$year, $weekPart] = explode('-W', $weekStr);
-        $year = (int)$year;
-        $week = (int)$weekPart;
-
-        // Determine if it's the current ISO week
+        // Cache parameters: 1 min for current week (live data), 24h for past weeks (static archives)
         $isCurrentWeek = $weekStr === now()->format('o-\WW');
+        $ttl = $isCurrentWeek ? 60 : 86400;
+        $cacheKey = "site_history_v4:{$site->id}:{$weekStr}" . ($configId ? ":{$configId}" : "");
 
-        if ($isCurrentWeek) {
-            $data = $this->getLiveData($site, $year, $week, $validated['configuration_id'] ?? null);
-        } else {
-            $data = $this->getArchivedData($site, $year, $week, $validated['configuration_id'] ?? null);
+        $data = Cache::remember($cacheKey, $ttl, function () use ($site, $weekStr, $configId, $isCurrentWeek) {
+            [$year, $weekPart] = explode('-W', $weekStr);
+            $year = (int)$year;
+            $week = (int)$weekPart;
+
+            if ($isCurrentWeek) {
+                return $this->getLiveData($site, $year, $week, $configId);
+            }
+
+            $data = $this->getArchivedData($site, $year, $week, $configId);
 
             // Fallback to live data if archive is empty (useful for testing or recent history not yet archived)
             if (empty($data['stats'])) {
-                $data = $this->getLiveData($site, $year, $week, $validated['configuration_id'] ?? null);
+                return $this->getLiveData($site, $year, $week, $configId);
             }
-        }
+
+            return $data;
+        });
 
         return new SiteHistoryResource($data);
     }
 
     /**
-     * Fetch and aggregate data from live CheckResult table.
+     * Fetch and aggregate data from the live CheckResult table.
      */
     private function getLiveData(Site $site, int $year, int $week, ?int $configId): array
     {
@@ -139,18 +147,20 @@ class SiteHistoryController extends Controller
                 'uptime_percentage' => round(($row->up_checks / $row->total_checks) * 100, 2),
                 'uptime' => round(($row->up_checks / $row->total_checks) * 100, 2), // Alias for frontend
                 'count' => $row->total_checks,
-            ]);
+            ])
+            ->toArray();
 
         // Incidents
         $incidents = $query->where('status', 'down')
             ->orderBy('checked_at', 'desc')
-            ->get();
+            ->get()
+            ->toArray();
 
         return compact('stats', 'incidents');
     }
 
     /**
-     * Fetch and aggregate data from CheckResultArchive table.
+     * Fetch and aggregate data from the CheckResultArchive table.
      */
     private function getArchivedData(Site $site, int $year, int $week, ?int $configId): array
     {
@@ -190,11 +200,13 @@ class SiteHistoryController extends Controller
             })
             ->values()
             ->sortBy('timestamp')
-            ->values();
+            ->values()
+            ->toArray();
 
         $incidents = $allData->where('status', 'down')
             ->sortByDesc('checked_at')
-            ->values();
+            ->values()
+            ->toArray();
 
         return ['stats' => $stats, 'incidents' => $incidents];
     }
