@@ -37,10 +37,11 @@ class ScheduleChecks extends Command
                 'url' => $config->site->url,
                 'type' => $config->checkType->slug,
                 'params' => $config->params,
+                'update_interval' => $config->site->update_interval,
                 'scheduled_at' => now()->toIso8601String(),
             ], JSON_THROW_ON_ERROR);
 
-            Redis::publish('monitoring:tasks', $payload);
+            Redis::lpush('monitoring:tasks', $payload);
 
             $config->update(['last_checked_at' => now()]);
 

@@ -10,26 +10,30 @@ Telescope provides a beautiful dashboard for debugging your Laravel application.
 * **Purpose**: Inspecting commands sent from Laravel to Redis, incoming API requests (results from Go), and application logs.
 * **Documentation**: [Laravel Telescope Docs](https://laravel.com/docs/telescope)
 
-## 2. RedisInsight (Pub/Sub Mode)
+## 2. Redis Key Browser (Queue Mode)
 
-We use **Redis Pub/Sub** for real-time task dispatching. This means tasks do NOT stay in Redis; they are broadcast and processed instantly.
+We use **Redis Lists** as a mission-critical job queue. Tasks are added to the queue by Laravel and popped by Go workers.
 
 * **Local URL**: [http://localhost:8001](http://localhost:8001)
-* **Purpose**: Visualizing live task broadcasts and verifying connectivity.
-* **Connection Details**:
-  * **Host**: `redis`
-  * **Port**: `6379`
-  * **Database**: `0`
+* **Key Name**: `laravel_database_monitoring:tasks`
+* **Purpose**: Inspecting pending tasks and verifying connection strings.
 
-### How to Monitor Live Tasks (Pub/Sub)
+### How to Monitor Tasks (Queue)
 
-Since tasks are no longer stored as Lists, the standard Key Browser will be empty. To see activity:
+Since tasks are processed almost instantly by the Go worker, the queue should ideally be empty or have very few items. To see activity:
 
-1. Open RedisInsight and click the **Pub/Sub** icon in the sidebar.
-2. Click **Add Subscription**.
-3. Channel name: `laravel_database_monitoring:tasks` (or check `monitoring:tasks`).
-4. Click **Subscribe**.
-5. When the Laravel scheduler runs, you will see JSON payloads appearing in this window in real-time.
+1. Open RedisInsight and go to the **Key Browser**.
+2. Find the key `laravel_database_monitoring:tasks`.
+3. If the Go worker is stopped, you will see tasks accumulating as JSON strings.
+4. If the Go worker is running, you might see the key briefly appearing/disappearing or staying at 0 length.
+
+### Advanced: Redis CLI
+
+To check the number of pending tasks:
+
+```bash
+LLEN laravel_database_monitoring:tasks
+```
 
 ### Advanced: Redis Workbench (CLI)
 
