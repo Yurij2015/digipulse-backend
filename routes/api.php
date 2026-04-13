@@ -9,8 +9,10 @@ use App\Http\Middleware\InternalMonitorMiddleware;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['frontend.key'])->group(function () {
-    Route::post('/register', [AuthController::class, 'register'])->name('register');
-    Route::post('/login', [AuthController::class, 'login'])->name('login');
+    Route::middleware(['turnstile'])->group(function () {
+        Route::post('/register', [AuthController::class, 'register'])->name('register');
+        Route::post('/login', [AuthController::class, 'login'])->name('login');
+    });
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
