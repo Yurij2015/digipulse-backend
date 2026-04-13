@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "../../../monitor"
+		},
+		{
+			"path": "../../../infrastructure"
 		}
 	],
 	"settings": {}
