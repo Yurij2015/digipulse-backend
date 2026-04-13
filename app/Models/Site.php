@@ -26,6 +26,45 @@ class Site extends Model
 
     public function checks(): HasManyThrough
     {
-        return $this->hasManyThrough(CheckResult::class, SiteCheckConfiguration::class);
+        return $this->hasManyThrough(CheckResult::class, SiteCheckConfiguration::class, 'site_id', 'configuration_id', 'id', 'id');
+    }
+
+    /**
+     * Get the response time of the latest check.
+     */
+    public function getResponseTimeAttribute(): int
+    {
+        return (int) ($this->checks()
+            ->latest('checked_at')
+            ->first()?->response_time_ms ?? 0);
+    }
+
+    /**
+     * Get uptime percentage for the last 30 days.
+     */
+    public function getUptimeAttribute(): float
+    {
+        $total = $this->checks()
+            ->where('checked_at', '>=', now()->subDays(30))
+            ->count();
+
+        if ($total === 0) {
+            return 0;
+        }
+
+        $up = $this->checks()
+            ->where('checked_at', '>=', now()->subDays(30))
+            ->where('status', 'up')
+            ->count();
+
+        return round(($up / $total) * 100, 2);
+    }
+
+    /**
+     * Get the last check timestamp.
+     */
+    public function getLastCheckedAtAttribute(): ?string
+    {
+        return $this->checks()->latest('checked_at')->first()?->checked_at?->toIso8601String();
     }
 }

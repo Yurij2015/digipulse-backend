@@ -1,0 +1,11 @@
+[
+    {
+        "name": "digi-pulse-backend",
+        "ip": "YOUR_SERVER_IP",
+        "port": "22",
+        "username": "YOUR_USERNAME",
+        "beforeHooks": "",
+        "afterHooks": "php artisan migrate --force",
+        "path": "/home/YOUR_USERNAME/digi-pulse-backend"
+    }
+]
