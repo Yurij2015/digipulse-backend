@@ -15,6 +15,7 @@ Route::middleware(['frontend.key'])->group(function () {
     });
 
     Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/me', [AuthController::class, 'me'])->name('me');
         Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
         Route::apiResource('sites', SiteController::class);
