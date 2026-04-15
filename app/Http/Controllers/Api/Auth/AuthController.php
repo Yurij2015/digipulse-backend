@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Auth\LoginRequest;
 use App\Http\Requests\Api\Auth\RegisterRequest;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
@@ -120,5 +121,28 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Successfully logged out',
         ]);
+    }
+
+    #[OA\Get(
+        path: '/api/me',
+        operationId: 'getMe',
+        summary: 'Get authenticated user',
+        security: [['frontendKey' => []], ['bearerAuth' => []]],
+        tags: ['Auth'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Authenticated user',
+                content: new OA\JsonContent(ref: '#/components/schemas/UserSchema')
+            ),
+            new OA\Response(response: 401, description: 'Unauthorized'),
+        ]
+    )]
+    public function me(): JsonResponse
+    {
+        /** @var User $user */
+        $user = auth()->user();
+
+        return response()->json(new UserResource($user));
     }
 }
