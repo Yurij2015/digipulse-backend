@@ -144,6 +144,38 @@
                 ]
             }
         },
+        "/api/me": {
+            "get": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Get authenticated user",
+                "operationId": "getMe",
+                "responses": {
+                    "200": {
+                        "description": "Authenticated user",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserSchema"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    },
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/check-types": {
             "get": {
                 "tags": [
@@ -449,6 +481,62 @@
                     },
                     "422": {
                         "description": "Validation error (invalid week format)"
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    },
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/telegram/connect": {
+            "get": {
+                "tags": [
+                    "Telegram"
+                ],
+                "summary": "Get Telegram connection link",
+                "description": "Generate a connection token for the authenticated user.",
+                "operationId": "e99c447db4a0c21e4a11160e27b635f8",
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "connected": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "token": {
+                                            "type": "string",
+                                            "example": "random_32_char_token",
+                                            "nullable": true
+                                        },
+                                        "bot_username": {
+                                            "type": "string",
+                                            "example": "DigiPulseBot",
+                                            "nullable": true
+                                        },
+                                        "url": {
+                                            "type": "string",
+                                            "example": "https://t.me/DigiPulseBot?start=random_32_char_token",
+                                            "nullable": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Telegram is already connected.",
+                                            "nullable": true
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -896,6 +984,10 @@
         {
             "name": "Sites",
             "description": "Sites"
+        },
+        {
+            "name": "Telegram",
+            "description": "Telegram"
         }
     ]
 }
