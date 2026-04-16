@@ -9,9 +9,32 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use OpenApi\Attributes as OA;
 
 class TelegramController extends Controller
 {
+    #[OA\Get(
+        path: '/api/telegram/connect',
+        summary: 'Get Telegram connection link',
+        security: [['frontendKey' => []], ['bearerAuth' => []]],
+        tags: ['Telegram'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Successful operation',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'connected', type: 'boolean', example: false),
+                        new OA\Property(property: 'token', type: 'string', example: 'random_32_char_token', nullable: true),
+                        new OA\Property(property: 'bot_username', type: 'string', example: 'DigiPulseBot', nullable: true),
+                        new OA\Property(property: 'url', type: 'string', example: 'https://t.me/DigiPulseBot?start=random_32_char_token', nullable: true),
+                        new OA\Property(property: 'message', type: 'string', example: 'Telegram is already connected.', nullable: true),
+                    ],
+                    type: 'object'
+                )
+            ),
+        ]
+    )]
     /**
      * Generate a connection token for the authenticated user.
      */
