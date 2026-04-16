@@ -13,7 +13,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'first_name', 'last_name', 'google_id', 'google_nickname', 'google_avatar'])]
+#[Fillable(['name', 'email', 'password', 'first_name', 'last_name', 'google_id', 'google_nickname', 'google_avatar', 'telegram_chat_id', 'telegram_connection_token'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -36,5 +36,13 @@ class User extends Authenticatable
     public function sites(): HasMany
     {
         return $this->hasMany(Site::class);
+    }
+
+    /**
+     * Route notifications for the Telegram channel.
+     */
+    public function routeNotificationForTelegram()
+    {
+        return $this->telegram_chat_id;
     }
 }
