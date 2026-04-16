@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\SiteController;
 use App\Models\CheckResult;
 use App\Models\SiteCheckConfiguration;
+use App\Notifications\SiteDownNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,14 +29,14 @@ class InternalCheckResultController extends Controller
 
         $config = SiteCheckConfiguration::with('site')->findOrFail($validated['configuration_id']);
 
-        DB::transaction(function () use ($config, $validated) {
-            // Update the configuration status
+        $previousStatus = $config->last_status;
+
+        DB::transaction(static function () use ($config, $validated) {
             $config->update([
                 'last_status' => $validated['status'],
                 'last_checked_at' => now(),
             ]);
 
-            // Create the historical result record
             CheckResult::create([
                 'site_id' => $config->site_id,
                 'configuration_id' => $config->id,
@@ -47,7 +48,10 @@ class InternalCheckResultController extends Controller
             ]);
         });
 
-        // Invalidate the site cache for the user who owns the site
+        if ($previousStatus !== 'down' && $validated['status'] === 'down' && $config->site->user) {
+            $config->site->user->notify(new SiteDownNotification($config->site));
+        }
+
         SiteController::clearUserSitesCache($config->site->user_id);
 
         return response()->json(['success' => true]);
