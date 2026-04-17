@@ -12,6 +12,12 @@ fi
 
 # Run pre-start Laravel tasks
 if [ -f "artisan" ]; then
+    # Ensure storage directories exist (volume mount may not have them)
+    mkdir -p storage/framework/{cache,sessions,testing,views}
+    mkdir -p storage/logs
+    mkdir -p bootstrap/cache
+    chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
+
     echo "Running migrations..."
     php artisan migrate --force || true
     
