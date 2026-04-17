@@ -1,15 +1,17 @@
 # DigiPulse Backend (Laravel API)
 
-The core API for the DigiPulse monitoring platform, built with Laravel 11 and powered by FrankenPHP Octane for high performance.
+The core API for the DigiPulse monitoring platform, built with Laravel 13 and powered by FrankenPHP Octane for high performance.
 
 ## Technology Stack
 
 - **PHP 8.5**
-- **Framework**: Laravel 11
+- **Framework**: Laravel 13
 - **Server**: FrankenPHP (Octane)
 - **Admin Panel**: Filament v5
-- **Database**: PostgreSQL 16
-- **Cache/Queue**: Redis 7
+- **Database**: PostgreSQL 18
+- **Cache/Queue**: Redis (Alpine)
+- **Frontend**: Nuxt 4 / Node.js 22
+- **Docker Image**: [`ghcr.io/yurij2015/digipulse-backend`](https://ghcr.io/yurij2015/digipulse-backend)
 
 ## Key Features
 
@@ -24,9 +26,10 @@ Deployments are automated via **GitHub Actions**.
 
 ### Workflow:
 1.  **Build**: Composer dependencies are installed, and artifacts are packed.
-2.  **Environment**: A production `.env` file is generated on the server from GitHub Secrets.
-3.  **Deploy**: Artifacts are uploaded via SCP and symlinked to `/home/yurii/digi-pulse-backend/current`.
-4.  **Database**: Migrations are run automatically via the `artisan migrate` hook.
+2.  **Docker**: If `docker/` files changed, a new image is built and pushed to GHCR.
+3.  **Environment**: A production `.env` file is generated on the server from GitHub Secrets.
+4.  **Deploy**: Artifacts are uploaded via SCP and symlinked to `/home/yurii/digi-pulse-backend/current`.
+5.  **Database**: Migrations are run automatically via the `artisan migrate` hook.
 
 ### Required GitHub Secrets:
 
