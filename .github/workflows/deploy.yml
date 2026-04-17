@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 env:
-  DOCKER_IMAGE: ghcr.io/${{ github.repository_owner }}/digipulse-backend
+  DOCKER_IMAGE: ghcr.io/yurij2015/digipulse-backend
 
 permissions:
   contents: read
@@ -19,7 +19,7 @@ jobs:
       DEPLOYMENT_MATRIX: ${{ steps.export-deployment-matrix.outputs.DEPLOYMENT_MATRIX }}
       DOCKER_CHANGED: ${{ steps.docker-check.outputs.changed }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 2
       - name: Configure PHP 8.5
@@ -41,7 +41,7 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
         run: tar -czf "${GITHUB_SHA}".tar.gz --exclude=.git --exclude=node_modules *
       - name: Store artifact for distribution
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: app-build
           path: ${{ github.sha }}.tar.gz
@@ -69,7 +69,7 @@ jobs:
     needs: create-deployment-artifacts
     # if: needs.create-deployment-artifacts.outputs.DOCKER_CHANGED == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -96,7 +96,7 @@ jobs:
       matrix:
         server: ${{ fromJson(needs.create-deployment-artifacts.outputs.DEPLOYMENT_MATRIX) }}
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: app-build
       - name: Bootstrap server directories
