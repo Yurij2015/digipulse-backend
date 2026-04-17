@@ -33,8 +33,11 @@ COPY . /var/www/html
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Ensure correct permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+# Ensure correct permissions and required directories
+RUN mkdir -p storage/framework/{cache,sessions,testing,views} \
+    storage/logs \
+    bootstrap/cache \
+    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Expose Octane port
 EXPOSE 8000
