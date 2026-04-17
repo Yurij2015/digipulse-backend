@@ -87,26 +87,26 @@ jobs:
           port: ${{ matrix.server.port }}
           envs: GITHUB_SHA
           script: |
-            mkdir -p "${{ matrix.server.path }}/releases/${GITHUB_SHA}"
-            tar xzf ${{ matrix.server.path }}/artifacts/${GITHUB_SHA}.tar.gz --no-same-owner --no-same-permissions -C "${{ matrix.server.path }}/releases/${GITHUB_SHA}"
-            rm -rf ${{ matrix.server.path }}/releases/${GITHUB_SHA}/storage
-
-            mkdir -p ${{ matrix.server.path }}/storage/{app,public,framework,logs}
-            mkdir -p ${{ matrix.server.path }}/storage/framework/{cache,sessions,testing,views}
-
-            if [ -w "${{ matrix.server.path }}/storage" ]; then
-              chmod -R 0777 "${{ matrix.server.path }}/storage"
+            set -e
+            RELEASE_DIR="${{ matrix.server.path }}/releases/${GITHUB_SHA}"
+            STORAGE_DIR="${{ matrix.server.path }}/storage"
+            mkdir -p "$RELEASE_DIR"
+            tar xzf ${{ matrix.server.path }}/artifacts/${GITHUB_SHA}.tar.gz --no-same-owner --no-same-permissions -C "$RELEASE_DIR"
+            rm -rf "$RELEASE_DIR/storage"
+            mkdir -p "$STORAGE_DIR/app" "$STORAGE_DIR/public" "$STORAGE_DIR/framework" "$STORAGE_DIR/logs"
+            mkdir -p "$STORAGE_DIR/framework/cache" "$STORAGE_DIR/framework/sessions" "$STORAGE_DIR/framework/testing" "$STORAGE_DIR/framework/views"
+            if [ -w "$STORAGE_DIR" ]; then
+              chmod -R 0777 "$STORAGE_DIR"
             elif command -v sudo >/dev/null 2>&1; then
-              sudo chmod -R 0777 "${{ matrix.server.path }}/storage" || true
+              sudo chmod -R 0777 "$STORAGE_DIR" || true
             fi
-
             if command -v sudo >/dev/null 2>&1; then
-              sudo chown -R ${{ matrix.server.username }}:www-data "${{ matrix.server.path }}/releases/${GITHUB_SHA}" || true
-              sudo chown -R ${{ matrix.server.username }}:www-data "${{ matrix.server.path }}/storage" || true
-              sudo chmod -R ug+rwx "${{ matrix.server.path }}/releases/${GITHUB_SHA}/storage" || true
-              sudo chmod -R ug+rwx "${{ matrix.server.path }}/storage" || true
-              sudo chown -R www-data:www-data "${{ matrix.server.path }}/releases/${GITHUB_SHA}/bootstrap/cache" || true
-              sudo chmod -R u+rwX "${{ matrix.server.path }}/releases/${GITHUB_SHA}/bootstrap/cache" || true
+              sudo chown -R ${{ matrix.server.username }}:www-data "$RELEASE_DIR" || true
+              sudo chown -R ${{ matrix.server.username }}:www-data "$STORAGE_DIR" || true
+              sudo chmod -R ug+rwx "$RELEASE_DIR/storage" || true
+              sudo chmod -R ug+rwx "$STORAGE_DIR" || true
+              sudo chown -R www-data:www-data "$RELEASE_DIR/bootstrap/cache" || true
+              sudo chmod -R u+rwX "$RELEASE_DIR/bootstrap/cache" || true
             fi
 
   create-env-file:
