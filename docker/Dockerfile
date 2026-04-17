@@ -5,20 +5,11 @@ FROM dunglas/frankenphp:php8.5-bookworm
 # Set working directory
 WORKDIR /var/www/html
 
-# Install system dependencies and PHP extensions
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    unzip \
-    zip \
-    git \
-    libpq-dev \
-    libonig-dev \
-    libssl-dev \
-    libxml2-dev \
-    libcurl4-openssl-dev \
-    libicu-dev \
-    libzip-dev \
-    && docker-php-ext-install -j$(nproc) \
+# Install PHP extension installer (handles all build deps automatically)
+ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
+
+# Install PHP extensions
+RUN install-php-extensions \
     pdo_pgsql \
     pgsql \
     pcntl \
@@ -26,8 +17,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     intl \
     zip \
     bcmath \
-    && pecl install redis \
-    && docker-php-ext-enable redis \
+    redis
+
+# Install additional system tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl unzip zip git \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Copy the application code
