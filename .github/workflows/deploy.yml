@@ -121,7 +121,7 @@ jobs:
             mkdir -p ${{ matrix.server.path }}/storage/framework/cache/data # Optional but helpful
             mkdir -p ${{ matrix.server.path }}/storage/framework/views
             mkdir -p ${{ matrix.server.path }}/storage/logs
-            chmod -R 777 ${{ matrix.server.path }}/storage
+            sudo chmod -R 777 ${{ matrix.server.path }}/storage || true
       - name: Upload
         uses: appleboy/scp-action@master
         with:
@@ -150,19 +150,10 @@ jobs:
             rm -rf "$RELEASE_DIR/storage"
             mkdir -p "$STORAGE_DIR/app" "$STORAGE_DIR/public" "$STORAGE_DIR/framework" "$STORAGE_DIR/logs"
             mkdir -p "$STORAGE_DIR/framework/cache" "$STORAGE_DIR/framework/sessions" "$STORAGE_DIR/framework/testing" "$STORAGE_DIR/framework/views"
-            if [ -w "$STORAGE_DIR" ]; then
-              chmod -R 0777 "$STORAGE_DIR"
-            elif command -v sudo >/dev/null 2>&1; then
-              sudo chmod -R 0777 "$STORAGE_DIR" || true
-            fi
-            if command -v sudo >/dev/null 2>&1; then
-              sudo chown -R ${{ matrix.server.username }}:www-data "$RELEASE_DIR" || true
-              sudo chown -R ${{ matrix.server.username }}:www-data "$STORAGE_DIR" || true
-              sudo chmod -R ug+rwx "$RELEASE_DIR/storage" || true
-              sudo chmod -R ug+rwx "$STORAGE_DIR" || true
-              sudo chown -R www-data:www-data "$RELEASE_DIR/bootstrap/cache" || true
-              sudo chmod -R u+rwX "$RELEASE_DIR/bootstrap/cache" || true
-            fi
+            sudo chmod -R 0777 "$STORAGE_DIR" || true
+            sudo chown -R ${{ matrix.server.username }}:www-data "$RELEASE_DIR" || true
+            sudo chown -R ${{ matrix.server.username }}:www-data "$STORAGE_DIR" || true
+            sudo chmod -R 0777 "$RELEASE_DIR/bootstrap/cache" || true
 
   create-env-file:
     name: "${{ matrix.server.name }}: Write .env to server"
