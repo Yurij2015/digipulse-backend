@@ -197,8 +197,9 @@ jobs:
           port: ${{ matrix.server.port }}
           envs: GITHUB_SHA,RELEASE_PATH,ACTIVE_RELEASE_PATH,STORAGE_PATH,BASE_PATH
           script: |
-            if [ -n "${{ matrix.server.beforeHooks }}" ]; then
-              ${{ matrix.server.beforeHooks }}
+            HOOKS="${{ matrix.server.beforeHooks }}"
+            if [ -n "$HOOKS" ]; then
+              eval "$HOOKS"
             fi
 
   activate-release:
