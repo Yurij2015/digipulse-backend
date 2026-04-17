@@ -93,7 +93,7 @@ jobs:
 
             mkdir -p ${{ matrix.server.path }}/storage/{app,public,framework,logs}
             mkdir -p ${{ matrix.server.path }}/storage/framework/{cache,sessions,testing,views}
-            
+
             if [ -w "${{ matrix.server.path }}/storage" ]; then
               chmod -R 0777 "${{ matrix.server.path }}/storage"
             elif command -v sudo >/dev/null 2>&1; then
@@ -131,6 +131,7 @@ jobs:
             APP_KEY=${{ secrets.APP_KEY }}
             APP_DEBUG=false
             APP_URL=${{ secrets.APP_URL }}
+            FRONTEND_KEY=${{ secrets.FRONTEND_KEY }}
 
             DB_CONNECTION=pgsql
             DB_HOST=${{ secrets.DB_HOST }}
@@ -144,13 +145,31 @@ jobs:
             QUEUE_CONNECTION=redis
             CACHE_STORE=redis
             SESSION_DRIVER=redis
+            SESSION_LIFETIME=120
+
+            FILESYSTEM_DISK=local
+
+            MAIL_MAILER=smtp
+            MAIL_HOST=${{ secrets.MAIL_HOST }}
+            MAIL_PORT=${{ secrets.MAIL_PORT }}
+            MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}
+            MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
+            MAIL_FROM_ADDRESS=${{ secrets.MAIL_FROM_ADDRESS }}
+            MAIL_FROM_NAME="${APP_NAME}"
+
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            GOOGLE_REDIRECT_URI=${{ secrets.APP_URL }}/auth/google/callback
 
             TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
             TELEGRAM_BOT_USERNAME=${{ secrets.TELEGRAM_BOT_USERNAME }}
 
             INTERNAL_MONITOR_KEY=${{ secrets.INTERNAL_MONITOR_KEY }}
 
-            MAIL_MAILER=log
+            TURNSTILE_ACTIVE=${{ secrets.TURNSTILE_ACTIVE }}
+            TURNSTILE_SITE_KEY=${{ secrets.TURNSTILE_SITE_KEY }}
+            TURNSTILE_SECRET_KEY=${{ secrets.TURNSTILE_SECRET_KEY }}
+
             LOG_CHANNEL=stack
             LOG_LEVEL=error
             ENVEOF
