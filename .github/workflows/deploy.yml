@@ -258,7 +258,7 @@ jobs:
           script: |
             set -euo pipefail
             if [ -n "${AFTER_HOOKS:-}" ]; then
-              eval "${AFTER_HOOKS}"
+              eval "$AFTER_HOOKS"
             fi
 
   clean-up:
