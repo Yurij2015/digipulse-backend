@@ -39,7 +39,14 @@ jobs:
       - name: Create deployment artifact
         env:
           GITHUB_SHA: ${{ github.sha }}
-        run: tar -czf "${GITHUB_SHA}".tar.gz --exclude=.git --exclude=node_modules *
+        run: |
+          # Ensure storage structure exists in the artifact
+          mkdir -p storage/framework/{cache,sessions,testing,views}
+          mkdir -p storage/logs
+          mkdir -p bootstrap/cache
+          touch storage/logs/laravel.log
+          
+          tar -czf "${GITHUB_SHA}".tar.gz --exclude=.git --exclude=node_modules *
       - name: Store artifact for distribution
         uses: actions/upload-artifact@v7
         with:
@@ -111,6 +118,10 @@ jobs:
             mkdir -p ${{ matrix.server.path }}/{releases,artifacts,storage}
             mkdir -p ${{ matrix.server.path }}/storage/{app,public,framework,logs}
             mkdir -p ${{ matrix.server.path }}/storage/framework/{cache,sessions,testing,views}
+            mkdir -p ${{ matrix.server.path }}/storage/framework/cache/data # Optional but helpful
+            mkdir -p ${{ matrix.server.path }}/storage/framework/views
+            mkdir -p ${{ matrix.server.path }}/storage/logs
+            chmod -R 777 ${{ matrix.server.path }}/storage
       - name: Upload
         uses: appleboy/scp-action@master
         with:
