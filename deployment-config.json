@@ -5,7 +5,7 @@
         "port": "2229",
         "username": "yurii",
         "beforeHooks": "",
-        "afterHooks": "php artisan migrate --force",
+        "afterHooks": "if docker ps -q -f name=digipulse-app | grep -q .; then docker exec digipulse-app php artisan migrate --force && docker restart digipulse-app digipulse-worker digipulse-scheduler; else echo 'Containers not running. Run terraform apply first.'; fi",
         "path": "/home/yurii/digi-pulse-backend"
     }
 ]
