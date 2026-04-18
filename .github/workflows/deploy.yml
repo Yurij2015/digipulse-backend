@@ -142,19 +142,22 @@ jobs:
           port: ${{ matrix.server.port }}
           envs: GITHUB_SHA
           script: |
-            set -e
             RELEASE_DIR="${{ matrix.server.path }}/releases/${GITHUB_SHA}"
             STORAGE_DIR="${{ matrix.server.path }}/storage"
-            sudo rm -rf "$RELEASE_DIR" || true
+
+            # Clean old release dir (may have root-owned files from Docker)
+            docker run --rm -v "${{ matrix.server.path }}/releases":/data alpine rm -rf "/data/${GITHUB_SHA}" 2>/dev/null || true
+
             mkdir -p "$RELEASE_DIR"
-            tar xzf ${{ matrix.server.path }}/artifacts/${GITHUB_SHA}.tar.gz --no-same-owner --no-same-permissions --overwrite -C "$RELEASE_DIR"
+            tar xzf ${{ matrix.server.path }}/artifacts/${GITHUB_SHA}.tar.gz --no-same-owner --no-same-permissions -C "$RELEASE_DIR"
             rm -rf "$RELEASE_DIR/storage"
+
+            # Ensure shared storage structure
             mkdir -p "$STORAGE_DIR/app" "$STORAGE_DIR/public" "$STORAGE_DIR/framework" "$STORAGE_DIR/logs"
             mkdir -p "$STORAGE_DIR/framework/cache" "$STORAGE_DIR/framework/sessions" "$STORAGE_DIR/framework/testing" "$STORAGE_DIR/framework/views"
-            sudo chmod -R 0777 "$STORAGE_DIR" || true
-            sudo chown -R ${{ matrix.server.username }}:www-data "$RELEASE_DIR" || true
-            sudo chown -R ${{ matrix.server.username }}:www-data "$STORAGE_DIR" || true
-            sudo chmod -R 0777 "$RELEASE_DIR/bootstrap/cache" || true
+
+            # Fix permissions via Docker (runs as root)
+            docker run --rm -v "$STORAGE_DIR":/data -v "$RELEASE_DIR":/release alpine sh -c "chmod -R 777 /data && chmod -R 777 /release/bootstrap/cache" 2>/dev/null || true
 
   create-env-file:
     name: "${{ matrix.server.name }}: Write .env to server"
