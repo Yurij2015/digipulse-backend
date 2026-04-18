@@ -45,7 +45,7 @@ jobs:
           mkdir -p storage/logs
           mkdir -p bootstrap/cache
           touch storage/logs/laravel.log
-          
+
           tar -czf "${GITHUB_SHA}".tar.gz --exclude=.git --exclude=node_modules *
       - name: Store artifact for distribution
         uses: actions/upload-artifact@v7
@@ -187,24 +187,26 @@ jobs:
             DB_USERNAME=$(get_val "${{ vars.DB_USERNAME }}" "digipulse")
             DB_PASSWORD=$(get_val "${{ vars.DB_PASSWORD }}" "")
             REDIS_HOST=$(get_val "${{ vars.REDIS_HOST }}" "digipulse-redis")
-            
+
             FRONTEND_KEY=$(get_val "${{ vars.FRONTEND_KEY }}" "")
             MAIL_HOST=$(get_val "${{ vars.MAIL_HOST }}" "smtp.mailtrap.io")
             MAIL_PORT=$(get_val "${{ vars.MAIL_PORT }}" "2525")
             MAIL_USERNAME=$(get_val "${{ vars.MAIL_USERNAME }}" "")
             MAIL_PASSWORD=$(get_val "${{ vars.MAIL_PASSWORD }}" "")
             MAIL_FROM_ADDRESS=$(get_val "${{ vars.MAIL_FROM_ADDRESS }}" "hello@example.com")
-            
+
             GOOGLE_CLIENT_ID=$(get_val "${{ vars.GOOGLE_CLIENT_ID }}" "")
             GOOGLE_CLIENT_SECRET=$(get_val "${{ vars.GOOGLE_CLIENT_SECRET }}" "")
             TELEGRAM_BOT_TOKEN=$(get_val "${{ vars.TELEGRAM_BOT_TOKEN }}" "")
             TELEGRAM_BOT_USERNAME=$(get_val "${{ vars.TELEGRAM_BOT_USERNAME }}" "")
             INTERNAL_MONITOR_KEY=$(get_val "${{ vars.INTERNAL_MONITOR_KEY }}" "")
-            
+
             TURNSTILE_ACTIVE=$(get_val "${{ vars.TURNSTILE_ACTIVE }}" "false")
             TURNSTILE_SITE_KEY=$(get_val "${{ vars.TURNSTILE_SITE_KEY }}" "")
             TURNSTILE_SECRET_KEY=$(get_val "${{ vars.TURNSTILE_SECRET_KEY }}" "")
             FILAMENT_ADMIN_EMAIL=$(get_val "${{ vars.FILAMENT_ADMIN_EMAIL }}" "")
+
+            FRONTEND_URL=$(get_val "${{ vars.FRONTEND_URL }}" "")
 
             # Generate .env file
             cat > ${{ matrix.server.path }}/.env << ENVEOF
@@ -213,6 +215,7 @@ jobs:
             APP_KEY=$APP_KEY
             APP_DEBUG=false
             APP_URL=$APP_URL
+            FRONTEND_URL=$FRONTEND_URL
             FRONTEND_KEY=$FRONTEND_KEY
             FILAMENT_ADMIN_EMAIL=$FILAMENT_ADMIN_EMAIL
 
