@@ -1,4 +1,5 @@
 # DigiPulse Backend - Production image
+# Force rebuild to apply entrypoint changes
 # Use official FrankenPHP image with PHP 8.5
 FROM dunglas/frankenphp:php8.5-bookworm
 
