@@ -9,9 +9,6 @@ Route::get('/', static function () {
 });
 
 Route::get('/auth/redirect', static function () {
-    // 'select_account' forces Google to always show the account picker window,
-    // even if the user is already authenticated. Without this, Google silently
-    // reuses the cached session and skips the login UI entirely (prompt=none).
     return Socialite::driver('google')->with(['prompt' => 'select_account'])->redirect();
 });
 
