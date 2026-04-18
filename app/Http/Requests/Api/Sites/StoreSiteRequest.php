@@ -4,7 +4,6 @@ namespace App\Http\Requests\Api\Sites;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-
 use OpenApi\Attributes as OA;
 
 #[OA\Schema(

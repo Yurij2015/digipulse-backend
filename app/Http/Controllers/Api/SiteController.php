@@ -8,7 +8,6 @@ use App\Http\Requests\Api\Sites\UpdateSiteRequest;
 use App\Http\Resources\SiteResource;
 use App\Models\Site;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -174,6 +173,7 @@ class SiteController extends Controller
     )]
     /**
      * Update the specified site in storage.
+     *
      * @throws \Throwable
      */
     public function update(UpdateSiteRequest $request, Site $site): SiteResource

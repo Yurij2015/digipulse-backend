@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers\Api\Internal;
 
-use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\SiteController;
+use App\Http\Controllers\Controller;
 use App\Models\CheckResult;
 use App\Models\SiteCheckConfiguration;
 use App\Notifications\SiteDownNotification;
@@ -15,6 +15,7 @@ class InternalCheckResultController extends Controller
 {
     /**
      * Store a new check result from the monitor service.
+     *
      * @throws \Throwable
      */
     public function store(Request $request): JsonResponse

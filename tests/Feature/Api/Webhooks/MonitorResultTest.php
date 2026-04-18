@@ -3,7 +3,6 @@
 namespace Tests\Feature\Api\Webhooks;
 
 use App\Models\SiteCheckConfiguration;
-use App\Models\CheckType;
 use Database\Seeders\CheckTypeSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;

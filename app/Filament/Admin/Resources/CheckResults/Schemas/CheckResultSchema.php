@@ -33,12 +33,12 @@ class CheckResultSchema
                     ->label('Error Message')
                     ->disabled()
                     ->columnSpanFull()
-                    ->visible(fn ($record) => !empty($record?->error_message)),
+                    ->visible(fn ($record) => ! empty($record?->error_message)),
                 KeyValue::make('metadata')
                     ->label('Metadata')
                     ->disabled()
                     ->columnSpanFull()
-                    ->visible(fn ($record) => !empty($record?->metadata)),
+                    ->visible(fn ($record) => ! empty($record?->metadata)),
             ]);
     }
 }

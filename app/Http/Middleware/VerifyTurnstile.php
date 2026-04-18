@@ -13,7 +13,7 @@ class VerifyTurnstile
     {
         $isTurnstileActive = config('services.turnstile.active');
 
-        if (!$isTurnstileActive || app()->environment(['local', 'testing'])) {
+        if (! $isTurnstileActive || app()->environment(['local', 'testing'])) {
             return $next($request);
         }
 
@@ -35,6 +35,7 @@ class VerifyTurnstile
             ]);
         } catch (\Exception $e) {
             Log::error('Turnstile verification request failed', ['exception' => $e]);
+
             return response()->json([
                 'error' => 'Turnstile verification request failed. Please try again later.',
             ], 503);
@@ -42,7 +43,7 @@ class VerifyTurnstile
 
         $result = $response->json();
 
-        if (!($result['success'] ?? false)) {
+        if (! ($result['success'] ?? false)) {
             Log::warning('Turnstile verification failed', [
                 'ip' => $request->ip(),
                 'response' => $result,

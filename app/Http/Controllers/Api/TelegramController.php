@@ -46,7 +46,7 @@ class TelegramController extends Controller
         if ($user->telegram_chat_id) {
             return response()->json([
                 'connected' => true,
-                'message' => 'Telegram is already connected.'
+                'message' => 'Telegram is already connected.',
             ]);
         }
 
@@ -54,7 +54,7 @@ class TelegramController extends Controller
         $token = Str::random(32);
 
         $user->update([
-            'telegram_connection_token' => $token
+            'telegram_connection_token' => $token,
         ]);
 
         $botUsername = config('services.telegram.bot_username', 'DigiPulseBot');
@@ -63,12 +63,13 @@ class TelegramController extends Controller
             'connected' => false,
             'token' => $token,
             'bot_username' => $botUsername,
-            'url' => "https://t.me/{$botUsername}?start={$token}"
+            'url' => "https://t.me/{$botUsername}?start={$token}",
         ]);
     }
 
     /**
      * Handle incoming webhooks from Telegram.
+     *
      * @throws ConnectionException
      */
     public function webhook(Request $request): JsonResponse
@@ -76,14 +77,14 @@ class TelegramController extends Controller
         // 1. Get the message info
         $message = $request->input('message');
 
-        if (!$message) {
+        if (! $message) {
             return response()->json(['status' => 'ignored']);
         }
 
         $text = $message['text'] ?? '';
         $chatId = $message['chat']['id'] ?? null;
 
-        if (!$text || !$chatId) {
+        if (! $text || ! $chatId) {
             return response()->json(['status' => 'ignored']);
         }
 
@@ -112,12 +113,13 @@ class TelegramController extends Controller
 
     /**
      * Send a simple text message via Telegram API.
+     *
      * @throws ConnectionException
      */
     private function sendMessage($chatId): void
     {
         $token = config('services.telegram.bot_token');
-        if (!$token) {
+        if (! $token) {
             return;
         }
 

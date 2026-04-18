@@ -3,12 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-
 use App\Http\Resources\CheckTypeResource;
 use App\Models\CheckType;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-
 use OpenApi\Attributes as OA;
 
 class CheckTypeController extends Controller
