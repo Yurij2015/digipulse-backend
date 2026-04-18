@@ -307,6 +307,11 @@ jobs:
           port: ${{ matrix.server.port }}
           envs: GITHUB_SHA,RELEASE_PATH,ACTIVE_RELEASE_PATH,STORAGE_PATH,BASE_PATH
           script: |
+            # If current exists as a directory (common when docker creates volumes before deploy), remove it
+            if [ -d "$ACTIVE_RELEASE_PATH" ] && [ ! -L "$ACTIVE_RELEASE_PATH" ]; then
+              sudo rm -rf "$ACTIVE_RELEASE_PATH"
+            fi
+
             if [ -f "${BASE_PATH}/.env" ]; then
               cp -a "${BASE_PATH}/.env" "${BASE_PATH}/.env_prev" || true
               ln -s -f "${BASE_PATH}/.env" "${RELEASE_PATH}/.env"
