@@ -5,7 +5,7 @@
         "port": "2229",
         "username": "yurii",
         "beforeHooks": "",
-        "afterHooks": "if docker ps -a --format '{{.Names}}' | grep -q 'digipulse-app'; then docker restart digipulse-app digipulse-worker digipulse-scheduler; sleep 10; docker exec digipulse-app php artisan config:cache; sleep 2; docker exec digipulse-app php artisan route:cache; else echo 'Containers not found. Run terraform apply first.'; fi",
+        "afterHooks": "if docker ps -a --format '{{.Names}}' | grep -q 'digipulse-app'; then docker pull ghcr.io/yurij2015/digipulse-backend && docker restart digipulse-app digipulse-worker digipulse-scheduler && sleep 10 && docker exec digipulse-app php artisan config:cache && docker exec digipulse-app php artisan route:cache; else echo 'Containers not found. Run terraform apply first.'; fi",
         "path": "/home/yurii/digi-pulse-backend"
     }
 ]
