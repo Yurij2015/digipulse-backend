@@ -256,6 +256,7 @@ jobs:
             TURNSTILE_SITE_KEY=$TURNSTILE_SITE_KEY
             TURNSTILE_SECRET_KEY=$TURNSTILE_SECRET_KEY
 
+            REDIS_PREFIX=laravel-database-
             OCTANE_SERVER=frankenphp
             LOG_CHANNEL=stack
             LOG_LEVEL=error
