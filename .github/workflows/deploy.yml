@@ -175,18 +175,35 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ matrix.server.port }}
           script: |
-            # Prepare configuration with defaults
-            APP_KEY="${{ secrets.APP_KEY }}"
-            APP_URL="${{ secrets.APP_URL }}"
-            DB_HOST="${{ secrets.DB_HOST }}"
-            [ -z "$DB_HOST" ] && DB_HOST="digipulse-db"
-            DB_DATABASE="${{ secrets.DB_DATABASE }}"
-            [ -z "$DB_DATABASE" ] && DB_DATABASE="digipulse"
-            DB_USERNAME="${{ secrets.DB_USERNAME }}"
-            [ -z "$DB_USERNAME" ] && DB_USERNAME="digipulse"
-            DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
-            REDIS_HOST="${{ secrets.REDIS_HOST }}"
-            [ -z "$REDIS_HOST" ] && REDIS_HOST="digipulse-redis"
+            # Prepare configuration from GitHub Variables (Variables only, except SSH)
+            get_val() {
+              if [ -n "$1" ]; then echo "$1"; else echo "$2"; fi
+            }
+
+            APP_KEY=$(get_val "${{ vars.APP_KEY }}" "")
+            APP_URL=$(get_val "${{ vars.APP_URL }}" "http://localhost")
+            DB_HOST=$(get_val "${{ vars.DB_HOST }}" "digipulse-db")
+            DB_DATABASE=$(get_val "${{ vars.DB_DATABASE }}" "digipulse")
+            DB_USERNAME=$(get_val "${{ vars.DB_USERNAME }}" "digipulse")
+            DB_PASSWORD=$(get_val "${{ vars.DB_PASSWORD }}" "")
+            REDIS_HOST=$(get_val "${{ vars.REDIS_HOST }}" "digipulse-redis")
+            
+            FRONTEND_KEY=$(get_val "${{ vars.FRONTEND_KEY }}" "")
+            MAIL_HOST=$(get_val "${{ vars.MAIL_HOST }}" "smtp.mailtrap.io")
+            MAIL_PORT=$(get_val "${{ vars.MAIL_PORT }}" "2525")
+            MAIL_USERNAME=$(get_val "${{ vars.MAIL_USERNAME }}" "")
+            MAIL_PASSWORD=$(get_val "${{ vars.MAIL_PASSWORD }}" "")
+            MAIL_FROM_ADDRESS=$(get_val "${{ vars.MAIL_FROM_ADDRESS }}" "hello@example.com")
+            
+            GOOGLE_CLIENT_ID=$(get_val "${{ vars.GOOGLE_CLIENT_ID }}" "")
+            GOOGLE_CLIENT_SECRET=$(get_val "${{ vars.GOOGLE_CLIENT_SECRET }}" "")
+            TELEGRAM_BOT_TOKEN=$(get_val "${{ vars.TELEGRAM_BOT_TOKEN }}" "")
+            TELEGRAM_BOT_USERNAME=$(get_val "${{ vars.TELEGRAM_BOT_USERNAME }}" "")
+            INTERNAL_MONITOR_KEY=$(get_val "${{ vars.INTERNAL_MONITOR_KEY }}" "")
+            
+            TURNSTILE_ACTIVE=$(get_val "${{ vars.TURNSTILE_ACTIVE }}" "false")
+            TURNSTILE_SITE_KEY=$(get_val "${{ vars.TURNSTILE_SITE_KEY }}" "")
+            TURNSTILE_SECRET_KEY=$(get_val "${{ vars.TURNSTILE_SECRET_KEY }}" "")
 
             # Generate .env file
             cat > ${{ matrix.server.path }}/.env << ENVEOF
@@ -195,7 +212,7 @@ jobs:
             APP_KEY=$APP_KEY
             APP_DEBUG=false
             APP_URL=$APP_URL
-            FRONTEND_KEY="${{ secrets.FRONTEND_KEY }}"
+            FRONTEND_KEY=$FRONTEND_KEY
 
             DB_CONNECTION=pgsql
             DB_HOST=$DB_HOST
@@ -214,25 +231,25 @@ jobs:
             FILESYSTEM_DISK=local
 
             MAIL_MAILER=smtp
-            MAIL_HOST="${{ secrets.MAIL_HOST }}"
-            MAIL_PORT="${{ secrets.MAIL_PORT }}"
-            MAIL_USERNAME="${{ secrets.MAIL_USERNAME }}"
-            MAIL_PASSWORD="${{ secrets.MAIL_PASSWORD }}"
-            MAIL_FROM_ADDRESS="${{ secrets.MAIL_FROM_ADDRESS }}"
+            MAIL_HOST=$MAIL_HOST
+            MAIL_PORT=$MAIL_PORT
+            MAIL_USERNAME=$MAIL_USERNAME
+            MAIL_PASSWORD=$MAIL_PASSWORD
+            MAIL_FROM_ADDRESS=$MAIL_FROM_ADDRESS
             MAIL_FROM_NAME="DigiPulse"
 
-            GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}"
-            GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}"
-            GOOGLE_REDIRECT_URI="${APP_URL}/auth/google/callback"
+            GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID
+            GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET
+            GOOGLE_REDIRECT_URI=$APP_URL/auth/google/callback
 
-            TELEGRAM_BOT_TOKEN="${{ secrets.TELEGRAM_BOT_TOKEN }}"
-            TELEGRAM_BOT_USERNAME="${{ secrets.TELEGRAM_BOT_USERNAME }}"
+            TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN
+            TELEGRAM_BOT_USERNAME=$TELEGRAM_BOT_USERNAME
 
-            INTERNAL_MONITOR_KEY="${{ secrets.INTERNAL_MONITOR_KEY }}"
+            INTERNAL_MONITOR_KEY=$INTERNAL_MONITOR_KEY
 
-            TURNSTILE_ACTIVE="${{ secrets.TURNSTILE_ACTIVE }}"
-            TURNSTILE_SITE_KEY="${{ secrets.TURNSTILE_SITE_KEY }}"
-            TURNSTILE_SECRET_KEY="${{ secrets.TURNSTILE_SECRET_KEY }}"
+            TURNSTILE_ACTIVE=$TURNSTILE_ACTIVE
+            TURNSTILE_SITE_KEY=$TURNSTILE_SITE_KEY
+            TURNSTILE_SECRET_KEY=$TURNSTILE_SECRET_KEY
 
             OCTANE_SERVER=frankenphp
             LOG_CHANNEL=stack
