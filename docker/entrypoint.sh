@@ -32,9 +32,15 @@ if [ -f "artisan" ]; then
         php artisan octane:install --server=frankenphp
     fi
 
-    # Start Octane
-    echo "Starting Octane with FrankenPHP..."
-    exec php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8000
+    # Handle command
+    if [ "$#" -gt 0 ]; then
+        echo "Starting custom command: $@"
+        exec "$@"
+    else
+        # Start Octane (default)
+        echo "Starting Octane with FrankenPHP..."
+        exec php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8000
+    fi
 else
     echo "artisan not found, sleeping..."
     sleep infinity
