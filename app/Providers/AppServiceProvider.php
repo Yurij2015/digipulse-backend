@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Telescope\TelescopeApplicationServiceProvider;
 
@@ -12,7 +13,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        if ($this->app->environment('local') && class_exists(\Laravel\Telescope\TelescopeApplicationServiceProvider::class)) {
+        if ($this->app->environment('local') && class_exists(TelescopeApplicationServiceProvider::class)) {
             $this->app->register(TelescopeServiceProvider::class);
         }
     }
@@ -22,6 +23,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        if (! $this->app->environment('local')) {
+            URL::forceScheme('https');
+        }
     }
 }
