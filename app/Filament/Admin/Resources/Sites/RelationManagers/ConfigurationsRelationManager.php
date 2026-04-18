@@ -61,19 +61,19 @@ class ConfigurationsRelationManager extends RelationManager
                     ->sortable(),
             ])
             ->filters([
-                 //
-             ])
+                //
+            ])
             ->headerActions([
-                 CreateAction::make(),
-             ])
+                CreateAction::make(),
+            ])
             ->actions([
-                 EditAction::make(),
-                 DeleteAction::make(),
-             ])
+                EditAction::make(),
+                DeleteAction::make(),
+            ])
             ->bulkActions([
-                 BulkActionGroup::make([
+                BulkActionGroup::make([
                     DeleteBulkAction::make(),
-                 ]),
-             ]);
+                ]),
+            ]);
     }
 }

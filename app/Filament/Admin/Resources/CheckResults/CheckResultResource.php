@@ -6,7 +6,6 @@ use App\Filament\Admin\Resources\CheckResults\Pages\ListCheckResults;
 use App\Filament\Admin\Resources\CheckResults\Pages\ViewCheckResult;
 use App\Filament\Admin\Resources\CheckResults\Schemas\CheckResultSchema;
 use App\Filament\Admin\Resources\CheckResults\Tables\CheckResultsTable;
-use App\Models\CheckResult;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;

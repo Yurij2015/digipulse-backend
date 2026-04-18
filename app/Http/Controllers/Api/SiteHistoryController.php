@@ -90,12 +90,12 @@ class SiteHistoryController extends Controller
         // Cache parameters: 1 min for current week (live data), 24h for past weeks (static archives)
         $isCurrentWeek = $weekStr === now()->format('o-\WW');
         $ttl = $isCurrentWeek ? 60 : 86400;
-        $cacheKey = "site_history_v4:{$site->id}:{$weekStr}" . ($configId ? ":{$configId}" : "");
+        $cacheKey = "site_history_v4:{$site->id}:{$weekStr}".($configId ? ":{$configId}" : '');
 
         $data = Cache::remember($cacheKey, $ttl, function () use ($site, $weekStr, $configId, $isCurrentWeek) {
             [$year, $weekPart] = explode('-W', $weekStr);
-            $year = (int)$year;
-            $week = (int)$weekPart;
+            $year = (int) $year;
+            $week = (int) $weekPart;
 
             if ($isCurrentWeek) {
                 return $this->getLiveData($site, $year, $week, $configId);
@@ -140,10 +140,10 @@ class SiteHistoryController extends Controller
             ->groupBy('hour')
             ->orderBy('hour')
             ->get()
-            ->map(fn($row) => [
+            ->map(fn ($row) => [
                 'timestamp' => Carbon::parse($row->hour)->toIso8601String(),
-                'avg_response_time' => round((float)$row->avg_response_time, 2),
-                'response_time' => round((float)$row->avg_response_time, 2), // Alias for frontend
+                'avg_response_time' => round((float) $row->avg_response_time, 2),
+                'response_time' => round((float) $row->avg_response_time, 2), // Alias for frontend
                 'uptime_percentage' => round(($row->up_checks / $row->total_checks) * 100, 2),
                 'uptime' => round(($row->up_checks / $row->total_checks) * 100, 2), // Alias for frontend
                 'count' => $row->total_checks,
@@ -174,7 +174,7 @@ class SiteHistoryController extends Controller
 
         $archives = $query->get();
 
-        $allData = $archives->flatMap(fn($a) => $a->data);
+        $allData = $archives->flatMap(fn ($a) => $a->data);
 
         if ($allData->isEmpty()) {
             return ['stats' => [], 'incidents' => []];
@@ -191,8 +191,8 @@ class SiteHistoryController extends Controller
 
                 return [
                     'timestamp' => $hour,
-                    'avg_response_time' => round((float)$avgResponse, 2),
-                    'response_time' => round((float)$avgResponse, 2), // Alias
+                    'avg_response_time' => round((float) $avgResponse, 2),
+                    'response_time' => round((float) $avgResponse, 2), // Alias
                     'uptime_percentage' => round(($upCount / $totalCount) * 100, 2),
                     'uptime' => round(($upCount / $totalCount) * 100, 2), // Alias
                     'count' => $totalCount,

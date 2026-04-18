@@ -26,6 +26,7 @@ class TelegramChannel
 
         if (! $token) {
             Log::warning('Telegram Notification failed: TELEGRAM_BOT_TOKEN is missing in config/services.php');
+
             return;
         }
 
@@ -36,7 +37,7 @@ class TelegramChannel
                 'parse_mode' => 'MarkdownV2',
             ]);
         } catch (\Exception $e) {
-            Log::error('Failed to send Telegram notification: ' . $e->getMessage());
+            Log::error('Failed to send Telegram notification: '.$e->getMessage());
         }
     }
 }

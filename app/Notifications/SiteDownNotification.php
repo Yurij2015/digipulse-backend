@@ -2,8 +2,8 @@
 
 namespace App\Notifications;
 
-use App\Models\Site;
 use App\Channels\TelegramChannel;
+use App\Models\Site;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
@@ -35,8 +35,8 @@ class SiteDownNotification extends Notification implements ShouldQueue
      */
     public function toTelegram(object $notifiable): string
     {
-        return "🔴 **WARNING: Site is offline!**\n\n" . 
-               "Your site **{$this->site->name}** ({$this->site->url}) is currently unreachable.\n\n" . 
-               "The latest check recorded the status: `down`.";
+        return "🔴 **WARNING: Site is offline!**\n\n".
+               "Your site **{$this->site->name}** ({$this->site->url}) is currently unreachable.\n\n".
+               'The latest check recorded the status: `down`.';
     }
 }
