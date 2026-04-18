@@ -204,6 +204,7 @@ jobs:
             TURNSTILE_ACTIVE=$(get_val "${{ vars.TURNSTILE_ACTIVE }}" "false")
             TURNSTILE_SITE_KEY=$(get_val "${{ vars.TURNSTILE_SITE_KEY }}" "")
             TURNSTILE_SECRET_KEY=$(get_val "${{ vars.TURNSTILE_SECRET_KEY }}" "")
+            FILAMENT_ADMIN_EMAIL=$(get_val "${{ vars.FILAMENT_ADMIN_EMAIL }}" "")
 
             # Generate .env file
             cat > ${{ matrix.server.path }}/.env << ENVEOF
@@ -213,6 +214,7 @@ jobs:
             APP_DEBUG=false
             APP_URL=$APP_URL
             FRONTEND_KEY=$FRONTEND_KEY
+            FILAMENT_ADMIN_EMAIL=$FILAMENT_ADMIN_EMAIL
 
             DB_CONNECTION=pgsql
             DB_HOST=$DB_HOST
