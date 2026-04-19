@@ -5,6 +5,7 @@ on:
     branches: [main]
 
 env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   DOCKER_IMAGE: ghcr.io/yurij2015/digipulse-backend
 
 permissions:
@@ -106,7 +107,7 @@ jobs:
         with:
           name: app-build
       - name: Bootstrap server directories
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ matrix.server.ip }}
           username: ${{ matrix.server.username }}
@@ -122,7 +123,7 @@ jobs:
             mkdir -p ${{ matrix.server.path }}/storage/logs
             sudo chmod -R 777 ${{ matrix.server.path }}/storage || true
       - name: Upload
-        uses: appleboy/scp-action@master
+        uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ matrix.server.ip }}
           username: ${{ matrix.server.username }}
@@ -131,7 +132,7 @@ jobs:
           source: ${{ github.sha }}.tar.gz
           target: ${{ matrix.server.path }}/artifacts
       - name: Extract archive and create directories
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         env:
           GITHUB_SHA: ${{ github.sha }}
         with:
@@ -167,7 +168,7 @@ jobs:
         server: ${{ fromJson(needs.create-deployment-artifacts.outputs.DEPLOYMENT_MATRIX) }}
     steps:
       - name: Write production .env
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         with:
           host: ${{ matrix.server.ip }}
           username: ${{ matrix.server.username }}
@@ -271,7 +272,7 @@ jobs:
         server: ${{ fromJson(needs.create-deployment-artifacts.outputs.DEPLOYMENT_MATRIX) }}
     steps:
       - name: Run before hooks
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         env:
           GITHUB_SHA: ${{ github.sha }}
           RELEASE_PATH: ${{ matrix.server.path }}/releases/${{ github.sha }}
@@ -304,7 +305,7 @@ jobs:
         server: ${{ fromJson(needs.create-deployment-artifacts.outputs.DEPLOYMENT_MATRIX) }}
     steps:
       - name: Activate release
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         env:
           GITHUB_SHA: ${{ github.sha }}
           RELEASE_PATH: ${{ matrix.server.path }}/releases/${{ github.sha }}
@@ -346,7 +347,7 @@ jobs:
         server: ${{ fromJson(needs.create-deployment-artifacts.outputs.DEPLOYMENT_MATRIX) }}
     steps:
       - name: Run after hooks
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         env:
           GITHUB_SHA: ${{ github.sha }}
           RELEASE_PATH: ${{ matrix.server.path }}/releases/${{ github.sha }}
@@ -382,7 +383,7 @@ jobs:
         server: ${{ fromJson(needs.create-deployment-artifacts.outputs.DEPLOYMENT_MATRIX) }}
     steps:
       - name: Clean up old releases
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.2.5
         env:
           RELEASES_PATH: ${{ matrix.server.path }}/releases
           ARTIFACTS_PATH: ${{ matrix.server.path }}/artifacts
