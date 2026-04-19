@@ -9,4 +9,3 @@ class EditUser extends EditRecord
 {
     protected static string $resource = UserResource::class;
 }
-
