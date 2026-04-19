@@ -77,7 +77,6 @@ class TelegramController extends Controller
     {
         Log::info('Telegram Webhook: Incoming request', ['payload' => $request->all()]); // Log incoming request
 
-        // 1. Get the message info
         $message = $request->input('message');
 
         if (! $message) {
@@ -93,36 +92,46 @@ class TelegramController extends Controller
             return response()->json(['status' => 'ignored']);
         }
 
-        // 2. Check if it's a deep link start command
-        if (str_starts_with($text, '/start ')) {
-            $token = str_replace('/start ', '', $text);
-            $token = trim($token);
-            Log::info('Telegram Webhook: Deep link start command detected.', ['token' => $token, 'chat_id' => $chatId]); // Log deep link detection
+        if (str_starts_with($text, '/start')) {
+            $token = trim(str_replace('/start', '', $text));
 
-            // 3. Find the user by token
+            if (empty($token)) {
+                Log::info('Telegram Webhook: Generic start command detected (no token).', ['chat_id' => $chatId]);
+                $this->sendSimpleMessage($chatId, "👋 **Welcome to DigiPulse!**\n\nTo connect your account and receive downtime notifications, please use the unique link from your **Settings** page in the DigiPulse dashboard.");
+                return response()->json(['status' => 'ok']);
+            }
+
+            Log::info('Telegram Webhook: Deep link start command detected.', ['token' => $token, 'chat_id' => $chatId]);
+
             $user = User::where('telegram_connection_token', $token)->first();
 
             if ($user) {
-                Log::info('Telegram Webhook: User found for token.', ['user_id' => $user->id, 'chat_id' => $chatId]); // Log user found
-                // 4. Update user record
+                Log::info('Telegram Webhook: User found for token.', ['user_id' => $user->id, 'chat_id' => $chatId]);
                 $user->update([
                     'telegram_chat_id' => $chatId,
                     'telegram_connection_token' => null,
                 ]);
-                Log::info('Telegram Webhook: User record updated.', ['user_id' => $user->id, 'chat_id' => $chatId]); // Log user update
+                Log::info('Telegram Webhook: User record updated.', ['user_id' => $user->id, 'chat_id' => $chatId]);
 
-                // 5. Send a welcome message back to the user via Telegram API
-                $this->sendMessage($chatId);
-                Log::info('Telegram Webhook: Welcome message sent.', ['user_id' => $user->id, 'chat_id' => $chatId]); // Log message sent
+                $this->sendSuccessMessage($chatId);
+                Log::info('Telegram Webhook: Welcome message sent.', ['user_id' => $user->id, 'chat_id' => $chatId]);
             } else {
-                Log::warning('Telegram Webhook: No user found for token.', ['token' => $token, 'chat_id' => $chatId]); // Log no user found
+                Log::warning('Telegram Webhook: No user found for token.', ['token' => $token, 'chat_id' => $chatId]);
+                $this->sendSimpleMessage($chatId, "⚠️ **Connection Failed**\n\nThe link you used is either invalid or has expired. Please generate a new connection link in your Settings.");
             }
         } else {
-            Log::info('Telegram Webhook: Received message is not a deep link start command.', ['text' => $text, 'chat_id' => $chatId]); // Log non-start command
+            Log::info('Telegram Webhook: Received message is not a start command.', ['text' => $text, 'chat_id' => $chatId]);
         }
 
-
         return response()->json(['status' => 'ok']);
+    }
+
+    /**
+     * Send a success connection message.
+     */
+    private function sendSuccessMessage($chatId): void
+    {
+        $this->sendSimpleMessage($chatId, "✅ **Success!**\n\nYou have connected Telegram to your DigiPulse account. You will now receive notifications here if your sites go offline.");
     }
 
     /**
@@ -130,7 +139,7 @@ class TelegramController extends Controller
      *
      * @throws ConnectionException
      */
-    private function sendMessage($chatId): void
+    private function sendSimpleMessage($chatId, string $text): void
     {
         $token = config('services.telegram.bot_token');
         if (! $token) {
