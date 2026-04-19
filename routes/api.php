@@ -23,6 +23,7 @@ Route::middleware(['frontend.key'])->group(function () {
         Route::get('sites/{site}/history', [SiteHistoryController::class, 'index'])->name('sites.history');
         Route::get('/check-types', [CheckTypeController::class, 'index'])->name('check-types.index');
         Route::get('/telegram/connect', [TelegramController::class, 'connect'])->name('telegram.connect');
+        Route::post('/telegram/disconnect', [TelegramController::class, 'disconnect'])->name('telegram.disconnect');
     });
 });
 
