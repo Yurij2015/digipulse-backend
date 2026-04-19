@@ -4,6 +4,7 @@ namespace App\Http\Requests\Api\Sites;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use OpenApi\Attributes as OA;
 
 #[OA\Schema(
@@ -47,13 +48,25 @@ class UpdateSiteRequest extends FormRequest
     {
         return [
             'name' => ['sometimes', 'string', 'max:255'],
-            'url' => ['sometimes', 'url', 'max:255'],
+            'url' => ['sometimes', 'url', 'max:255', Rule::unique('sites')->ignore($this->route('site'))],
             'update_interval' => ['sometimes', 'integer', 'min:60', 'max:86400'],
             'is_active' => ['sometimes', 'boolean'],
             'checks' => ['sometimes', 'array'],
             'checks.*.id' => ['sometimes', 'integer', 'exists:site_check_configurations,id'],
             'checks.*.check_type_id' => ['required_without:checks.*.id', 'exists:check_types,id'],
             'checks.*.params' => ['sometimes', 'array'],
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'url.unique' => 'ERROR_URL_TAKEN',
         ];
     }
 }

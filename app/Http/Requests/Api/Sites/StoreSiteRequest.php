@@ -47,12 +47,24 @@ class StoreSiteRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'url' => ['required', 'url', 'max:255'],
+            'url' => ['required', 'url', 'max:255', 'unique:sites,url'],
             'update_interval' => ['sometimes', 'integer', 'min:60', 'max:86400'],
             'is_active' => ['sometimes', 'boolean'],
             'checks' => ['sometimes', 'array'],
             'checks.*.check_type_id' => ['required', 'exists:check_types,id'],
             'checks.*.params' => ['sometimes', 'array'],
+        ];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'url.unique' => 'ERROR_URL_TAKEN',
         ];
     }
 }
