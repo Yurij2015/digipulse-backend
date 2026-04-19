@@ -20,6 +20,14 @@ class UsersTable
                 TextColumn::make('email')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('google_id')
+                    ->label('Google ID')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->copyable(),
+                TextColumn::make('telegram_chat_id')
+                    ->label('Telegram Chat ID')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->copyable(),
                 TextColumn::make('roles')
                     ->label('Roles')
                     ->formatStateUsing(fn ($state, $record) => $record->roles->pluck('name')->join(', '))
