@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Api\Auth\AuthController;
+use App\Http\Controllers\Api\Auth\EmailVerificationController;
+use App\Http\Controllers\Api\Auth\PasswordResetController;
 use App\Http\Controllers\Api\CheckTypeController;
 use App\Http\Controllers\Api\Internal\InternalCheckResultController;
 use App\Http\Controllers\Api\SiteController;
@@ -13,9 +15,17 @@ Route::middleware(['frontend.key'])->group(function () {
     Route::middleware(['turnstile'])->group(function () {
         Route::post('/register', [AuthController::class, 'register'])->name('register');
         Route::post('/login', [AuthController::class, 'login'])->name('login');
+        Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink'])->name('password.email');
+        Route::post('/reset-password', [PasswordResetController::class, 'reset'])->name('password.update');
     });
 
+    Route::post('/email/verify', [EmailVerificationController::class, 'verify'])->name('verification.verify');
+
     Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/email/verification-notification', [EmailVerificationController::class, 'sendVerificationNotification'])
+            ->middleware(['throttle:6,1'])
+            ->name('verification.send');
+
         Route::get('/me', [AuthController::class, 'me'])->name('me');
         Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
