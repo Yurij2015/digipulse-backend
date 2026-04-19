@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Telescope\TelescopeApplicationServiceProvider;
@@ -26,5 +27,9 @@ class AppServiceProvider extends ServiceProvider
         if (! $this->app->environment('local')) {
             URL::forceScheme('https');
         }
+
+        ResetPassword::createUrlUsing(static function ($user, string $token) {
+            return config('app.frontend_url').'/auth/reset-password?token='.$token.'&email='.urlencode($user->email);
+        });
     }
 }
