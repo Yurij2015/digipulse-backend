@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Auth\AuthController;
 use App\Http\Controllers\Api\Auth\EmailVerificationController;
 use App\Http\Controllers\Api\Auth\PasswordResetController;
+use App\Http\Controllers\Api\Auth\ProfileController;
 use App\Http\Controllers\Api\CheckTypeController;
 use App\Http\Controllers\Api\Internal\InternalCheckResultController;
 use App\Http\Controllers\Api\SiteController;
@@ -28,6 +29,9 @@ Route::middleware(['frontend.key'])->group(function () {
 
         Route::get('/me', [AuthController::class, 'me'])->name('me');
         Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+        Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+        Route::put('/profile/password', [ProfileController::class, 'changePassword'])->name('profile.password');
 
         Route::apiResource('sites', SiteController::class);
         Route::get('sites/{site}/history', [SiteHistoryController::class, 'index'])->name('sites.history');
