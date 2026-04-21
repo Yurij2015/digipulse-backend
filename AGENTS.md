@@ -136,6 +136,7 @@ This project has domain-specific skills available. You MUST activate the relevan
 ## APIs & Eloquent Resources
 
 - For APIs, default to using Eloquent API Resources and API versioning unless existing API routes do not, then you should follow existing application convention.
+- **Mail Safety**: When implementing or modifying features that trigger events (e.g., `Registered`), listeners, or notifications, always analyze the entire flow. Verify that the `MAIL_MAILER` and associated credentials in `.env` are correctly configured (use `log` for testing) to prevent 500 Server Errors due to connection failures when these triggers are executed.
 
 ## URL Generation
 
