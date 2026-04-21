@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class AuthService
@@ -27,7 +28,14 @@ class AuthService
                 'password' => Hash::make($data['password']),
             ])->refresh();
 
-            event(new Registered($user));
+            try {
+                event(new Registered($user));
+            } catch (Throwable $e) {
+                Log::error('Registration email failed to send', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
 
             $token = $user->createToken('auth_token')->plainTextToken;
 
