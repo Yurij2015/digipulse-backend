@@ -25,7 +25,6 @@ class AuthService
                 'first_name' => $data['first_name'] ?? null,
                 'last_name' => $data['last_name'] ?? null,
                 'password' => Hash::make($data['password']),
-                'organization' => $data['organization'] ?? null,
             ])->refresh();
 
             event(new Registered($user));
