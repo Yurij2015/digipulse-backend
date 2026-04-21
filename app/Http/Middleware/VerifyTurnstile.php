@@ -13,6 +13,14 @@ class VerifyTurnstile
     {
         $isTurnstileActive = config('services.turnstile.active');
 
+        Log::info('Turnstile: Incoming Request', [
+            'url' => $request->fullUrl(),
+            'has_token' => $request->has('cf_turnstile_response'),
+            'env' => app()->environment(),
+            'active' => $isTurnstileActive,
+            'cf_turnstile_response' => $request->input('cf_turnstile_response'),
+        ]);
+
         if (! $isTurnstileActive || app()->environment(['local', 'testing'])) {
             return $next($request);
         }
@@ -22,6 +30,7 @@ class VerifyTurnstile
         $secret = config('services.turnstile.secret_key');
 
         if (empty($token)) {
+            Log::warning('Turnstile: Missing token', ['ip' => $request->ip()]);
             return response()->json([
                 'error' => 'Missing Turnstile token.',
             ], 422);
