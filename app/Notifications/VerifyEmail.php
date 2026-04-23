@@ -35,9 +35,7 @@ class VerifyEmail extends BaseVerifyEmail
         $verificationUrl = $this->verificationUrl($notifiable);
 
         return (new MailMessage)
-            ->subject(__('Verify Your Email Address'))
-            ->line(__('Please click the button below to verify your email address.'))
-            ->action(__('Verify Email Address'), $verificationUrl)
-            ->line(__('If you did not create an account, no further action is required.'));
+            ->subject(config('app.name') . ' - Verify Your Email Address')
+            ->view('emails.verify-email', ['url' => $verificationUrl]);
     }
 }
