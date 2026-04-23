@@ -31,6 +31,7 @@ class VerifyTurnstile
 
         if (empty($token)) {
             Log::warning('Turnstile: Missing token', ['ip' => $request->ip()]);
+
             return response()->json([
                 'error' => 'Missing Turnstile token.',
             ], 422);

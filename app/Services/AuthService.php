@@ -33,7 +33,7 @@ class AuthService
             } catch (Throwable $e) {
                 Log::error('Registration email failed to send', [
                     'user_id' => $user->id,
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
             }
 
