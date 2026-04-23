@@ -189,11 +189,8 @@ jobs:
             REDIS_HOST=$(get_val "${{ vars.REDIS_HOST }}" "digipulse-redis")
 
             FRONTEND_KEY=$(get_val "${{ vars.FRONTEND_KEY }}" "")
-            MAIL_HOST=$(get_val "${{ vars.MAIL_HOST }}" "smtp.mailtrap.io")
-            MAIL_PORT=$(get_val "${{ vars.MAIL_PORT }}" "2525")
-            MAIL_USERNAME=$(get_val "${{ vars.MAIL_USERNAME }}" "")
-            MAIL_PASSWORD=$(get_val "${{ vars.MAIL_PASSWORD }}" "")
-            MAIL_FROM_ADDRESS=$(get_val "${{ vars.MAIL_FROM_ADDRESS }}" "hello@example.com")
+            MAIL_FROM_ADDRESS=$(get_val "${{ vars.MAIL_FROM_ADDRESS }}" "support@pulse.digispace.pro")
+            RESEND_API_KEY=$(get_val "${{ secrets.RESEND_API_KEY }}" "")
 
             GOOGLE_CLIENT_ID=$(get_val "${{ vars.GOOGLE_CLIENT_ID }}" "")
             GOOGLE_CLIENT_SECRET=$(get_val "${{ vars.GOOGLE_CLIENT_SECRET }}" "")
@@ -235,13 +232,10 @@ jobs:
 
             FILESYSTEM_DISK=local
 
-            MAIL_MAILER=smtp
-            MAIL_HOST=$MAIL_HOST
-            MAIL_PORT=$MAIL_PORT
-            MAIL_USERNAME=$MAIL_USERNAME
-            MAIL_PASSWORD=$MAIL_PASSWORD
+            MAIL_MAILER=resend
             MAIL_FROM_ADDRESS=$MAIL_FROM_ADDRESS
-            MAIL_FROM_NAME="DigiPulse"
+            MAIL_FROM_NAME="${APP_NAME}"
+            RESEND_API_KEY=$RESEND_API_KEY
 
             GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID
             GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET
