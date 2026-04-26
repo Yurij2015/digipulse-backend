@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\CheckTypeController;
 use App\Http\Controllers\Api\Internal\InternalCheckResultController;
 use App\Http\Controllers\Api\SiteController;
 use App\Http\Controllers\Api\SiteHistoryController;
+use App\Http\Controllers\Api\SupportTicketController;
 use App\Http\Controllers\Api\TelegramController;
 use App\Http\Middleware\InternalMonitorMiddleware;
 use Illuminate\Support\Facades\Route;
@@ -36,6 +37,12 @@ Route::middleware(['frontend.key'])->group(function () {
         Route::apiResource('sites', SiteController::class);
         Route::get('sites/{site}/history', [SiteHistoryController::class, 'index'])->name('sites.history');
         Route::get('/check-types', [CheckTypeController::class, 'index'])->name('check-types.index');
+
+        Route::get('/support/tickets', [SupportTicketController::class, 'index'])->name('support.tickets.index');
+        Route::get('/support/tickets/{ticket}', [SupportTicketController::class, 'show'])->name('support.tickets.show');
+        Route::post('/support/tickets/{ticket}/reply', [SupportTicketController::class, 'reply'])->name('support.tickets.reply');
+        Route::post('/support/tickets', [SupportTicketController::class, 'store'])->name('support.tickets.store');
+
         Route::get('/telegram/connect', [TelegramController::class, 'connect'])->name('telegram.connect');
         Route::post('/telegram/disconnect', [TelegramController::class, 'disconnect'])->name('telegram.disconnect');
     });

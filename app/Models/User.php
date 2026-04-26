@@ -17,7 +17,21 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'first_name', 'last_name', 'google_id', 'google_nickname', 'google_avatar', 'telegram_chat_id', 'telegram_connection_token'])]
+#[Fillable([
+    'name',
+    'email',
+    'password',
+    'first_name',
+    'last_name',
+    'google_id',
+    'google_nickname',
+    'google_avatar',
+    'telegram_chat_id',
+    'telegram_connection_token',
+    'notify_email',
+    'notify_telegram',
+    'email_verified_at',
+])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser, MustVerifyEmail
 {
@@ -57,12 +71,19 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'notify_email' => 'boolean',
+            'notify_telegram' => 'boolean',
         ];
     }
 
     public function sites(): HasMany
     {
         return $this->hasMany(Site::class);
+    }
+
+    public function supportTickets(): HasMany
+    {
+        return $this->hasMany(SupportTicket::class);
     }
 
     /**

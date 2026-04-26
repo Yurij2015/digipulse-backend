@@ -10,9 +10,40 @@ use App\Notifications\SiteDownNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use OpenApi\Attributes as OA;
 
 class InternalCheckResultController extends Controller
 {
+    #[OA\Post(
+        path: '/api/webhooks/results',
+        summary: 'Store a new check result from the monitor service',
+        security: [['frontendKey' => []]],
+        tags: ['Internal'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['configuration_id', 'status'],
+                properties: [
+                    new OA\Property(property: 'configuration_id', type: 'integer', example: 1),
+                    new OA\Property(property: 'status', type: 'string', enum: ['up', 'down', 'slow'], example: 'up'),
+                    new OA\Property(property: 'response_time_ms', type: 'integer', example: 150),
+                    new OA\Property(property: 'error_message', type: 'string', example: 'Connection timeout'),
+                    new OA\Property(property: 'metadata', type: 'object', example: ['ip' => '1.2.3.4']),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Result stored successfully',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'success', type: 'boolean', example: true),
+                    ]
+                )
+            ),
+        ]
+    )]
     /**
      * Store a new check result from the monitor service.
      *

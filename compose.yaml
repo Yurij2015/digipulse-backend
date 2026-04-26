@@ -1,8 +1,8 @@
 services:
   laravel.digipulse:
     build:
-      context: ./vendor/laravel/sail/runtimes/8.5
-      dockerfile: Dockerfile
+      context: ../
+      dockerfile: backend/Dockerfile.devcontainer
       args:
         WWWGROUP: '${WWWGROUP}'
     image: sail-8.5/app

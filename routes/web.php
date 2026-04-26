@@ -24,6 +24,7 @@ Route::get('/auth/callback', static function () {
             'google_id' => $googleUser->getId(),
             'google_nickname' => $googleUser->getNickname(),
             'google_avatar' => $googleUser->getAvatar(),
+            'email_verified_at' => $user->email_verified_at ?? now(),
         ]);
     } else {
         $user = User::create([
@@ -32,6 +33,7 @@ Route::get('/auth/callback', static function () {
             'email' => $googleUser->getEmail(),
             'google_nickname' => $googleUser->getNickname(),
             'google_avatar' => $googleUser->getAvatar(),
+            'email_verified_at' => now(),
         ]);
     }
 

@@ -5,6 +5,8 @@ namespace App\Filament\Admin\Resources\Users\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -19,6 +21,14 @@ class UsersTable
                     ->sortable(),
                 TextColumn::make('email')
                     ->searchable()
+                    ->sortable(),
+                IconColumn::make('notify_email')
+                    ->label('Email')
+                    ->boolean()
+                    ->sortable(),
+                IconColumn::make('notify_telegram')
+                    ->label('Telegram')
+                    ->boolean()
                     ->sortable(),
                 TextColumn::make('google_id')
                     ->label('Google ID')
@@ -41,6 +51,7 @@ class UsersTable
                 // add filters if needed
             ])
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
             ])
             ->toolbarActions([

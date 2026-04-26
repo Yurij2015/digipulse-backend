@@ -19,13 +19,13 @@
         .container {
             max-width: 600px;
             margin: 0 auto;
-            padding: 40px 20px;
+            padding: 32px 16px;
         }
         .card {
             background-color: #171717;
-            border-radius: 24px;
-            padding: 40px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
         }
         .logo {
@@ -103,7 +103,7 @@
         
         <div class="footer">
             &copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.<br>
-            Premium Digital Health Monitoring
+            Reliable Website Status Monitoring
         </div>
     </div>
 </body>

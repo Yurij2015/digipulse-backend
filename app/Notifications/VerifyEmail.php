@@ -35,7 +35,7 @@ class VerifyEmail extends BaseVerifyEmail
         $verificationUrl = $this->verificationUrl($notifiable);
 
         return (new MailMessage)
-            ->subject(config('app.name') . ' - Verify Your Email Address')
+            ->subject(config('app.name').' - Verify Your Email Address')
             ->view('emails.verify-email', ['url' => $verificationUrl]);
     }
 }

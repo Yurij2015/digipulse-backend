@@ -32,8 +32,8 @@ class ConfigurationsRelationManager extends RelationManager
                     ->default(true)
                     ->required(),
                 KeyValue::make('params')
-                    ->addColumnLabel('Parameter')
-                    ->addValueLabel('Value')
+                    ->keyLabel('Parameter')
+                    ->valueLabel('Value')
                     ->columnSpanFull(),
             ]);
     }
@@ -66,11 +66,11 @@ class ConfigurationsRelationManager extends RelationManager
             ->headerActions([
                 CreateAction::make(),
             ])
-            ->actions([
+            ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ]),
