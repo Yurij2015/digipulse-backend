@@ -53,7 +53,7 @@ class SiteDownNotification extends Notification implements ShouldQueue, Telegram
             ->greeting('Hello!')
             ->line("Your site **{$this->site->name}** ({$this->site->url}) is currently unreachable.")
             ->line('The latest check recorded the status: **down**.')
-            ->action('View Site Dashboard', config('app.frontend_url', config('app.url')).'/dashboard')
+            ->action('View Site Dashboard', rtrim(config('app.frontend_url', config('app.url')), '/').'/dashboard')
             ->line('Please check your server as soon as possible.');
     }
 

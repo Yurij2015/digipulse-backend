@@ -47,7 +47,7 @@ class SSLExpiringNotification extends Notification implements ShouldQueue, Teleg
             ->greeting('Hello!')
             ->line("The SSL certificate for your site **{$this->site->name}** ({$this->site->url}) is about to expire.")
             ->line("Days remaining: **{$this->daysRemaining}**.")
-            ->action('View Site Dashboard', config('app.frontend_url', config('app.url')).'/dashboard')
+            ->action('View Site Dashboard', rtrim(config('app.frontend_url', config('app.url')), '/').'/dashboard')
             ->line('Please renew your certificate as soon as possible to avoid downtime.');
     }
 

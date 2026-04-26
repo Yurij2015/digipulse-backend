@@ -29,7 +29,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         ResetPassword::createUrlUsing(static function ($user, string $token) {
-            return config('app.frontend_url').'/auth/reset-password?token='.$token.'&email='.urlencode($user->email);
+            return rtrim(config('app.frontend_url'), '/').'/auth/reset-password?token='.$token.'&email='.urlencode($user->email);
         });
     }
 }

@@ -48,8 +48,8 @@ class SupportTicketReplyNotification extends Notification implements ShouldQueue
         $author = $this->reply->user->name ?? 'Support Agent';
 
         $url = $this->reply->is_admin_reply
-            ? config('app.frontend_url', config('app.url')).'/support'
-            : config('app.url').'/admin/support-tickets/'.$ticket->id;
+            ? rtrim(config('app.frontend_url', config('app.url')), '/').'/support'
+            : rtrim(config('app.url'), '/').'/admin/support-tickets/'.$ticket->id;
 
         return (new MailMessage)
             ->subject('New reply to your support ticket: '.$ticket->subject)
@@ -82,10 +82,10 @@ class SupportTicketReplyNotification extends Notification implements ShouldQueue
 
         // If it's a user reply, show admin link. If admin reply, show frontend link.
         if ($this->reply->is_admin_reply) {
-            $url = config('app.frontend_url', config('app.url')).'/support';
+            $url = rtrim(config('app.frontend_url', config('app.url')), '/').'/support';
             $btnText = '🌐 View in Support';
         } else {
-            $url = config('app.url').'/admin/support-tickets/'.$ticket->id.'/edit';
+            $url = rtrim(config('app.url'), '/').'/admin/support-tickets/'.$ticket->id.'/edit';
             $btnText = '🌐 Open in Admin';
         }
 

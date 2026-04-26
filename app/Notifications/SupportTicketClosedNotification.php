@@ -21,7 +21,7 @@ class SupportTicketClosedNotification extends Notification implements ShouldQueu
 
     public function toMail(object $notifiable): MailMessage
     {
-        $url = config('app.frontend_url', config('app.url')).'/support';
+        $url = rtrim(config('app.frontend_url', config('app.url')), '/').'/support';
 
         return (new MailMessage)
             ->subject('Your support ticket has been closed: '.$this->ticket->subject)

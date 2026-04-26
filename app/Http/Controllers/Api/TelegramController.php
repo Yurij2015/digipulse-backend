@@ -150,7 +150,7 @@ class TelegramController extends Controller
         }
 
         if (Cache::has("telegram_reply_ticket_{$chatId}")) {
-            return $this->handleSupportReply($chatId, $text);
+            return $this->handleSupportReply((string) $chatId, $text);
         }
 
         if (str_starts_with($text, '/start')) {
@@ -204,7 +204,7 @@ class TelegramController extends Controller
         $adminEmail = config('app.admin_email');
         $admin = User::where('email', $adminEmail)->first();
 
-        if (! $admin || $admin->telegram_chat_id !== $chatId) {
+        if (! $admin || (string) $admin->telegram_chat_id !== (string) $chatId) {
             $this->telegram->answerCallbackQuery($callbackQueryId, '⚠️ You are not authorized to reply.');
 
             return response()->json(['status' => 'forbidden']);
@@ -229,7 +229,7 @@ class TelegramController extends Controller
      *
      * @throws \JsonException
      */
-    private function handleSupportReply(int $chatId, string $text): JsonResponse
+    private function handleSupportReply(string $chatId, string $text): JsonResponse
     {
         $ticketId = Cache::pull("telegram_reply_ticket_{$chatId}");
         $ticket = SupportTicket::find($ticketId);
