@@ -2,19 +2,25 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Channels\TelegramChannel;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
+use App\Models\SupportTicket;
+use App\Models\SupportTicketMessage;
 use App\Models\User;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http; // Added Log facade
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use OpenApi\Attributes as OA;
 
 class TelegramController extends Controller
 {
+    public function __construct(
+        protected TelegramChannel $telegram
+    ) {}
+
     #[OA\Get(
         path: '/api/telegram/connect',
         summary: 'Get Telegram connection link',
@@ -52,7 +58,6 @@ class TelegramController extends Controller
             ]);
         }
 
-        // Generate a new secure token
         $token = Str::random(32);
 
         $user->update([
@@ -80,7 +85,7 @@ class TelegramController extends Controller
                 description: 'Successful operation',
                 content: new OA\JsonContent(
                     properties: [
-                        new OA\Property(property: 'user', ref: '#/components/schemas/UserResource'),
+                        new OA\Property(property: 'user', ref: '#/components/schemas/UserSchema'),
                     ],
                     type: 'object'
                 )
@@ -89,6 +94,8 @@ class TelegramController extends Controller
     )]
     /**
      * Disconnect the Telegram bot for the authenticated user.
+     *
+     * @throws \JsonException
      */
     public function disconnect(Request $request): JsonResponse
     {
@@ -96,13 +103,10 @@ class TelegramController extends Controller
         $chatId = $user->telegram_chat_id;
 
         if ($chatId) {
-            try {
-                // Send a goodbye message before disconnecting
-                $this->sendSimpleMessage($chatId, "🔌 **Disconnected**\n\nYou have successfully disconnected Telegram notifications for DigiPulse. You will no longer receive alerts here.");
-                Log::info('Telegram Disconnect: Goodbye message sent.', ['user_id' => $user->id, 'chat_id' => $chatId]);
-            } catch (\Exception $e) {
-                Log::warning('Telegram Disconnect: Failed to send goodbye message.', ['user_id' => $user->id, 'error' => $e->getMessage()]);
-            }
+            $this->telegram->sendMessage($chatId, [
+                'text' => "🔌 *Disconnected*\n\nYou have successfully disconnected Telegram notifications for DigiPulse\. You will no longer receive alerts here\.",
+                'parse_mode' => 'MarkdownV2',
+            ]);
         }
 
         $user->update([
@@ -118,96 +122,141 @@ class TelegramController extends Controller
     /**
      * Handle incoming webhooks from Telegram.
      *
-     * @throws ConnectionException
+     * @throws \JsonException
      */
     public function webhook(Request $request): JsonResponse
     {
-        Log::info('Telegram Webhook: Incoming request', ['payload' => $request->all()]); // Log incoming request
+        $payload = $request->all();
 
-        $message = $request->input('message');
+        Log::info('Telegram webhook payload', ['payload' => $payload]);
+
+        if (isset($payload['callback_query'])) {
+            return $this->processTelegramCallback($payload['callback_query']);
+        }
+
+        $message = $payload['message'] ?? null;
+
+        Log::info('Telegram webhook message', ['message' => $message]);
 
         if (! $message) {
-            Log::info('Telegram Webhook: No message found in request, ignoring.', ['payload' => $request->all()]); // Log ignored message
-
-            return response()->json(['status' => 'ignored']);
+            return response()->json(['status' => 'ok']);
         }
 
         $text = $message['text'] ?? '';
         $chatId = $message['chat']['id'] ?? null;
 
         if (! $text || ! $chatId) {
-            Log::info('Telegram Webhook: Message missing text or chat ID, ignoring.', ['message' => $message]); // Log ignored message
+            return response()->json(['status' => 'ok']);
+        }
 
-            return response()->json(['status' => 'ignored']);
+        if (Cache::has("telegram_reply_ticket_{$chatId}")) {
+            return $this->handleSupportReply($chatId, $text);
         }
 
         if (str_starts_with($text, '/start')) {
             $token = trim(str_replace('/start', '', $text));
 
             if (empty($token)) {
-                Log::info('Telegram Webhook: Generic start command detected (no token).', ['chat_id' => $chatId]);
-                $this->sendSimpleMessage($chatId, "👋 **Welcome to DigiPulse!**\n\nTo connect your account and receive downtime notifications, please use the unique link from your **Settings** page in the DigiPulse dashboard.");
+                $this->telegram->sendMessage($chatId, [
+                    'text' => "👋 *Welcome to DigiPulse\!*\n\nTo connect your account and receive downtime notifications, please use the unique link from your *Settings* page in the DigiPulse dashboard\.",
+                    'parse_mode' => 'MarkdownV2',
+                ]);
 
                 return response()->json(['status' => 'ok']);
             }
 
-            Log::info('Telegram Webhook: Deep link start command detected.', ['token' => $token, 'chat_id' => $chatId]);
-
             $user = User::where('telegram_connection_token', $token)->first();
 
             if ($user) {
-                Log::info('Telegram Webhook: User found for token.', ['user_id' => $user->id, 'chat_id' => $chatId]);
                 $user->update([
                     'telegram_chat_id' => $chatId,
                     'telegram_connection_token' => null,
                 ]);
-                Log::info('Telegram Webhook: User record updated.', ['user_id' => $user->id, 'chat_id' => $chatId]);
 
-                $this->sendSuccessMessage($chatId);
-                Log::info('Telegram Webhook: Welcome message sent.', ['user_id' => $user->id, 'chat_id' => $chatId]);
+                $this->telegram->sendMessage($chatId, [
+                    'text' => "✅ *Success\!*\n\nYou have connected Telegram to your DigiPulse account\. You will now receive notifications here if your sites go offline\.",
+                    'parse_mode' => 'MarkdownV2',
+                ]);
             } else {
-                Log::warning('Telegram Webhook: No user found for token.', ['token' => $token, 'chat_id' => $chatId]);
-                $this->sendSimpleMessage($chatId, "⚠️ **Connection Failed**\n\nThe link you used is either invalid or has expired. Please generate a new connection link in your Settings.");
+                $this->telegram->sendMessage($chatId, [
+                    'text' => "⚠️ *Connection Failed*\n\nThe link you used is either invalid or has expired\. Please generate a new connection link in your Settings\.",
+                    'parse_mode' => 'MarkdownV2',
+                ]);
             }
-        } else {
-            Log::info('Telegram Webhook: Received message is not a start command.', ['text' => $text, 'chat_id' => $chatId]);
         }
 
         return response()->json(['status' => 'ok']);
     }
 
     /**
-     * Send a success connection message.
+     * Handle button clicks (callback queries).
+     *
+     * @throws \JsonException
      */
-    private function sendSuccessMessage($chatId): void
+    private function processTelegramCallback(array $callbackQuery): JsonResponse
     {
-        $this->sendSimpleMessage($chatId, "✅ **Success!**\n\nYou have connected Telegram to your DigiPulse account. You will now receive notifications here if your sites go offline.");
+        Log::info('processTelegramCallback payload data', ['callbackQuery' => $callbackQuery]);
+
+        $chatId = $callbackQuery['from']['id'];
+        $data = $callbackQuery['data'];
+        $callbackQueryId = $callbackQuery['id'];
+
+        $adminEmail = config('app.admin_email');
+        $admin = User::where('email', $adminEmail)->first();
+
+        if (! $admin || $admin->telegram_chat_id !== $chatId) {
+            $this->telegram->answerCallbackQuery($callbackQueryId, '⚠️ You are not authorized to reply.');
+
+            return response()->json(['status' => 'forbidden']);
+        }
+
+        if (str_starts_with($data, 'support_reply:')) {
+            $ticketId = str_replace('support_reply:', '', $data);
+            Cache::put("telegram_reply_ticket_{$chatId}", $ticketId, now()->addMinutes(15));
+
+            $this->telegram->sendMessage($chatId, [
+                'text' => "✍️ *Ticket \#{$ticketId}*\n\nPlease enter your answer below\. I will send it to the user\.",
+                'parse_mode' => 'MarkdownV2',
+            ]);
+            $this->telegram->answerCallbackQuery($callbackQueryId);
+        }
+
+        return response()->json(['status' => 'ok']);
     }
 
     /**
-     * Send a simple text message via Telegram API.
+     * Handle the actual text reply from the admin.
      *
-     * @throws ConnectionException
+     * @throws \JsonException
      */
-    private function sendSimpleMessage($chatId, string $text): void
+    private function handleSupportReply(int $chatId, string $text): JsonResponse
     {
-        $token = config('services.telegram.bot_token');
-        if (! $token) {
-            Log::warning('Telegram Webhook: Telegram bot token not configured, cannot send message.', ['chat_id' => $chatId]); // Log missing token
+        $ticketId = Cache::pull("telegram_reply_ticket_{$chatId}");
+        $ticket = SupportTicket::find($ticketId);
 
-            return;
+        if (! $ticket) {
+            $this->telegram->sendMessage($chatId, "⚠️ Error: Ticket #{$ticketId} not found.");
+
+            return response()->json(['status' => 'ok']);
         }
 
-        try {
-            Http::post("https://api.telegram.org/bot{$token}/sendMessage", [
-                'chat_id' => $chatId,
-                'text' => $text,
-                'parse_mode' => 'Markdown',
-            ]);
-            Log::info('Telegram Webhook: Message sent successfully via Telegram API.', ['chat_id' => $chatId]); // Log successful send
-        } catch (ConnectionException $e) {
-            Log::error('Telegram Webhook: Failed to send message via Telegram API.', ['chat_id' => $chatId, 'error' => $e->getMessage()]); // Log send error
-            throw $e; // Re-throw the exception as it's part of the method signature
-        }
+        $adminEmail = config('app.admin_email');
+        $admin = User::where('email', $adminEmail)->first();
+
+        SupportTicketMessage::create([
+            'support_ticket_id' => $ticket->id,
+            'user_id' => $admin?->id,
+            'message' => $text,
+            'is_admin_reply' => true,
+        ]);
+
+        $ticket->update(['status' => 'in_progress']);
+
+        $this->telegram->sendMessage($chatId, [
+            'text' => "✅ *Response sent\!*\n\nYour message has been delivered and saved to Ticket \#{$ticket->id}\.",
+            'parse_mode' => 'MarkdownV2',
+        ]);
+
+        return response()->json(['status' => 'ok']);
     }
 }

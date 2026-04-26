@@ -11,14 +11,13 @@ use App\Models\CheckType;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 
 class CheckTypeResource extends Resource
 {
     protected static ?string $model = CheckType::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-adjustments-horizontal';
 
     public static function form(Schema $schema): Schema
     {
@@ -28,13 +27,6 @@ class CheckTypeResource extends Resource
     public static function table(Table $table): Table
     {
         return CheckTypesTable::configure($table);
-    }
-
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
     }
 
     public static function getPages(): array

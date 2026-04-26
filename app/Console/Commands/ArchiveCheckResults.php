@@ -8,6 +8,7 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 #[Signature('app:archive-check-results')]
 #[Description('Archive check results older than 7 days into weekly chunks and purge archives older than 1 year.')]
@@ -19,11 +20,13 @@ class ArchiveCheckResults extends Command
     public function handle(): void
     {
         $this->info('Starting check results archival process...');
+        Log::info('Check results archival process started.');
 
         $this->archiveOldResults();
         $this->purgeExpiredArchives();
 
         $this->info('Archival process completed successfully.');
+        Log::info('Check results archival process completed.');
     }
 
     /**
@@ -53,7 +56,7 @@ class ArchiveCheckResults extends Command
 
                 DB::transaction(function () use ($configId, $year, $week, $results) {
                     $siteId = $results->first()->site_id;
-                    $newData = $results->map(fn ($r) => $r->getAttributes())->toArray();
+                    $newData = $results->toArray();
 
                     $existingArchive = CheckResultArchive::where([
                         'configuration_id' => $configId,
@@ -82,7 +85,9 @@ class ArchiveCheckResults extends Command
                     CheckResult::whereIn('id', $results->pluck('id'))->delete();
                 });
 
-                $this->line("  - Archived Week {$week} of {$year} ({$results->count()} records)");
+                $logMsg = "Archived Week {$week} of {$year} for Config ID {$configId} ({$results->count()} records)";
+                $this->line("  - {$logMsg}");
+                Log::info($logMsg);
             }
         }
     }
@@ -98,7 +103,9 @@ class ArchiveCheckResults extends Command
             ->delete();
 
         if ($deletedCount > 0) {
-            $this->warn("Deleted {$deletedCount} expired archive entries.");
+            $msg = "Deleted {$deletedCount} expired archive entries older than 1 year.";
+            $this->warn($msg);
+            Log::info($msg);
         }
     }
 }
