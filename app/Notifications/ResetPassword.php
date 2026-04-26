@@ -20,7 +20,7 @@ class ResetPassword extends BaseResetPassword
 
         $url = static::$createUrlCallback
             ? call_user_func(static::$createUrlCallback, $notifiable, $this->token)
-            : config('app.frontend_url').'/auth/reset-password?token='.$this->token.'&email='.urlencode($notifiable->getEmailForPasswordReset());
+            : rtrim(config('app.frontend_url'), '/').'/auth/reset-password?token='.$this->token.'&email='.urlencode($notifiable->getEmailForPasswordReset());
 
         return (new MailMessage)
             ->subject(config('app.name').' - Reset Password')

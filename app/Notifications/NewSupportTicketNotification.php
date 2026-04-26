@@ -45,7 +45,7 @@ class NewSupportTicketNotification extends Notification implements ShouldQueue, 
     public function toMail(object $notifiable): MailMessage
     {
         $userStr = $this->ticket->user->name ?? $this->ticket->contact_email;
-        $adminUrl = config('app.url').'/admin/support-tickets/'.$this->ticket->id;
+        $adminUrl = rtrim(config('app.url'), '/').'/admin/support-tickets/'.$this->ticket->id;
 
         return (new MailMessage)
             ->subject('New Support Ticket: '.$this->ticket->subject)
@@ -81,7 +81,7 @@ class NewSupportTicketNotification extends Notification implements ShouldQueue, 
                "*Priority:* {$priorityEmoji} {$ePriority}\n\n".
                "*Message:*\n{$eMessage}";
 
-        $adminUrl = config('app.url').'/admin/support-tickets/'.$this->ticket->id.'/edit';
+        $adminUrl = rtrim(config('app.url'), '/').'/admin/support-tickets/'.$this->ticket->id.'/edit';
 
         return [
             'text' => $text,
