@@ -6,9 +6,9 @@ use OpenApi\Attributes as OA;
 
 #[OA\OpenApi(
     info: new OA\Info(
-        title: 'DigiPulse API',
         version: '1.0.0',
-        description: 'API documentation for the DigiPulse monitoring system. **Authentication:** Use these endpoints to register, login, and manage user tokens.'
+        description: 'API documentation for the DigiPulse monitoring system. **Authentication:** Use these endpoints to register, login, and manage user tokens.',
+        title: 'DigiPulse API'
     ),
     servers: [
         new OA\Server(url: L5_SWAGGER_CONST_HOST, description: 'API Server'),
@@ -18,16 +18,16 @@ use OpenApi\Attributes as OA;
             new OA\SecurityScheme(
                 securityScheme: 'frontendKey',
                 type: 'apiKey',
+                description: 'Custom frontend key for API access',
                 name: 'X-Frontend-Key',
-                in: 'header',
-                description: 'Custom frontend key for API access'
+                in: 'header'
             ),
             new OA\SecurityScheme(
                 securityScheme: 'bearerAuth',
                 type: 'http',
-                scheme: 'bearer',
+                description: 'BearerAuth access token',
                 bearerFormat: 'JWT',
-                description: 'BearerAuth access token'
+                scheme: 'bearer'
             ),
         ]
     )
