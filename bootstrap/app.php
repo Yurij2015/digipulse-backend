@@ -17,8 +17,6 @@ return Application::configure(basePath: dirname(__DIR__))
         __DIR__.'/../routes/channels.php',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->statefulApi();
-
         $middleware->alias([
             'frontend.key' => FrontendKeyMiddleware::class,
             'turnstile' => VerifyTurnstile::class,
