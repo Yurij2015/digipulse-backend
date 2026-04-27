@@ -10,9 +10,6 @@ use OpenApi\Attributes as OA;
         description: 'API documentation for the DigiPulse monitoring system. **Authentication:** Use these endpoints to register, login, and manage user tokens.',
         title: 'DigiPulse API'
     ),
-    servers: [
-        new OA\Server(url: L5_SWAGGER_CONST_HOST, description: 'API Server'),
-    ],
     components: new OA\Components(
         securitySchemes: [
             new OA\SecurityScheme(
