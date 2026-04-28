@@ -157,18 +157,22 @@ This project has domain-specific skills available. You MUST activate the relevan
 # Octane
 
 - Octane boots the application once and reuses it across requests, so singletons persist between requests.
-- The Laravel container's `scoped` method may be used as a safe alternative to `singleton`.
-- Never inject the container, request, or config repository into a singleton's constructor; use a resolver closure or `bind()` instead:
-
+- **Strict Environment Access**: NEVER use the `env()` helper outside of files in the `config/` directory. Always use the `config()` helper instead.
+- **State Management**: NEVER append to or modify static properties within classes, as they accumulate in memory across requests and can cause data leaks between users.
+- **Dependency Injection**: Never inject the container, request, or config repository into a singleton's constructor; use a resolver closure or `bind()` instead.
+- **Scoped Bindings**: Use the Laravel container's `scoped` method instead of `singleton` for services that need to be reset between requests.
+- **Example of proper singleton binding**:
 ```php
-// Bad
-$this->app->singleton(Service::class, fn (Application $app) => new Service($app['request']));
-
 // Good
 $this->app->singleton(Service::class, fn () => new Service(fn () => request()));
 ```
 
-- Never append to static properties, as they accumulate in memory across requests.
+### Critical Octane Caveats:
+1. **Container/Request Injection**: Avoid injecting `Application` or `Request` into constructors of singletons. They will hold a stale version of the container/request on subsequent requests.
+   - *Fix*: Use a resolver closure: `new Service(fn () => Container::getInstance())` or `fn () => request()`.
+2. **Configuration Repository**: Do not inject the `config` repository into constructors of singletons. If config changes between requests, the service won't see it.
+   - *Fix*: Use the global `config()` helper or a resolver closure.
+3. **Memory Leaks**: Never append data to a statically maintained array (e.g., `public static $data = []`). This will grow indefinitely and leak memory.
 
 === pint/core rules ===
 

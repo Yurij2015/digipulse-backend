@@ -1,65 +1,89 @@
-# DigiPulse Backend (Laravel API)
+# DigiPulse
 
-The core API for the DigiPulse monitoring platform, built with Laravel 13 and powered by FrankenPHP Octane for high performance.
+Система моніторингу доступності сайтів, SSL сертифікатів та стану доменів.
 
-## Technology Stack
+Працює зараз в продакшені, повністю самостійний проєкт без зовнішніх інвестицій. Не є "найкращим на ринку", не керує тисячами сайтів, робить свою роботу добре для того обсягу для якого розроблений.
 
-- **PHP 8.5**
-- **Framework**: Laravel 13
-- **Server**: FrankenPHP (Octane)
-- **Admin Panel**: Filament v5
-- **Database**: PostgreSQL 18
-- **Cache/Queue**: Redis (Alpine)
-- **Frontend**: Nuxt 4 / Node.js 22
-- **Docker Image**: [`ghcr.io/yurij2015/digipulse-backend`](https://ghcr.io/yurij2015/digipulse-backend)
+---
 
-## Key Features
+## Загальна архітектура
 
-- **Real-time Monitoring**: Integrates with the Go-based monitor service via Redis.
-- **Telegram Notifications**: Immediate alerts for website downtime.
-- **Bento Grid API**: Optimized data structures for the Nuxt 4 frontend.
-- **Auth**: Google OAuth + Email verification.
+Проєкт розділений на 4 незалежні частини які комунікують між собою:
 
-## Deployment (CI/CD)
+| Компонент | Технологія | Призначення | Стан |
+|---|---|---|---|
+| **Backend** | Laravel 13 / PHP 8.5 | Ядро API, авторизація, панель адміністрування, сповіщення | ✅ Продакшен |
+| **Monitor** | Go 1.23 | Фоновий воркер який реально пінгує сайти, перевіряє сертифікати, вимірює латентність | ✅ Продакшен |
+| **Frontend** | Nuxt 4 / Vue 3 | Користувацький інтерфейс | ✅ Продакшен |
+| **Infrastructure** | Terraform / Docker | Конфігурація серверів, деплоймент, секрети | ✅ Продакшен |
 
-Deployments are automated via **GitHub Actions**.
+Всі частини розгорнуті на Hetzner Cloud, не використовують сторонні SaaS крім SMTP та Cloudflare Turnstile.
 
-### Workflow:
-1.  **Build**: Composer dependencies are installed, and artifacts are packed.
-2.  **Docker**: If `docker/` files changed, a new image is built and pushed to GHCR.
-3.  **Environment**: A production `.env` file is generated on the server from GitHub Secrets.
-4.  **Deploy**: Artifacts are uploaded via SCP and symlinked to `/home/yurii/digi-pulse-backend/current`.
-5.  **Database**: Migrations are run automatically via the `artisan migrate` hook.
+---
 
-### Required GitHub Secrets:
+## Що реально зараз працює
 
-| Secret | Description |
+✅ Моніторинг доступності сайтів з інтервалом 1 хвилина
+✅ Перевірка терміну дії SSL сертифікатів
+✅ Перевірка терміну реєстрації доменів
+✅ Історична статистика аптайму на графіків
+✅ Сповіщення в Телеграм, email при падінні сайту
+✅ Дозволи для команд, спільний доступ до моніторингу
+✅ Google OAuth авторизація
+✅ Адмін панель на Filament v5
+✅ Автоматичний деплоймент з GitHub Actions
+✅ Тикет система підтримки
+
+## Що зараз розробляється
+
+- 🚧 Сповіщення в Discord / Slack
+- 🚧 Інтеграція з PagerDuty
+- 🚧 Перевірка контенту сторінки на зміни
+- 🚧 Захист від помилкових сповіщень
+
+## Що тут НЕМАЄ і не планується
+
+❌ Безлімітні безкоштовні плани
+❌ Маркетингові лендинги з гучними обіцянками
+❌ AI аналіз проблем (хоча хтось напевно колись запропонує)
+❌ Моніторинг серверів, дисків, процесорів - тільки веб сайти
+❌ Відкриті реєстрації наразі
+
+---
+
+## Технологічний стек
+
+| Шар | Технології |
 |---|---|
-| `SSH_KEY` | Private SSH key for the Hetzner server. |
-| `APP_KEY` | Laravel Application Key. |
-| `APP_URL` | Production URL (e.g., `https://api.pulse.digispace.pro`). |
-| `FRONTEND_KEY` | Shared key for frontend request authorization (`X-Frontend-Key`). |
-| `DB_HOST` | Database host (usually `digipulse-db`). |
-| `DB_PASSWORD` | PostgreSQL password. |
-| `REDIS_HOST` | Redis host (usually `digipulse-redis`). |
-| `TELEGRAM_BOT_TOKEN` | Token from BotFather for downtime alerts. |
-| `INTERNAL_MONITOR_KEY` | Shared secret for the Go Monitor service. |
-| `GOOGLE_CLIENT_ID` | Google OAuth Client ID. |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret. |
-| `TURNSTILE_SITE_KEY` | Cloudflare Turnstile Site Key. |
-| `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile Secret Key. |
-| `MAIL_HOST` | SMTP Host for email notifications. |
-| `MAIL_PASSWORD` | SMTP Password. |
+| Сервер | FrankenPHP / Octane 2 |
+| База даних | PostgreSQL 18 |
+| Кеш та черги | Redis 7 |
+| Фронтенд | Nuxt 4 / Vue 3 / Tailwind 4 |
+| Монітор | Чистий Go, без фреймворків |
+| Деплоймент | GitHub Actions, Docker, Terraform |
 
-## Local Development
+Всі залежності тримаються актуальними, оновлюються регулярно в межах стабільних версій.
 
-1.  Clone the repository.
-2.  Install dependencies: `composer install`.
-3.  Start Laravel Sail: `./vendor/bin/sail up -d`.
-4.  Run migrations: `./vendor/bin/sail artisan migrate`.
+---
 
-## Documentation
+## Локальна розробка
 
-- [Filament Admin](app/Filament/Resources)
-- [API Endpoints](routes/api.php)
-- [Deployment Workflow](.github/workflows/deploy.yml)
+Весь стек піднімається через Laravel Sail в один команду:
+
+```bash
+git clone git@github.com:Yurij2015/digipulse-backend.git
+cd digipulse-backend
+composer install
+./vendor/bin/sail up -d
+./vendor/bin/sail artisan migrate
+```
+
+Фронтенд та монітор піднімаються окремо з своїх репозиторіїв.
+
+---
+
+## Про проєкт
+
+Розробляється 2025 року. Зроблено тому що більшість існуючих моніторингів або надто дорогі, або надто повільні, або спамлять помилковими сповіщеннями.
+
+Не прагне стати найбільшим. Прагає бути найнадійнішим для тих хто ним користується.
