@@ -39,7 +39,7 @@ class SiteController extends Controller
         $userId = $request->user()->id;
         $cacheKey = "user_sites_v3:{$userId}";
 
-        return Cache::remember($cacheKey, 60, function () use ($request) {
+        return Cache::remember($cacheKey, 60, static function () use ($request) {
             $sites = $request->user()->sites()
                 ->with('configurations.checkType')
                 ->latest()
@@ -182,7 +182,7 @@ class SiteController extends Controller
             abort(404);
         }
 
-        return DB::transaction(function () use ($request, $site) {
+        return DB::transaction(static function () use ($request, $site) {
             $site->update($request->safe()->except('checks'));
 
             if ($request->has('checks')) {
@@ -193,11 +193,10 @@ class SiteController extends Controller
                     if (isset($checkData['id'])) {
                         $config = $site->configurations()->findOrFail($checkData['id']);
                         $config->update($checkData);
-                        $updatedCheckIds[] = $config->id;
                     } else {
                         $config = $site->configurations()->create($checkData);
-                        $updatedCheckIds[] = $config->id;
                     }
+                    $updatedCheckIds[] = $config->id;
                 }
 
                 // Optionally delete configs not in the request:
