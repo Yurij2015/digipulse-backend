@@ -13,8 +13,8 @@ class CheckTypeController extends Controller
     #[OA\Get(
         path: '/api/check-types',
         summary: 'List available check types',
-        tags: ['Check Types'],
         security: [['frontendKey' => []], ['bearerAuth' => []]],
+        tags: ['Check Types'],
         responses: [
             new OA\Response(
                 response: 200,

@@ -158,6 +158,15 @@ class SupportTicketController extends Controller
         path: '/api/support/tickets/{ticket}/reply',
         summary: 'Add a message to an existing ticket',
         security: [['frontendKey' => []], ['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['message'],
+                properties: [
+                    new OA\Property(property: 'message', type: 'string', example: 'Thank you for the help!'),
+                ]
+            )
+        ),
         tags: ['Support'],
         parameters: [
             new OA\Parameter(
@@ -168,15 +177,6 @@ class SupportTicketController extends Controller
                 schema: new OA\Schema(type: 'integer')
             ),
         ],
-        requestBody: new OA\RequestBody(
-            required: true,
-            content: new OA\JsonContent(
-                required: ['message'],
-                properties: [
-                    new OA\Property(property: 'message', type: 'string', example: 'Thank you for the help!'),
-                ]
-            )
-        ),
         responses: [
             new OA\Response(
                 response: 201,

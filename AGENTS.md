@@ -174,6 +174,27 @@ $this->app->singleton(Service::class, fn () => new Service(fn () => request()));
    - *Fix*: Use the global `config()` helper or a resolver closure.
 3. **Memory Leaks**: Never append data to a statically maintained array (e.g., `public static $data = []`). This will grow indefinitely and leak memory.
 
+### Hexagonal Architecture Standards (Laravel)
+This project follows Hexagonal (Ports and Adapters) architecture for core business modules to ensure long-term maintainability and Octane compatibility.
+
+1. **Domain Layer (`app/Domain/{Module}`)**:
+   - Contains pure business logic, Use Cases, DTOs, and Interfaces (Ports).
+   - **Rule**: NO dependency on Eloquent, Facades, or any framework-specific classes.
+   - **DTOs**: Use `readonly` classes for data transfer between Application and Domain layers.
+
+2. **Infrastructure Layer (`app/Infrastructure/{Module}`)**:
+   - Contains implementations (Adapters) of Domain interfaces.
+   - Handles database (Eloquent), Cache, Notifications, and external APIs.
+   - **Rule**: All framework-specific logic lives here.
+
+3. **Application Layer (`app/Http/Controllers`, `app/Console`)**:
+   - Acts as an entry point (Input Adapter).
+   - Responsibilities: Validation, Transaction management, calling Use Cases with DTOs.
+
+### Cross-Service Consistency (Laravel & Go)
+- **Data Alignment**: Ensure that Go structs in `monitor/internal/worker/worker.go` (`CheckTask`, `CheckResult`) stay in sync with Laravel DTOs in `app/Domain/Monitoring/DTOs/`.
+- **Communication**: The Go service reports results via HTTP JSON webhooks or Redis. All payloads must be mapped to DTOs in Laravel immediately upon receipt.
+
 === pint/core rules ===
 
 # Laravel Pint Code Formatter
