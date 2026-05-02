@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         __DIR__.'/../routes/channels.php',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->throttleWithRedis();
         $middleware->alias([
             'frontend.key' => FrontendKeyMiddleware::class,
             'turnstile' => VerifyTurnstile::class,
