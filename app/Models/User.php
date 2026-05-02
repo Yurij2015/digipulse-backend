@@ -69,11 +69,39 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmail
     protected function casts(): array
     {
         return [
+            'name' => 'encrypted',
+            'email' => 'encrypted',
+            'first_name' => 'encrypted',
+            'last_name' => 'encrypted',
+            'google_id' => 'encrypted',
+            'google_nickname' => 'encrypted',
+            'telegram_chat_id' => 'encrypted',
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'notify_email' => 'boolean',
             'notify_telegram' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(static function (User $user) {
+            if ($user->isDirty('email') || empty($user->email_bindex)) {
+                $user->email_bindex = self::generateBlindIndex($user->email);
+            }
+            if ($user->isDirty('google_id') || empty($user->google_id_bindex)) {
+                $user->google_id_bindex = self::generateBlindIndex($user->google_id);
+            }
+        });
+    }
+
+    public static function generateBlindIndex(?string $value): ?string
+    {
+        if (! $value) {
+            return null;
+        }
+
+        return hash_hmac('sha256', strtolower($value), config('app.key'));
     }
 
     public function sites(): HasMany

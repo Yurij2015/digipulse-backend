@@ -180,7 +180,7 @@ jobs:
               if [ -n "$1" ]; then echo "$1"; else echo "$2"; fi
             }
 
-            APP_KEY=$(get_val "${{ vars.APP_KEY }}" "")
+            APP_KEY=$(get_val "${{ vars.APP_KEY_NEW }}" "")
             APP_URL=$(get_val "${{ vars.APP_URL }}" "http://localhost")
             DB_HOST=$(get_val "${{ vars.DB_HOST }}" "digipulse-db")
             DB_DATABASE=$(get_val "${{ vars.DB_DATABASE }}" "digipulse")

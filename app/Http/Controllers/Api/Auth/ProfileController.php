@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Auth\ChangePasswordRequest;
 use App\Http\Requests\Api\Auth\UpdateProfileRequest;
 use App\Http\Resources\UserResource;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use OpenApi\Attributes as OA;
@@ -14,10 +15,9 @@ class ProfileController extends Controller
 {
     #[OA\Put(
         path: '/api/profile',
-        summary: 'Update user profile',
-        description: 'Update the authenticated user\'s profile information',
         operationId: 'updateProfile',
-        tags: ['Profile'],
+        description: 'Update the authenticated user\'s profile information',
+        summary: 'Update user profile',
         security: [['frontendKey' => []], ['bearerAuth' => []]],
         requestBody: new OA\RequestBody(
             required: true,
@@ -29,6 +29,7 @@ class ProfileController extends Controller
                 ]
             )
         ),
+        tags: ['Profile'],
         responses: [
             new OA\Response(
                 response: 200,
@@ -55,10 +56,9 @@ class ProfileController extends Controller
 
     #[OA\Put(
         path: '/api/profile/password',
-        summary: 'Change user password',
-        description: 'Change the authenticated user\'s password',
         operationId: 'changePassword',
-        tags: ['Profile'],
+        description: 'Change the authenticated user\'s password',
+        summary: 'Change user password',
         security: [['frontendKey' => []], ['bearerAuth' => []]],
         requestBody: new OA\RequestBody(
             required: true,
@@ -71,6 +71,7 @@ class ProfileController extends Controller
                 ]
             )
         ),
+        tags: ['Profile'],
         responses: [
             new OA\Response(
                 response: 200,
@@ -94,6 +95,39 @@ class ProfileController extends Controller
 
         return response()->json([
             'message' => 'Password changed successfully',
+        ]);
+    }
+
+    #[OA\Delete(
+        path: '/api/profile',
+        operationId: 'deleteAccount',
+        description: 'Permanently delete the authenticated user\'s account and all associated data',
+        summary: 'Delete user account',
+        security: [['frontendKey' => []], ['bearerAuth' => []]],
+        tags: ['Profile'],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Account deleted successfully',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'message', type: 'string', example: 'Account deleted successfully'),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthorized'),
+        ]
+    )]
+    public function destroy(): JsonResponse
+    {
+        /** @var User $user */
+        $user = auth()->user();
+
+        $user->tokens()->delete();
+        $user->delete();
+
+        return response()->json([
+            'message' => 'Account deleted successfully',
         ]);
     }
 }
