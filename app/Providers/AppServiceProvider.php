@@ -39,6 +39,14 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(3)->by($request->ip());
         });
 
+        RateLimiter::for('sites', static function (Request $request) {
+            return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('support', static function (Request $request) {
+            return Limit::perMinute(10)->by($request->user()?->id ?: $request->ip());
+        });
+
         ResetPassword::createUrlUsing(static function ($user, string $token) {
             return rtrim(config('app.frontend_url'), '/').'/auth/reset-password?token='.$token.'&email='.urlencode($user->email);
         });

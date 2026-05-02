@@ -46,14 +46,24 @@ Route::middleware(['frontend.key'])->group(function () {
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
         Route::put('/profile/password', [ProfileController::class, 'changePassword'])->name('profile.password');
 
-        Route::apiResource('sites', SiteController::class);
+        Route::apiResource('sites', SiteController::class)->except(['store', 'destroy']);
+        Route::post('sites', [SiteController::class, 'store'])
+            ->middleware('throttle:sites')
+            ->name('sites.store');
+        Route::delete('sites/{site}', [SiteController::class, 'destroy'])
+            ->middleware('throttle:sites')
+            ->name('sites.destroy');
         Route::get('sites/{site}/history', [SiteHistoryController::class, 'index'])->name('sites.history');
         Route::get('/check-types', [CheckTypeController::class, 'index'])->name('check-types.index');
 
         Route::get('/support/tickets', [SupportTicketController::class, 'index'])->name('support.tickets.index');
         Route::get('/support/tickets/{ticket}', [SupportTicketController::class, 'show'])->name('support.tickets.show');
-        Route::post('/support/tickets/{ticket}/reply', [SupportTicketController::class, 'reply'])->name('support.tickets.reply');
-        Route::post('/support/tickets', [SupportTicketController::class, 'store'])->name('support.tickets.store');
+        Route::post('/support/tickets/{ticket}/reply', [SupportTicketController::class, 'reply'])
+            ->middleware('throttle:support')
+            ->name('support.tickets.reply');
+        Route::post('/support/tickets', [SupportTicketController::class, 'store'])
+            ->middleware('throttle:support')
+            ->name('support.tickets.store');
 
         Route::get('/telegram/connect', [TelegramController::class, 'connect'])->name('telegram.connect');
         Route::post('/telegram/disconnect', [TelegramController::class, 'disconnect'])->name('telegram.disconnect');
