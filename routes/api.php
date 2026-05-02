@@ -32,6 +32,7 @@ Route::middleware(['frontend.key'])->group(function () {
         Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
         Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+        Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
         Route::put('/profile/password', [ProfileController::class, 'changePassword'])->name('profile.password');
 
         Route::apiResource('sites', SiteController::class);

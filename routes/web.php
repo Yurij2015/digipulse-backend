@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Laravel\Socialite\Facades\Socialite;
 
@@ -15,9 +16,20 @@ Route::get('/auth/redirect', static function () {
 Route::get('/auth/callback', static function () {
     $googleUser = Socialite::driver('google')->user();
 
-    $user = User::where('google_id', $googleUser->getId())
-        ->orWhere('email', $googleUser->getEmail())
+    $googleId = $googleUser->getId();
+    $email = $googleUser->getEmail();
+
+    $user = User::query()
+        ->when($googleId, fn ($q) => $q->where('google_id_bindex', User::generateBlindIndex($googleId)))
+        ->when($email, fn ($q) => $q->orWhere('email_bindex', User::generateBlindIndex($email)))
         ->first();
+
+    Log::info('Google Auth Login Attempt', [
+        'email_provided' => $email,
+        'has_google_id' => ! empty($googleId),
+        'found_user' => $user !== null,
+        'user_id' => $user?->id,
+    ]);
 
     if ($user) {
         $user->update([

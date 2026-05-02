@@ -38,7 +38,6 @@ readonly class ProcessMonitoringResult
         );
 
         $this->siteRepository->updateStatus($dto->configurationId, $dto->status);
-
         $this->resultRepository->save($enrichedDto);
 
         if ($context['last_status'] !== 'down' && $dto->status === 'down') {

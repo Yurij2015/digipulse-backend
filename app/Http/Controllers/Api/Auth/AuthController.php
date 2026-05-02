@@ -18,12 +18,12 @@ class AuthController extends Controller
     #[OA\Post(
         path: '/api/register',
         summary: 'Register a new user',
-        tags: ['Auth'],
         security: [['frontendKey' => []]],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(ref: '#/components/schemas/RegisterRequest')
         ),
+        tags: ['Auth'],
         responses: [
             new OA\Response(
                 response: 201,
@@ -50,15 +50,15 @@ class AuthController extends Controller
 
     #[OA\Post(
         path: '/api/login',
-        summary: 'Login user',
-        description: 'Authenticate a user and return a token',
         operationId: 'loginUser',
-        tags: ['Auth'],
+        description: 'Authenticate a user and return a token',
+        summary: 'Login user',
         security: [['frontendKey' => []]],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(ref: '#/components/schemas/LoginRequest')
         ),
+        tags: ['Auth'],
         responses: [
             new OA\Response(
                 response: 200,
@@ -90,11 +90,11 @@ class AuthController extends Controller
 
     #[OA\Post(
         path: '/api/logout',
-        summary: 'Logout user',
-        description: 'Revoke the authenticated user\'s tokens',
         operationId: 'logoutUser',
-        tags: ['Auth'],
+        description: 'Revoke the authenticated user\'s tokens',
+        summary: 'Logout user',
         security: [['frontendKey' => []], ['bearerAuth' => []]],
+        tags: ['Auth'],
         responses: [
             new OA\Response(
                 response: 200,
