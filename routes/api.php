@@ -15,10 +15,21 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['frontend.key'])->group(function () {
     Route::middleware(['turnstile'])->group(function () {
-        Route::post('/register', [AuthController::class, 'register'])->name('register');
-        Route::post('/login', [AuthController::class, 'login'])->name('login');
-        Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink'])->name('password.email');
-        Route::post('/reset-password', [PasswordResetController::class, 'reset'])->name('password.update');
+        Route::post('/register', [AuthController::class, 'register'])
+            ->middleware('throttle:register')
+            ->name('register');
+
+        Route::post('/login', [AuthController::class, 'login'])
+            ->middleware('throttle:login')
+            ->name('login');
+
+        Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink'])
+            ->middleware('throttle:login')
+            ->name('password.email');
+
+        Route::post('/reset-password', [PasswordResetController::class, 'reset'])
+            ->middleware('throttle:login')
+            ->name('password.update');
     });
 
     Route::post('/email/verify', [EmailVerificationController::class, 'verify'])->name('verification.verify');
