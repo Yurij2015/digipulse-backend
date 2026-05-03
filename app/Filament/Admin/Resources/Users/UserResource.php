@@ -41,15 +41,14 @@ class UserResource extends Resource
                         TextEntry::make('name'),
                         TextEntry::make('email'),
                         TextEntry::make('roles.name')
-                            ->badge()
-                            ->visible(fn ($record) => $record->roles()->exists()),
+                            ->badge(),
                         IconEntry::make('notify_email')
                             ->label('Email Notifications')
                             ->boolean(),
                         IconEntry::make('notify_telegram')
                             ->label('Telegram Notifications')
                             ->boolean(),
-                    ])->columns(fn ($record) => $record->roles()->exists() ? 5 : 4),
+                    ])->columns(5),
             ]);
     }
 
