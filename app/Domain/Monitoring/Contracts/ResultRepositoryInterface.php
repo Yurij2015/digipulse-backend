@@ -2,12 +2,12 @@
 
 namespace App\Domain\Monitoring\Contracts;
 
-use App\Domain\Monitoring\DTOs\MonitoringResultDTO;
+use App\Domain\Monitoring\Data\MonitoringResultData;
 
 interface ResultRepositoryInterface
 {
     /**
-     * Save a monitoring check result to history.
+     * Save a monitoring result.
      */
-    public function save(MonitoringResultDTO $result): void;
+    public function save(MonitoringResultData $dto): void;
 }

@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Domain\Monitoring\Contracts\AlertServiceInterface;
 use App\Domain\Monitoring\Contracts\CachePortInterface;
 use App\Domain\Monitoring\Contracts\ResultRepositoryInterface;
+use App\Domain\Monitoring\Contracts\SiteManagementRepositoryInterface;
 use App\Domain\Monitoring\Contracts\SiteRepositoryInterface;
 use App\Infrastructure\Monitoring\Cache\CacheService;
 use App\Infrastructure\Monitoring\Notifications\NotificationService;
@@ -21,6 +22,11 @@ class MonitoringServiceProvider extends ServiceProvider
     {
         $this->app->singleton(
             SiteRepositoryInterface::class,
+            EloquentSiteRepository::class
+        );
+
+        $this->app->singleton(
+            SiteManagementRepositoryInterface::class,
             EloquentSiteRepository::class
         );
 

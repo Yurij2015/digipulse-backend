@@ -47,7 +47,6 @@ return new class extends Migration
         }
     }
 
-
     private function isEncrypted(?string $value): bool
     {
         if (! $value) {

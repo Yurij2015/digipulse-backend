@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\Internal;
 
-use App\Domain\Monitoring\DTOs\MonitoringResultDTO;
+use App\Domain\Monitoring\Data\MonitoringResultData;
 use App\Domain\Monitoring\UseCases\ProcessMonitoringResult;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Internal\StoreMonitoringResultRequest;
@@ -51,9 +51,15 @@ class InternalCheckResultController extends Controller
     {
         $validated = $request->validated();
 
-        DB::transaction(static fn () => $useCase->execute(
-            MonitoringResultDTO::fromArray($validated)
-        ));
+        $dto = new MonitoringResultData(
+            configurationId: $validated['configuration_id'],
+            status: $validated['status'],
+            responseTimeMs: $validated['response_time_ms'] ?? null,
+            errorMessage: $validated['error_message'] ?? null,
+            metadata: $validated['metadata'] ?? null,
+        );
+
+        DB::transaction(fn () => $useCase->execute($dto));
 
         return response()->json(['success' => true]);
     }
