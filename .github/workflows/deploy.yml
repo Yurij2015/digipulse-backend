@@ -210,6 +210,9 @@ jobs:
             PUSHER_APP_SECRET=$(get_val "${{ secrets.PUSHER_APP_SECRET }}" "")
             PUSHER_APP_CLUSTER=$(get_val "${{ vars.PUSHER_APP_CLUSTER }}" "eu")
 
+            SENTRY_LARAVEL_DSN=$(get_val "${{ secrets.SENTRY_LARAVEL_DSN }}" "")
+            SENTRY_TRACES_SAMPLE_RATE=$(get_val "${{ vars.SENTRY_TRACES_SAMPLE_RATE }}" "1.0")
+
             # Generate .env file
             cat > ${{ matrix.server.path }}/.env << ENVEOF
             APP_NAME="DigiPulse"
@@ -260,6 +263,9 @@ jobs:
             PUSHER_APP_KEY=$PUSHER_APP_KEY
             PUSHER_APP_SECRET=$PUSHER_APP_SECRET
             PUSHER_APP_CLUSTER=$PUSHER_APP_CLUSTER
+
+            SENTRY_LARAVEL_DSN=$SENTRY_LARAVEL_DSN
+            SENTRY_TRACES_SAMPLE_RATE=$SENTRY_TRACES_SAMPLE_RATE
 
             REDIS_PREFIX=laravel-database-
             OCTANE_SERVER=frankenphp

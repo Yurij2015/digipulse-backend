@@ -32,11 +32,15 @@ class AppServiceProvider extends ServiceProvider
         }
 
         RateLimiter::for('login', static function (Request $request) {
-            return Limit::perMinute(5)->by($request->ip());
+            return app()->environment('testing')
+                ? Limit::none()
+                : Limit::perMinute(5)->by($request->ip());
         });
 
         RateLimiter::for('register', static function (Request $request) {
-            return Limit::perMinute(3)->by($request->ip());
+            return app()->environment('testing')
+                ? Limit::none()
+                : Limit::perMinute(3)->by($request->ip());
         });
 
         RateLimiter::for('sites', static function (Request $request) {

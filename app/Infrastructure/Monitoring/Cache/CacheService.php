@@ -12,4 +12,3 @@ class CacheService implements CachePortInterface
         Cache::forget("user_sites_v3:{$userId}");
     }
 }
-

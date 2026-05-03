@@ -2,9 +2,9 @@
 
 namespace App\Filament\Pages\Auth;
 
-use Filament\Auth\Pages\Login as BaseLogin;
 use App\Models\User;
 use Filament\Auth\Http\Responses\Contracts\LoginResponse;
+use Filament\Auth\Pages\Login as BaseLogin;
 use Filament\Facades\Filament;
 use Filament\Models\Contracts\FilamentUser;
 use Illuminate\Support\Facades\Auth;

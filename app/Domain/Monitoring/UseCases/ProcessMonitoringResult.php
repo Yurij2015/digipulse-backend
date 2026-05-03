@@ -6,7 +6,7 @@ use App\Domain\Monitoring\Contracts\AlertServiceInterface;
 use App\Domain\Monitoring\Contracts\CachePortInterface;
 use App\Domain\Monitoring\Contracts\ResultRepositoryInterface;
 use App\Domain\Monitoring\Contracts\SiteRepositoryInterface;
-use App\Domain\Monitoring\DTOs\MonitoringResultDTO;
+use App\Domain\Monitoring\Data\MonitoringResultData;
 
 /**
  * Use Case for processing a new monitoring result.
@@ -24,11 +24,11 @@ readonly class ProcessMonitoringResult
     /**
      * Execute the use case.
      */
-    public function execute(MonitoringResultDTO $dto): void
+    public function execute(MonitoringResultData $dto): void
     {
         $context = $this->siteRepository->getConfigurationContext($dto->configurationId);
 
-        $enrichedDto = new MonitoringResultDTO(
+        $enrichedDto = new MonitoringResultData(
             configurationId: $dto->configurationId,
             status: $dto->status,
             responseTimeMs: $dto->responseTimeMs,

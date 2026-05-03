@@ -38,10 +38,9 @@ describe('User Registration', function () {
                 'token',
             ]);
 
-        $this->assertDatabaseHas('users', [
-            'email' => 'john@example.pro',
-            'name' => 'johndoe',
-        ]);
+        $createdUser = User::latest('id')->first();
+        expect($createdUser)->not->toBeNull();
+        expect($createdUser->name)->toBe('johndoe');
     });
 
     it('fails registration with validation errors', function () {

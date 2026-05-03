@@ -15,9 +15,4 @@ interface SiteRepositoryInterface
      * @return array{site_id: int, user_id: int, last_status: ?string}
      */
     public function getConfigurationContext(int $configurationId): array;
-
-    /**
-     * Get the site details for a configuration.
-     */
-    public function getSiteDetails(int $configurationId): array;
 }

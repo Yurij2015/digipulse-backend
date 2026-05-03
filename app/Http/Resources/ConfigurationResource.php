@@ -16,11 +16,18 @@ class ConfigurationResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'check_type' => new CheckTypeResource($this->whenLoaded('checkType')),
+            'check_type' => $this->checkType ? [
+                'id' => $this->checkType->id,
+                'name' => $this->checkType->name,
+                'slug' => $this->checkType->slug,
+                'description' => $this->checkType->description,
+                'icon' => $this->checkType->icon,
+                'is_active' => $this->checkType->isActive,
+            ] : null,
             'params' => $this->params,
-            'is_active' => $this->is_active,
-            'last_status' => $this->last_status,
-            'last_checked_at' => $this->last_checked_at,
+            'is_active' => $this->isActive,
+            'last_status' => $this->lastStatus,
+            'last_checked_at' => $this->lastCheckedAt,
         ];
     }
 }
