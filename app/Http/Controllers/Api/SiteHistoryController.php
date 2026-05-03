@@ -97,21 +97,48 @@ class SiteHistoryController extends Controller
             $year = (int) $year;
             $week = (int) $weekPart;
 
-            if ($isCurrentWeek) {
-                return $this->getLiveData($site, $year, $week, $configId);
+            $historyData = $isCurrentWeek
+                ? $this->getLiveData($site, $year, $week, $configId)
+                : $this->getArchivedData($site, $year, $week, $configId);
+
+            // Fallback to live data if archive is empty
+            if (!$isCurrentWeek && empty($historyData['stats'])) {
+                $historyData = $this->getLiveData($site, $year, $week, $configId);
             }
 
-            $data = $this->getArchivedData($site, $year, $week, $configId);
+            // Always add latest results (1 per config)
+            $historyData['latest_results'] = $this->getRecentResults($site);
 
-            // Fallback to live data if archive is empty (useful for testing or recent history not yet archived)
-            if (empty($data['stats'])) {
-                return $this->getLiveData($site, $year, $week, $configId);
-            }
-
-            return $data;
+            return $historyData;
         });
 
         return new SiteHistoryResource($data);
+    }
+
+    /**
+     * Get the last result for each active check configuration.
+     */
+    private function getRecentResults(Site $site): array
+    {
+        $latestResults = [];
+        $configs = $site->configurations()->with('checkType')->where('is_active', true)->get();
+
+        foreach ($configs as $config) {
+            $result = CheckResult::where('configuration_id', $config->id)
+                ->latest('checked_at')
+                ->first();
+
+            if ($result) {
+                $latestResults[] = [
+                    'config_id' => $config->id,
+                    'type_name' => $config->checkType->name,
+                    'type_slug' => $config->checkType->slug,
+                    'result' => $result,
+                ];
+            }
+        }
+
+        return $latestResults;
     }
 
     /**
