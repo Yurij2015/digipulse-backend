@@ -10,23 +10,43 @@ use App\Infrastructure\Monitoring\Mappers\EloquentSiteMapper;
 use App\Models\Site as EloquentSite;
 use App\Models\SiteCheckConfiguration;
 
-class EloquentSiteRepository implements SiteManagementRepositoryInterface, SiteRepositoryInterface
+readonly class EloquentSiteRepository implements SiteManagementRepositoryInterface, SiteRepositoryInterface
 {
     public function __construct(
-        private readonly EloquentSiteMapper $mapper,
+        private EloquentSiteMapper $mapper,
     ) {}
 
     public function findById(int $id): ?DomainSite
     {
-        $site = EloquentSite::with(['configurations.checkType'])->find($id);
+        $since = now()->subDays(30);
+        $site = EloquentSite::with([
+            'configurations.checkType',
+            'latestCheck',
+            'latestHttpCheck',
+        ])
+            ->withCount([
+                'checks as checks_total_count' => fn ($q) => $q->where('checked_at', '>=', $since),
+                'checks as checks_up_count' => fn ($q) => $q->where('checked_at', '>=', $since)->where('status', 'up'),
+            ])
+            ->find($id);
 
         return $site ? $this->mapper->toDomain($site) : null;
     }
 
     public function findByUser(int $userId): array
     {
+        $since = now()->subDays(30);
+
         return EloquentSite::where('user_id', $userId)
-            ->with(['configurations.checkType'])
+            ->with([
+                'configurations.checkType',
+                'latestCheck',
+                'latestHttpCheck',
+            ])
+            ->withCount([
+                'checks as checks_total_count' => fn ($q) => $q->where('checked_at', '>=', $since),
+                'checks as checks_up_count' => fn ($q) => $q->where('checked_at', '>=', $since)->where('status', 'up'),
+            ])
             ->latest()
             ->get()
             ->map(fn (EloquentSite $site) => $this->mapper->toDomain($site))
