@@ -36,8 +36,7 @@ class UserForm
                     ->relationship('roles', 'name')
                     ->multiple()
                     ->preload()
-                    ->label('Roles')
-                    ->visible(fn ($record) => $record?->roles()->exists()),
+                    ->label('Roles'),
 
                 Toggle::make('notify_email')
                     ->label('Email Notifications')

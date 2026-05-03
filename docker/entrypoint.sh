@@ -18,14 +18,6 @@ if [ -f "artisan" ]; then
     mkdir -p bootstrap/cache
     chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
 
-    echo "Running migrations..."
-    php artisan migrate --force || true
-    
-    echo "Caching configuration..."
-    php artisan config:cache || true
-    php artisan route:cache || true
-    php artisan view:cache || true
-    
     # Ensure Octane is installed
     if ! php artisan octane:status > /dev/null 2>&1; then
         echo "Installing Octane..."
@@ -37,6 +29,14 @@ if [ -f "artisan" ]; then
         echo "Starting custom command: $@"
         exec "$@"
     else
+        echo "Running migrations..."
+        php artisan migrate --force || true
+        
+        echo "Caching configuration..."
+        php artisan config:cache || true
+        php artisan route:cache || true
+        php artisan view:cache || true
+
         # Start Octane (default)
         echo "Starting Octane with FrankenPHP..."
         exec php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8000
