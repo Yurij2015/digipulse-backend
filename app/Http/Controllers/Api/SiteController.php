@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Domain\Monitoring\Contracts\SiteManagementRepositoryInterface;
 use App\Domain\Monitoring\Data\CreateSiteData;
 use App\Domain\Monitoring\Models\Site;
+use App\Domain\Monitoring\UseCases\CreateSiteUseCase;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Sites\StoreSiteRequest;
 use App\Http\Requests\Api\Sites\UpdateSiteRequest;
@@ -16,13 +17,15 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use OpenApi\Attributes as OA;
+use Symfony\Component\HttpFoundation\Response as ResponseAlias;
 
 class SiteController extends Controller
 {
     private const string CACHE_VERSION = 'v7';
 
     public function __construct(
-        private readonly SiteManagementRepositoryInterface $siteRepository
+        private readonly SiteManagementRepositoryInterface $siteRepository,
+        private readonly CreateSiteUseCase $createSiteUseCase,
     ) {}
 
     #[OA\Get(
@@ -85,6 +88,7 @@ class SiteController extends Controller
     )]
     /**
      * Store a newly created site in storage.
+     * @throws \Throwable
      */
     public function store(StoreSiteRequest $request): JsonResponse
     {
@@ -98,16 +102,15 @@ class SiteController extends Controller
                 isActive: $validated['is_active'] ?? true,
             );
 
-            $site = $this->siteRepository->create($dto);
+            $site = $this->createSiteUseCase->execute(
+                $dto,
+                $request->user(),
+                $validated['checks'] ?? []
+            );
 
-            if ($request->has('checks')) {
-                $this->siteRepository->syncConfigurations($site->id, $request->checks);
-                $site = $this->siteRepository->findById($site->id);
-            }
-
-            self::clearUserSitesCache($request->user()->id);
-
-            return (new SiteResource($site))->response()->setStatusCode(201);
+            return new SiteResource($site)
+                ->response()
+                ->setStatusCode(ResponseAlias::HTTP_CREATED);
         });
     }
 
