@@ -33,6 +33,11 @@ class EloquentSiteRepository implements SiteManagementRepositoryInterface, SiteR
             ->toArray();
     }
 
+    public function countByUser(int $userId): int
+    {
+        return EloquentSite::where('user_id', $userId)->count();
+    }
+
     public function create(CreateSiteData $dto): DomainSite
     {
         $site = EloquentSite::create([

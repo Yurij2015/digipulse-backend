@@ -20,6 +20,11 @@ interface SiteManagementRepositoryInterface
     public function findByUser(int $userId): array;
 
     /**
+     * Count total sites for a user.
+     */
+    public function countByUser(int $userId): int;
+
+    /**
      * Create a new site.
      */
     public function create(CreateSiteData $dto): Site;
