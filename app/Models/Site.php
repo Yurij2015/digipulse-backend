@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 class Site extends Model
@@ -25,22 +25,46 @@ class Site extends Model
         return $this->hasMany(SiteCheckConfiguration::class);
     }
 
-    public function checks(): HasManyThrough
+    public function checks(): HasMany
     {
-        return $this->hasManyThrough(CheckResult::class, SiteCheckConfiguration::class, 'site_id', 'configuration_id', 'id', 'id');
+        return $this->hasMany(CheckResult::class);
+    }
+
+    /**
+     * Get the latest check result for the site.
+     */
+    public function latestCheck(): HasOne
+    {
+        return $this->hasOne(CheckResult::class)->latestOfMany('checked_at');
+    }
+
+    /**
+     * Get the latest HTTP check result for the site.
+     */
+    public function latestHttpCheck(): HasOne
+    {
+        return $this->hasOne(CheckResult::class)->ofMany([
+            'checked_at' => 'max',
+            'id' => 'max',
+        ], function ($query) {
+            $query->whereHas('configuration.checkType', fn ($q) => $q->where('slug', 'http'));
+        });
     }
 
     /**
      * Get the response time of the latest check.
      */
-    public function getResponseTimeAttribute(): int
+    public function getResponseTimeAttribute(): ?int
     {
-        $latestHttp = $this->checks()
-            ->whereHas('configuration.checkType', fn ($q) => $q->where('slug', 'http'))
-            ->latest('checked_at')
-            ->first();
+        if ($this->relationLoaded('latestHttpCheck')) {
+            return $this->latestHttpCheck?->response_time_ms;
+        }
 
-        return (int) ($latestHttp?->response_time_ms ?? 0);
+        if (isset($this->latest_response_time)) {
+            return (int) $this->latest_response_time;
+        }
+
+        return $this->latestHttpCheck?->response_time_ms;
     }
 
     /**
@@ -50,14 +74,13 @@ class Site extends Model
     {
         $since = now()->subDays(30);
 
-        // Current raw checks (usually last 7 days)
-        $rawChecks = $this->checks()
-            ->where('checked_at', '>=', $since)
-            ->select('status')
-            ->get();
-
-        $total = $rawChecks->count();
-        $up = $rawChecks->where('status', 'up')->count();
+        if (isset($this->checks_total_count) && isset($this->checks_up_count)) {
+            $total = (int) $this->checks_total_count;
+            $up = (int) $this->checks_up_count;
+        } else {
+            $total = $this->checks()->where('checked_at', '>=', $since)->count();
+            $up = $this->checks()->where('checked_at', '>=', $since)->where('status', 'up')->count();
+        }
 
         // Archived checks (older than 7 days)
         $archives = CheckResultArchive::where('site_id', $this->id)
@@ -67,11 +90,7 @@ class Site extends Model
             foreach ($archive->data as $result) {
                 $checkedAt = Carbon::parse($result['checked_at']);
 
-                // Only count results within the 30-day window AND not already in raw checks
-                //  are usually newer than the archive cut-off
                 if ($checkedAt->greaterThanOrEqualTo($since)) {
-                    // Check if this result is already accounted for in raw checks to avoid double counting
-                    // (though usually archive and raw are mutually exclusive)
                     $total++;
                     if ($result['status'] === 'up') {
                         $up++;
@@ -92,7 +111,15 @@ class Site extends Model
      */
     public function getLastCheckedAtAttribute(): ?string
     {
-        return $this->checks()->latest('checked_at')->first()?->checked_at?->toIso8601String();
+        if ($this->relationLoaded('latestCheck')) {
+            return $this->latestCheck?->checked_at?->toIso8601String();
+        }
+
+        if (isset($this->last_checked_at_timestamp)) {
+            return Carbon::parse($this->last_checked_at_timestamp)->toIso8601String();
+        }
+
+        return $this->latestCheck?->checked_at?->toIso8601String();
     }
 
     /**
@@ -100,7 +127,8 @@ class Site extends Model
      */
     public function getServerInfoAttribute(): ?array
     {
-        $latestResult = $this->checks()->latest('checked_at')->first();
+        $latestResult = $this->relationLoaded('latestCheck') ? $this->latestCheck : $this->latestCheck()->first();
+
         if ($latestResult && isset($latestResult->metadata['ip'])) {
             return [
                 'ip' => $latestResult->metadata['ip'],
