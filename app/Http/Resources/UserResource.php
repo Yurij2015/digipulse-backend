@@ -28,6 +28,7 @@ class UserResource extends JsonResource
             'notify_telegram' => $this->notify_telegram,
             'email_verified_at' => $this->email_verified_at,
             'is_verified' => $this->email_verified_at !== null,
+            'is_admin' => $this->hasRole('admin'),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
