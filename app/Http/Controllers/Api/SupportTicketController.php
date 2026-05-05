@@ -98,7 +98,7 @@ class SupportTicketController extends Controller
                 properties: [
                     new OA\Property(property: 'subject', type: 'string', example: 'Issue with payment'),
                     new OA\Property(property: 'message', type: 'string', example: 'I was charged twice.'),
-                    new OA\Property(property: 'priority', type: 'string', enum: ['low', 'medium', 'high'], example: 'medium'),
+                    new OA\Property(property: 'priority', type: 'string', example: 'medium', enum: ['low', 'medium', 'high']),
                     new OA\Property(property: 'contact_email', type: 'string', format: 'email', example: 'user@example.com'),
                 ]
             )
