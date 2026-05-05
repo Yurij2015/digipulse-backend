@@ -202,7 +202,7 @@ class TelegramController extends Controller
         $callbackQueryId = $callbackQuery['id'];
 
         $adminEmail = config('app.admin_email');
-        $admin = User::where('email', $adminEmail)->first();
+        $admin = User::where('email_bindex', User::generateBlindIndex($adminEmail))->first();
 
         if (! $admin || (string) $admin->telegram_chat_id !== (string) $chatId) {
             $this->telegram->answerCallbackQuery($callbackQueryId, '⚠️ You are not authorized to reply.');
@@ -241,7 +241,7 @@ class TelegramController extends Controller
         }
 
         $adminEmail = config('app.admin_email');
-        $admin = User::where('email', $adminEmail)->first();
+        $admin = User::where('email_bindex', User::generateBlindIndex($adminEmail))->first();
 
         SupportTicketMessage::create([
             'support_ticket_id' => $ticket->id,
