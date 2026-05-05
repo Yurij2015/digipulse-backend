@@ -209,4 +209,7 @@ return [
         Watchers\ScheduleWatcher::class => env('TELESCOPE_SCHEDULE_WATCHER', true),
         Watchers\ViewWatcher::class => env('TELESCOPE_VIEW_WATCHER', true),
     ],
+
+    'allowed_emails' => env('TELESCOPE_ALLOWED_EMAILS'),
+    'allowed_ips' => env('TELESCOPE_ALLOWED_IPS'),
 ];

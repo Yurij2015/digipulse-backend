@@ -203,6 +203,8 @@ jobs:
             TURNSTILE_SECRET_KEY=$(get_val "${{ vars.TURNSTILE_SECRET_KEY }}" "")
             FILAMENT_ADMIN_EMAIL=$(get_val "${{ vars.FILAMENT_ADMIN_EMAIL }}" "")
             FRONTEND_URL=$(get_val "${{ vars.FRONTEND_URL }}" "")
+            TELESCOPE_ALLOWED_EMAILS=$(get_val "${{ vars.TELESCOPE_ALLOWED_EMAILS }}" "")
+            TELESCOPE_ALLOWED_IPS=$(get_val "${{ vars.TELESCOPE_ALLOWED_IPS }}" "")
 
             BROADCAST_CONNECTION=$(get_val "${{ vars.BROADCAST_CONNECTION }}" "pusher")
             PUSHER_APP_ID=$(get_val "${{ vars.PUSHER_APP_ID }}" "")
@@ -279,6 +281,9 @@ jobs:
             MONITOR_RESULTS_CONSUMER_ENABLED=true
             MONITOR_RESULTS_QUEUE=monitoring:results
             MONITOR_RESULTS_CONSUMER_BLOCK_SECONDS=5
+
+            TELESCOPE_ALLOWED_EMAILS=$TELESCOPE_ALLOWED_EMAILS
+            TELESCOPE_ALLOWED_IPS=$TELESCOPE_ALLOWED_IPS
             ENVEOF
 
   run-before-hooks:

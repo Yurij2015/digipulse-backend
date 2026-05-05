@@ -56,10 +56,30 @@ class TelescopeServiceProvider extends TelescopeApplicationServiceProvider
      */
     protected function gate(): void
     {
-        Gate::define('viewTelescope', function (User $user) {
-            return in_array($user->email, [
-                //
-            ]);
+        Gate::define('viewTelescope', function ($user = null) {
+            if ($this->app->environment('local')) {
+                return true;
+            }
+
+            // Check IP access
+            $allowedIps = config('telescope.allowed_ips');
+            if ($allowedIps) {
+                $ips = array_map('trim', explode(',', $allowedIps));
+                if (in_array(request()->ip(), $ips, true)) {
+                    return true;
+                }
+            }
+
+            // Check Email access (requires authentication)
+            $allowedEmails = config('telescope.allowed_emails');
+            if ($user && $allowedEmails) {
+                $emails = array_map('trim', explode(',', $allowedEmails));
+                if (in_array($user->email, $emails, true)) {
+                    return true;
+                }
+            }
+
+            return false;
         });
     }
 }
