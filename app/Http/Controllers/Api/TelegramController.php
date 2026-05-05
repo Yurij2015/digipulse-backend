@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Channels\TelegramChannel;
+use App\Events\MessageSent;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
 use App\Models\SupportTicket;
@@ -243,7 +244,7 @@ class TelegramController extends Controller
         $adminEmail = config('app.admin_email');
         $admin = User::where('email_bindex', User::generateBlindIndex($adminEmail))->first();
 
-        SupportTicketMessage::create([
+        $message = SupportTicketMessage::create([
             'support_ticket_id' => $ticket->id,
             'user_id' => $admin?->id,
             'message' => $text,
@@ -251,6 +252,9 @@ class TelegramController extends Controller
         ]);
 
         $ticket->update(['status' => 'in_progress']);
+
+        // Keep realtime behavior consistent with web/admin replies.
+        broadcast(new MessageSent($message))->toOthers();
 
         $this->telegram->sendMessage($chatId, [
             'text' => "✅ *Response sent\!*\n\nYour message has been delivered and saved to Ticket \#{$ticket->id}\.",

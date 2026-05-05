@@ -1,16 +1,23 @@
 <?php
 
 use App\Models\SupportTicket;
+use App\Models\User;
 use Illuminate\Support\Facades\Broadcast;
 
-Broadcast::routes(['middleware' => ['auth:sanctum', 'frontend.key']]);
+Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
 Broadcast::channel('App.Models.User.{id}', static function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
 
 Broadcast::channel('tickets.{ticketId}', static function ($user, $ticketId) {
-    if ($user->email === config('app.admin_email') || $user->hasRole('admin')) {
+    $adminEmail = config('app.admin_email');
+    $adminEmail = is_string($adminEmail) ? $adminEmail : null;
+    $isAdminByEmail = ! empty($adminEmail)
+        && ! empty($user->email_bindex)
+        && $user->email_bindex === User::generateBlindIndex($adminEmail);
+
+    if ($isAdminByEmail || $user->hasRole('admin')) {
         return true;
     }
 
