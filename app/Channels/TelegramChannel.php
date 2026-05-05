@@ -46,7 +46,7 @@ class TelegramChannel
     public function sendToSupport(string|array $data): void
     {
         $adminEmail = config('app.admin_email');
-        $admin = User::where('email', $adminEmail)->first();
+        $admin = User::where('email_bindex', User::generateBlindIndex($adminEmail))->first();
 
         if ($admin && $admin->telegram_chat_id) {
             $this->sendMessage($admin->telegram_chat_id, $data);

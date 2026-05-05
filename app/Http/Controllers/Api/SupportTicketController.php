@@ -130,7 +130,7 @@ class SupportTicketController extends Controller
 
         // Notify Admin
         $adminEmail = config('app.admin_email');
-        $admin = User::where('email', $adminEmail)->first();
+        $admin = User::where('email_bindex', User::generateBlindIndex($adminEmail))->first();
 
         if ($admin) {
             Log::info('Notifying admin about new ticket', ['admin_id' => $admin->id, 'email' => $adminEmail]);
@@ -211,7 +211,7 @@ class SupportTicketController extends Controller
         }
 
         $adminEmail = config('app.admin_email');
-        $admin = User::where('email', $adminEmail)->first();
+        $admin = User::where('email_bindex', User::generateBlindIndex($adminEmail))->first();
         $admin?->notify(new SupportTicketReplyNotification($message));
 
         // Filament Notification for Admin
