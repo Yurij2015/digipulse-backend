@@ -211,3 +211,68 @@ This project follows Hexagonal (Ports and Adapters) architecture for core busine
 - Do NOT delete tests without approval.
 
 </laravel-boost-guidelines>
+
+## DigiPulse Workflow v2 (Project Addendum)
+
+Use this addendum as the project-specific operating layer on top of Laravel Boost.
+
+### MUST (hard requirements)
+
+- Use `vendor/bin/sail` for all PHP/Artisan/Composer/Node commands.
+- Keep architecture boundaries strict:
+  - `app/Domain/*`: pure business logic, no framework adapters.
+  - `app/Infrastructure/*`: framework/db/external integrations.
+  - `app/Http/*` and `app/Console/*`: orchestration, validation, transactions.
+- For support/chat realtime events, prefer `ShouldBroadcastNow` unless explicitly asked to queue.
+- For encrypted user data lookups, do not compare plaintext encrypted fields directly; use blind indexes (`email_bindex`, `google_id_bindex`) where applicable.
+- Run `vendor/bin/sail bin pint --dirty --format agent` after PHP edits.
+- Run relevant tests for touched flows before finalizing.
+
+### SHOULD (recommended defaults)
+
+- Reuse existing modules before adding new abstractions.
+- Prefer small, focused changes over broad refactors.
+- Update existing docs for behavior changes; create new docs only when explicitly requested.
+- Keep logs actionable (include IDs/context, avoid noise).
+
+### Definition of Done (for code changes)
+
+- Code compiles/lints/formats correctly.
+- Relevant tests pass locally for changed behavior.
+- Runtime-critical flows are manually sanity-checked (auth, queue/broadcast, external calls).
+- Related docs/config examples are updated if behavior or env contract changed.
+
+### Realtime/Broadcast Policy
+
+- Use `ShouldBroadcastNow` for support chat message delivery (`MessageSent`) to avoid queue dependency for UX-critical realtime.
+- Use queued broadcasting (`ShouldBroadcast`) only when event volume is high or external broadcaster latency could degrade request latency.
+- Broadcast auth routes should use `auth:sanctum` middleware; avoid adding `frontend.key` to `/broadcasting/auth` flow unless explicitly required and validated end-to-end.
+
+### Monitor Ingestion Policy (Go <-> Laravel)
+
+- Primary principle: avoid data loss under transient failures.
+- If using webhook delivery, protect with retries/backoff and explicit monitoring.
+- If using Redis result ingestion (`monitoring:results`), run a dedicated consumer process (`app:consume-monitor-results`) and monitor queue depth.
+- Keep payload contracts aligned between Go `CheckTask`/`CheckResult` and Laravel DTO/request validation.
+
+### Incident Checklists
+
+- **Support chat broadcast not working**
+  - Verify `BROADCAST_CONNECTION` is not `null`.
+  - Verify broadcast auth (`/broadcasting/auth`) returns success for authenticated user.
+  - Verify channel authorization logic for `tickets.{ticketId}` (including admin detection via blind index).
+  - Verify event class implements intended broadcast mode (`ShouldBroadcastNow` vs queued).
+
+- **Monitor results not appearing**
+  - Verify producer path (Go webhook or Redis publish).
+  - If Redis mode: verify `app:consume-monitor-results` process is running.
+  - Check queue depth and invalid payload logs.
+  - Confirm `INTERNAL_MONITOR_KEY` / monitor auth key alignment.
+
+### Rule Conflict Command
+
+- If a user request conflicts with these rules, the agent MUST explicitly warn before acting using this exact format:
+  - `Rule conflict: <short reason>.`
+  - `Requested action: <what the user asked>.`
+  - `Safe options: 1) <safe option A> 2) <safe option B>.`
+  - `Please confirm which option to proceed with.`
