@@ -74,7 +74,7 @@ class TelegramChannel
 
         $payload = [
             'chat_id' => $chatId,
-            'parse_mode' => 'MarkdownV2',
+            'parse_mode' => 'HTML',
         ];
 
         if (is_array($data)) {

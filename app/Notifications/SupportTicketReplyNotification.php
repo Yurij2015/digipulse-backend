@@ -69,16 +69,16 @@ class SupportTicketReplyNotification extends Notification implements ShouldQueue
         $ticket = $this->reply->ticket;
         $author = $this->reply->user->name ?? 'Guest';
 
-        $typeStr = $this->reply->is_admin_reply ? "🛠 *Support Reply\!*" : "💬 *User Reply\!*";
+        $typeStr = $this->reply->is_admin_reply ? "🛠 <b>Support Reply!</b>" : "💬 <b>User Reply!</b>";
 
-        $eSubject = $this->escape($ticket->subject);
-        $eAuthor = $this->escape($author);
-        $eMessage = $this->escape($this->reply->message);
+        $safeSubject = htmlspecialchars($ticket->subject ?? '');
+        $safeAuthor = htmlspecialchars($author ?? '');
+        $safeMessage = htmlspecialchars($this->reply->message ?? '');
 
         $text = "{$typeStr}\n\n".
-               "*Ticket:* {$eSubject}\n".
-               "*From:* {$eAuthor}\n\n".
-               "*Message:*\n{$eMessage}";
+               "<b>Ticket:</b> {$safeSubject}\n".
+               "<b>From:</b> {$safeAuthor}\n\n".
+               "<b>Message:</b>\n{$safeMessage}";
 
         // If it's a user reply, show admin link. If admin reply, show frontend link.
         if ($this->reply->is_admin_reply) {
@@ -91,6 +91,7 @@ class SupportTicketReplyNotification extends Notification implements ShouldQueue
 
         return [
             'text' => $text,
+            'parse_mode' => 'HTML',
             'reply_markup' => [
                 'inline_keyboard' => [
                     [
@@ -102,16 +103,5 @@ class SupportTicketReplyNotification extends Notification implements ShouldQueue
                 ],
             ],
         ];
-    }
-
-    private function escape(string $text): string
-    {
-        $characters = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
-        $escaped = [];
-        foreach ($characters as $char) {
-            $escaped[] = '\\'.$char;
-        }
-
-        return str_replace($characters, $escaped, $text);
     }
 }
