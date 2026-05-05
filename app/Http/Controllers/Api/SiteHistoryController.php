@@ -90,7 +90,7 @@ class SiteHistoryController extends Controller
         // Cache parameters: 1 min for current week (live data), 24h for past weeks (static archives)
         $isCurrentWeek = $weekStr === now()->format('o-\WW');
         $ttl = $isCurrentWeek ? 60 : 86400;
-        $cacheKey = "site_history_v4:{$site->id}:{$weekStr}".($configId ? ":{$configId}" : '');
+        $cacheKey = "site_history_v5:{$site->id}:{$weekStr}".($configId ? ":{$configId}" : '');
 
         $data = Cache::remember($cacheKey, $ttl, function () use ($site, $weekStr, $configId, $isCurrentWeek) {
             [$year, $weekPart] = explode('-W', $weekStr);
@@ -133,7 +133,7 @@ class SiteHistoryController extends Controller
                     'config_id' => $config->id,
                     'type_name' => $config->checkType->name,
                     'type_slug' => $config->checkType->slug,
-                    'result' => $result,
+                    'result' => $result->toArray(),
                 ];
             }
         }
