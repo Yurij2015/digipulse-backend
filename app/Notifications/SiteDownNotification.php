@@ -62,8 +62,11 @@ class SiteDownNotification extends Notification implements ShouldQueue, Telegram
      */
     public function toTelegram(mixed $notifiable): string
     {
-        return "🔴 **WARNING: Site is offline!**\n\n".
-               "Your site **{$this->site->name}** ({$this->site->url}) is currently unreachable.\n\n".
-               'The latest check recorded the status: `down`.';
+        $safeName = htmlspecialchars($this->site->name ?? '');
+        $safeUrl = htmlspecialchars($this->site->url ?? '');
+
+        return "🔴 <b>WARNING: Site is offline!</b>\n\n".
+               "Your site <b>{$safeName}</b> ({$safeUrl}) is currently unreachable.\n\n".
+               'The latest check recorded the status: <code>down</code>.';
     }
 }

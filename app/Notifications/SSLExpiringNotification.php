@@ -56,8 +56,11 @@ class SSLExpiringNotification extends Notification implements ShouldQueue, Teleg
      */
     public function toTelegram(mixed $notifiable): string
     {
-        return "⚠️ **SSL Expiration Warning!**\n\n".
-               "The SSL certificate for **{$this->site->name}** ({$this->site->url}) expires in `{$this->daysRemaining}` days.\n\n".
+        $safeName = htmlspecialchars($this->site->name ?? '');
+        $safeUrl = htmlspecialchars($this->site->url ?? '');
+
+        return "⚠️ <b>SSL Expiration Warning!</b>\n\n".
+               "The SSL certificate for <b>{$safeName}</b> ({$safeUrl}) expires in <code>{$this->daysRemaining}</code> days.\n\n".
                'Please renew it soon to keep your site secure.';
     }
 }

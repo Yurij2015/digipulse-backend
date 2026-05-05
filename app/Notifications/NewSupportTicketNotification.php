@@ -69,22 +69,21 @@ class NewSupportTicketNotification extends Notification implements ShouldQueue, 
             default => '⚪',
         };
 
-        // Escape special characters for Telegram MarkdownV2
-        $eUser = $this->escape($userStr);
-        $eSubject = $this->escape($this->ticket->subject);
-        $ePriority = $this->escape(ucfirst($this->ticket->priority));
-        $eMessage = $this->escape($this->ticket->message);
+        $safeUser = htmlspecialchars($userStr ?? '');
+        $safeSubject = htmlspecialchars($this->ticket->subject ?? '');
+        $safeMessage = htmlspecialchars($this->ticket->message ?? '');
 
-        $text = "📩 *New Support Ticket\!*\n\n".
-               "*From:* {$eUser}\n".
-               "*Subject:* {$eSubject}\n".
-               "*Priority:* {$priorityEmoji} {$ePriority}\n\n".
-               "*Message:*\n{$eMessage}";
+        $text = "📩 <b>New Support Ticket!</b>\n\n".
+               "<b>From:</b> {$safeUser}\n".
+               "<b>Subject:</b> {$safeSubject}\n".
+               "<b>Priority:</b> {$priorityEmoji} ".ucfirst($this->ticket->priority)."\n\n".
+               "<b>Message:</b>\n{$safeMessage}";
 
         $adminUrl = rtrim(config('app.url'), '/').'/admin/support-tickets/'.$this->ticket->id.'/edit';
 
         return [
             'text' => $text,
+            'parse_mode' => 'HTML',
             'reply_markup' => [
                 'inline_keyboard' => [
                     [
@@ -100,16 +99,5 @@ class NewSupportTicketNotification extends Notification implements ShouldQueue, 
                 ],
             ],
         ];
-    }
-
-    private function escape(string $text): string
-    {
-        $characters = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
-        $escaped = [];
-        foreach ($characters as $char) {
-            $escaped[] = '\\'.$char;
-        }
-
-        return str_replace($characters, $escaped, $text);
     }
 }
