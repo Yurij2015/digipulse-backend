@@ -205,6 +205,7 @@ jobs:
             FRONTEND_URL=$(get_val "${{ vars.FRONTEND_URL }}" "")
             TELESCOPE_ALLOWED_EMAILS=$(get_val "${{ vars.TELESCOPE_ALLOWED_EMAILS }}" "")
             TELESCOPE_ALLOWED_IPS=$(get_val "${{ vars.TELESCOPE_ALLOWED_IPS }}" "")
+            TELESCOPE_RECORD_ALL=$(get_val "${{ vars.TELESCOPE_RECORD_ALL }}" "false")
 
             BROADCAST_CONNECTION=$(get_val "${{ vars.BROADCAST_CONNECTION }}" "pusher")
             PUSHER_APP_ID=$(get_val "${{ vars.PUSHER_APP_ID }}" "")
@@ -284,6 +285,7 @@ jobs:
 
             TELESCOPE_ALLOWED_EMAILS=$TELESCOPE_ALLOWED_EMAILS
             TELESCOPE_ALLOWED_IPS=$TELESCOPE_ALLOWED_IPS
+            TELESCOPE_RECORD_ALL=$TELESCOPE_RECORD_ALL
             ENVEOF
 
   run-before-hooks:

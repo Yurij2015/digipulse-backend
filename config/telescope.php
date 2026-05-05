@@ -212,4 +212,5 @@ return [
 
     'allowed_emails' => env('TELESCOPE_ALLOWED_EMAILS'),
     'allowed_ips' => env('TELESCOPE_ALLOWED_IPS'),
+    'record_all' => env('TELESCOPE_RECORD_ALL', false),
 ];
