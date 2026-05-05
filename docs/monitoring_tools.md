@@ -12,27 +12,30 @@ Telescope provides a beautiful dashboard for debugging your Laravel application.
 
 ## 2. Redis Key Browser (Queue Mode)
 
-We use **Redis Lists** as a mission-critical job queue. Tasks are added to the queue by Laravel and popped by Go workers.
+We use **Redis Lists** as mission-critical queues:
+- `laravel_database_monitoring:tasks` for scheduled checks (Laravel -> Go worker)
+- `monitoring:results` for check results (Go -> Laravel consumer)
 
 * **Local URL**: [http://localhost:8001](http://localhost:8001)
-* **Key Name**: `laravel_database_monitoring:tasks`
-* **Purpose**: Inspecting pending tasks and verifying connection strings.
+* **Key Names**: `laravel_database_monitoring:tasks`, `monitoring:results`
+* **Purpose**: Inspecting pending tasks, result ingestion, and verifying connection strings.
 
-### How to Monitor Tasks (Queue)
+### How to Monitor Tasks and Results (Queue)
 
-Since tasks are processed almost instantly by the Go worker, the queue should ideally be empty or have very few items. To see activity:
+Since queues are processed quickly, they should ideally be empty or low. To see activity:
 
 1. Open RedisInsight and go to the **Key Browser**.
-2. Find the key `laravel_database_monitoring:tasks`.
-3. If the Go worker is stopped, you will see tasks accumulating as JSON strings.
-4. If the Go worker is running, you might see the key briefly appearing/disappearing or staying at 0 length.
+2. Find the keys `laravel_database_monitoring:tasks` and `monitoring:results`.
+3. If the Go worker is stopped, `laravel_database_monitoring:tasks` will accumulate check tasks.
+4. If the Laravel results consumer is stopped, `monitoring:results` will accumulate result payloads.
 
 ### Advanced: Redis CLI
 
-To check the number of pending tasks:
+To check the number of pending items:
 
 ```bash
 LLEN laravel_database_monitoring:tasks
+LLEN monitoring:results
 ```
 
 ### Advanced: Redis Workbench (CLI)
@@ -64,7 +67,7 @@ To test if Laravel can talk to Redis at all:
 
 2. Check the **Key Browser** in RedisInsight. If you see `test_connection`, the connection is working.
 
-## 3. Laravel Scheduler & Queue
+## 3. Laravel Scheduler & Workers
 
 ### Scheduler (Critical for Monitoring)
 
@@ -85,6 +88,27 @@ While real-time monitoring results are dispatched via Pub/Sub, other background 
 * **Purpose**: `schedule:work` triggers tasks, `queue:work` processes background jobs.
 * **Telescope Connection**: Monitor both in **Telescope -> Commands** and **Telescope -> Jobs**.
 
+### Monitor Results Consumer (New)
+
+The monitor service can push check results into Redis (`monitoring:results`) and Laravel consumes them via a dedicated command.
+
+Run this in a separate terminal locally:
+
+```bash
+./vendor/bin/sail artisan app:consume-monitor-results
+```
+
+Useful debug mode (process a single message and exit):
+
+```bash
+./vendor/bin/sail artisan app:consume-monitor-results --once
+```
+
+Main env variables:
+- `MONITOR_RESULTS_CONSUMER_ENABLED=true`
+- `MONITOR_RESULTS_QUEUE=monitoring:results`
+- `MONITOR_RESULTS_CONSUMER_BLOCK_SECONDS=5`
+
 ## 4. Monitor Logs (Go)
 
 The Go-based monitor service logs its activity to the Docker stdout.
@@ -100,6 +124,6 @@ The Go-based monitor service logs its activity to the Docker stdout.
 2. **Redis Broadcast**: Use **RedisInsight -> Pub/Sub** to see if the message was published.
 3. **Go Worker**: Check **Worker Logs** to see if it received the message.
 4. **Result Reporting**:
-   * **Go Logs**: Should say `Successfully reported result`.
-   * **Telescope -> Requests**: Should show a `POST /api/internal/results` with a `200` status.
+   * **Redis**: `monitoring:results` should not accumulate when consumer is running.
+   * **Consumer logs**: Should show no validation/processing errors.
 5. **Database**: Check the **Sites Dashboard** in the browser to see the updated status.

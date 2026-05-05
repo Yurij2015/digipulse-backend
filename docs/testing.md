@@ -1,79 +1,79 @@
-# Тестування (Testing)
+# Testing
 
-Проєкт використовує **Pest PHP** для тестування. Всі тести знаходяться в директорії `tests/`.
+The project uses **Pest PHP** for testing. All tests are located in the `tests/` directory.
 
-## Швидкий старт
+## Quick Start
 
-Для запуску всіх тестів через Laravel Sail:
+To run all tests via Laravel Sail:
 
 ```bash
 vendor/bin/sail artisan test
 ```
 
-Для запуску з компактним виводом:
+To run with compact output:
 
 ```bash
 vendor/bin/sail artisan test --compact
 ```
 
-## Конфігурація оточень
+## Environment Configuration
 
-Для тестування використовується окрема конфігурація середовища, щоб не зачіпати локальну базу даних та кеш.
+A separate environment configuration is used for testing to avoid affecting the local database and cache.
 
-### 1. Локальне середовище (Sail)
-При запуску тестів Laravel автоматично завантажує файл `.env.testing`, якщо він існує. Це стандартна поведінка фреймворку.
+### 1. Local Environment (Sail)
+When running tests, Laravel automatically loads the `.env.testing` file if it exists. This is the framework's standard behavior.
 
-Файл `.env.testing` налаштований на використання ізольованої бази даних:
+The `.env.testing` file is configured to use an isolated database:
 - **DB_CONNECTION**: `pgsql`
 - **DB_DATABASE**: `testing`
-- **CACHE_STORE**: `array` (для швидкості)
+- **CACHE_STORE**: `array` (for speed)
 - **SESSION_DRIVER**: `array`
 
-### 2. CI/CD та зовнішні оточення
-При розгортанні в CI (наприклад, GitHub Actions) необхідно переконатися, що створена база даних з іменем, вказаним у `DB_DATABASE`. 
+### 2. CI/CD and External Environments
+When deploying in CI (e.g., GitHub Actions), ensure that a database with the name specified in `DB_DATABASE` has been created.
 
-Якщо ви хочете запустити тести проти іншого файлу оточення, використовуйте префікс `APP_ENV`:
+If you want to run tests against a different environment file, use the `--env` flag:
 ```bash
 vendor/bin/sail artisan test --env=staging
 ```
 
-## Робота з базою даних
+## Working with the Database
 
-Для тестів, що взаємодіють з БД, використовуйте трейт `RefreshDatabase` або `LazyRefreshDatabase` (у Pest це зазвичай робиться через `uses(RefreshDatabase::class)`).
+For tests that interact with the database, use the `RefreshDatabase` or `LazyRefreshDatabase` trait (in Pest, this is typically done via `uses(RefreshDatabase::class)`).
 
-Щоб вручну очистити та підготувати базу для тестів:
+To manually clear and prepare the database for tests:
 ```bash
 vendor/bin/sail artisan migrate:fresh --env=testing
 ```
 
-## Корисні команди Pest
+## Useful Pest Commands
 
-Pest надає потужні інструменти для розробки:
+Pest provides powerful tools for development:
 
-- **Паралельне тестування** (значно пришвидшує проходження):
+- **Parallel Testing** (significantly speeds up execution):
   ```bash
   vendor/bin/sail artisan test --parallel
   ```
-- **Покриття коду (Coverage)**:
+- **Code Coverage**:
   ```bash
   vendor/bin/sail artisan test --coverage
   ```
-- **Фільтрація тестів** (наприклад, лише Auth):
+- **Filter Tests** (e.g., only Auth):
   ```bash
   vendor/bin/sail artisan test --filter=Auth
   ```
-- **Запуск лише провалених тестів**:
+- **Run Only Failed Tests**:
   ```bash
   vendor/bin/sail artisan test --only-failures
   ```
-- **Bail** (зупинка після першої помилки):
+- **Bail** (stop after the first failure):
   ```bash
   vendor/bin/sail artisan test --bail
   ```
 
-## Створення нових тестів
+## Creating New Tests
 
-Завжди віддавайте перевагу Feature-тестам для перевірки API.
+Always prefer Feature tests for verifying API endpoints.
 
 ```bash
 # Feature test

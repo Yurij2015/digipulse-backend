@@ -19,6 +19,10 @@ readonly class Site
         public ?array $serverInfo = null,
         public ?array $sslInfo = null,
         public ?array $pingInfo = null,
+        public array $responseTimeHistory = [],
+        public array $dailyUptimeHistory = [],
+        public float $apdexScore = 1.0,
+        public ?int $p95ResponseTime = null,
         public ?string $createdAt = null,
         public ?string $updatedAt = null,
     ) {}
@@ -39,6 +43,10 @@ readonly class Site
             'server_info' => $this->serverInfo,
             'ssl_info' => $this->sslInfo,
             'ping_info' => $this->pingInfo,
+            'response_time_history' => $this->responseTimeHistory,
+            'daily_uptime_history' => $this->dailyUptimeHistory,
+            'apdex_score' => $this->apdexScore,
+            'p95_response_time' => $this->p95ResponseTime,
             'created_at' => $this->createdAt,
             'updated_at' => $this->updatedAt,
         ];

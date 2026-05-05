@@ -21,7 +21,7 @@ use Symfony\Component\HttpFoundation\Response as ResponseAlias;
 
 class SiteController extends Controller
 {
-    private const string CACHE_VERSION = 'v7';
+    private const string CACHE_VERSION = 'v9';
 
     public function __construct(
         private readonly SiteManagementRepositoryInterface $siteRepository,

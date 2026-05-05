@@ -8,12 +8,27 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class Site extends Model
 {
     use HasFactory;
 
     protected $fillable = ['user_id', 'name', 'url', 'update_interval', 'is_active'];
+
+    protected $appends = [
+        'response_time',
+        'uptime',
+        'last_checked_at',
+        'server_info',
+        'ssl_info',
+        'ping_info',
+        'response_time_history',
+        'daily_uptime_history',
+        'apdex_score',
+        'p95_response_time',
+    ];
 
     public function user(): BelongsTo
     {
@@ -181,5 +196,124 @@ class Site extends Model
         }
 
         return null;
+    }
+
+    /**
+     * Get the last 12 response times for sparkline.
+     */
+    public function getResponseTimeHistoryAttribute(): array
+    {
+        return $this->checks()
+            ->whereHas('configuration.checkType', fn ($q) => $q->where('slug', 'http'))
+            ->latest('checked_at')
+            ->limit(12)
+            ->get()
+            ->reverse()
+            ->map(fn ($check) => $check->response_time_ms)
+            ->values()
+            ->toArray();
+    }
+
+    /**
+     * Get the last 30 days of uptime for heatmap.
+     */
+    public function getDailyUptimeHistoryAttribute(): array
+    {
+        $days = [];
+        for ($i = 29; $i >= 0; $i--) {
+            $date = now()->subDays($i)->startOfDay();
+            $endOfDay = $date->copy()->endOfDay();
+
+            $total = $this->checks()
+                ->whereBetween('checked_at', [$date, $endOfDay])
+                ->count();
+
+            $up = $this->checks()
+                ->whereBetween('checked_at', [$date, $endOfDay])
+                ->where('status', 'up')
+                ->count();
+
+            // Include archives if needed
+            $archives = CheckResultArchive::where('site_id', $this->id)
+                ->where('year', $date->year)
+                ->where('week', $date->weekOfYear)
+                ->get();
+
+            foreach ($archives as $archive) {
+                foreach ($archive->data as $result) {
+                    $checkedAt = Carbon::parse($result['checked_at']);
+                    if ($checkedAt->between($date, $endOfDay)) {
+                        $total++;
+                        if ($result['status'] === 'up') {
+                            $up++;
+                        }
+                    }
+                }
+            }
+
+            $percentage = $total > 0 ? round(($up / $total) * 100, 2) : 100;
+
+            $days[] = [
+                'date' => $date->format('Y-m-d'),
+                'uptime' => $percentage,
+                'total_checks' => $total,
+            ];
+        }
+
+        return $days;
+    }
+
+    /**
+     * Calculate Apdex score for the last 30 days.
+     * T = 300ms, 4T = 1200ms
+     */
+    public function getApdexScoreAttribute(): float
+    {
+        return Cache::remember("site_{$this->id}_apdex_v1", 600, function () {
+            $since = now()->subDays(30);
+            
+            $stats = $this->checks()
+                ->where('checked_at', '>=', $since)
+                ->where('status', 'up')
+                ->selectRaw('
+                    COUNT(*) as total,
+                    SUM(CASE WHEN response_time_ms <= 300 THEN 1 ELSE 0 END) as satisfied,
+                    SUM(CASE WHEN response_time_ms > 300 AND response_time_ms <= 1200 THEN 1 ELSE 0 END) as tolerating
+                ')
+                ->first();
+
+            $total = $this->checks()->where('checked_at', '>=', $since)->count();
+            if ($total === 0) return 1.0;
+
+            $satisfied = (int) ($stats->satisfied ?? 0);
+            $tolerating = (int) ($stats->tolerating ?? 0);
+
+            return round(($satisfied + ($tolerating / 2)) / $total, 2);
+        });
+    }
+
+    /**
+     * Calculate P95 response time for the last 30 days.
+     */
+    public function getP95ResponseTimeAttribute(): ?int
+    {
+        return Cache::remember("site_{$this->id}_p95_v1", 600, function () {
+            $since = now()->subDays(30);
+            
+            // Using a more efficient way to get P95
+            $times = $this->checks()
+                ->where('checked_at', '>=', $since)
+                ->where('status', 'up')
+                ->whereNotNull('response_time_ms')
+                ->orderBy('response_time_ms')
+                ->pluck('response_time_ms');
+
+            if ($times->isEmpty()) return null;
+
+            $count = $times->count();
+            $index = max(0, (int)ceil(0.95 * $count) - 1);
+            
+            return (int) $times[$index];
+        });
     }
 }
