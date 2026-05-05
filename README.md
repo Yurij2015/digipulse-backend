@@ -1,74 +1,74 @@
 # DigiPulse
 
-Система моніторингу доступності сайтів, SSL сертифікатів та стану доменів.
+A monitoring system for website availability, SSL certificates, and domain status.
 
-Працює зараз в продакшені, повністю самостійний проєкт без зовнішніх інвестицій. Не є "найкращим на ринку", не керує тисячами сайтів, робить свою роботу добре для того обсягу для якого розроблений.
+Currently running in production, this is a fully independent project without external investment. It doesn't aim to be the "best on the market" or manage thousands of sites; it simply does its job well for the scale it was designed for.
 
 ---
 
-## Загальна архітектура
+## Architecture Overview
 
-Проєкт розділений на 4 незалежні частини які комунікують між собою:
+The project is divided into 4 independent components that communicate with each other:
 
-| Компонент | Технологія | Призначення | Стан |
+| Component | Technology | Purpose | Status |
 |---|---|---|---|
-| **Backend** | Laravel 13 / PHP 8.5 | Ядро API, авторизація, панель адміністрування, сповіщення | ✅ Продакшен |
-| **Monitor** | Go 1.23 | Фоновий воркер який реально пінгує сайти, перевіряє сертифікати, вимірює латентність | ✅ Продакшен |
-| **Frontend** | Nuxt 4 / Vue 3 | Користувацький інтерфейс | ✅ Продакшен |
-| **Infrastructure** | Terraform / Docker | Конфігурація серверів, деплоймент, секрети | ✅ Продакшен |
+| **Backend** | Laravel 13 / PHP 8.5 | API Core, auth, admin panel, notifications | ✅ Production |
+| **Monitor** | Go 1.23 | Background worker that performs actual pings, checks certificates, and measures latency | ✅ Production |
+| **Frontend** | Nuxt 4 / Vue 3 | User interface | ✅ Production |
+| **Infrastructure** | Terraform / Docker | Server configuration, deployment, secrets | ✅ Production |
 
-Всі частини розгорнуті на Hetzner Cloud, не використовують сторонні SaaS крім SMTP та Cloudflare Turnstile.
-
----
-
-## Що реально зараз працює
-
-✅ Моніторинг доступності сайтів з інтервалом 1 хвилина
-✅ Перевірка терміну дії SSL сертифікатів
-✅ Перевірка терміну реєстрації доменів
-✅ Історична статистика аптайму на графіків
-✅ Сповіщення в Телеграм, email при падінні сайту
-✅ Дозволи для команд, спільний доступ до моніторингу
-✅ Google OAuth авторизація
-✅ Адмін панель на Filament v5
-✅ Автоматичний деплоймент з GitHub Actions
-✅ Тикет система підтримки
-
-## Що зараз розробляється
-
-- 🚧 Сповіщення в Discord / Slack
-- 🚧 Інтеграція з PagerDuty
-- 🚧 Перевірка контенту сторінки на зміни
-- 🚧 Захист від помилкових сповіщень
-
-## Що тут НЕМАЄ і не планується
-
-❌ Безлімітні безкоштовні плани
-❌ Маркетингові лендинги з гучними обіцянками
-❌ AI аналіз проблем (хоча хтось напевно колись запропонує)
-❌ Моніторинг серверів, дисків, процесорів - тільки веб сайти
-❌ Відкриті реєстрації наразі
+All components are deployed on Hetzner Cloud and do not use third-party SaaS except for SMTP and Cloudflare Turnstile.
 
 ---
 
-## Технологічний стек
+## Current Features
 
-| Шар | Технології |
+✅ Website availability monitoring with 1-minute intervals
+✅ SSL certificate expiration tracking
+✅ Domain registration expiration tracking
+✅ Historical uptime statistics and charts
+✅ Telegram and email notifications for downtime
+✅ Team permissions and shared monitoring access
+✅ Google OAuth authentication
+✅ Admin panel powered by Filament v5
+✅ Automated deployment with GitHub Actions
+✅ Support ticket system
+
+## In Development
+
+- 🚧 Discord / Slack notifications
+- 🚧 PagerDuty integration
+- 🚧 Page content change detection
+- 🚧 False-positive alert protection
+
+## What's NOT included and not planned
+
+❌ Unlimited free plans
+❌ Marketing landing pages with loud promises
+❌ AI problem analysis (though someone might suggest it eventually)
+❌ Server, disk, or CPU monitoring - websites only
+❌ Open registrations (currently)
+
+---
+
+## Technology Stack
+
+| Layer | Technologies |
 |---|---|
-| Сервер | FrankenPHP / Octane 2 |
-| База даних | PostgreSQL 18 |
-| Кеш та черги | Redis 7 |
-| Фронтенд | Nuxt 4 / Vue 3 / Tailwind 4 |
-| Монітор | Чистий Go, без фреймворків |
-| Деплоймент | GitHub Actions, Docker, Terraform |
+| Server | FrankenPHP / Octane 2 |
+| Database | PostgreSQL 18 |
+| Cache & Queues | Redis 7 |
+| Frontend | Nuxt 4 / Vue 3 / Tailwind 4 |
+| Monitor | Pure Go, no frameworks |
+| Deployment | GitHub Actions, Docker, Terraform |
 
-Всі залежності тримаються актуальними, оновлюються регулярно в межах стабільних версій.
+All dependencies are kept up-to-date and updated regularly within stable versions.
 
 ---
 
-## Локальна розробка
+## Local Development
 
-Весь стек піднімається через Laravel Sail в один команду:
+The entire stack can be launched via Laravel Sail with a single command:
 
 ```bash
 git clone git@github.com:Yurij2015/digipulse-backend.git
@@ -78,12 +78,12 @@ composer install
 ./vendor/bin/sail artisan migrate
 ```
 
-Фронтенд та монітор піднімаються окремо з своїх репозиторіїв.
+Frontend and monitor services are launched separately from their respective repositories.
 
 ---
 
-## Про проєкт
+## About the Project
 
-Розробляється 2025 року. Зроблено тому що більшість існуючих моніторингів або надто дорогі, або надто повільні, або спамлять помилковими сповіщеннями.
+Developed in 2025. Created because most existing monitoring solutions are either too expensive, too slow, or spam with false-positive notifications.
 
-Не прагне стати найбільшим. Прагає бути найнадійнішим для тих хто ним користується.
+It doesn't strive to be the largest. It strives to be the most reliable for those who use it.

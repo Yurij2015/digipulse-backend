@@ -31,6 +31,10 @@ final class EloquentSiteMapper
             serverInfo: $site->server_info,
             sslInfo: $site->ssl_info,
             pingInfo: $site->ping_info,
+            responseTimeHistory: $site->response_time_history,
+            dailyUptimeHistory: $site->daily_uptime_history,
+            apdexScore: $site->apdex_score,
+            p95ResponseTime: $site->p95_response_time,
             createdAt: $this->formatDate($site->created_at),
             updatedAt: $this->formatDate($site->updated_at),
         );
@@ -52,6 +56,10 @@ final class EloquentSiteMapper
             serverInfo: $data['server_info'] ?? null,
             sslInfo: $data['ssl_info'] ?? null,
             pingInfo: $data['ping_info'] ?? null,
+            responseTimeHistory: $data['response_time_history'] ?? [],
+            dailyUptimeHistory: $data['daily_uptime_history'] ?? [],
+            apdexScore: $data['apdex_score'] ?? 1.0,
+            p95ResponseTime: $data['p95_response_time'] ?? null,
             createdAt: $data['created_at'] ?? null,
             updatedAt: $data['updated_at'] ?? null,
         );

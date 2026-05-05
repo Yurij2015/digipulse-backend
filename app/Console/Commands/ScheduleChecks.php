@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Infrastructure\Monitoring\OutboundInternetProbe;
 use App\Models\SiteCheckConfiguration;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -17,8 +18,14 @@ class ScheduleChecks extends Command
      *
      * @throws \JsonException
      */
-    public function handle(): void
+    public function handle(OutboundInternetProbe $outboundInternetProbe): void
     {
+        if (! $outboundInternetProbe->isReachable()) {
+            $this->warn('Skipping app:schedule-checks: outbound internet probe failed (no tasks enqueued, last_checked_at unchanged).');
+
+            return;
+        }
+
         $dueConfigs = SiteCheckConfiguration::dueForCheck()
             ->with(['site', 'checkType'])
             ->get();

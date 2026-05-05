@@ -271,6 +271,14 @@ jobs:
             OCTANE_SERVER=frankenphp
             LOG_CHANNEL=stack
             LOG_LEVEL=error
+
+            # Monitoring
+            INTERNET_CHECK_ENABLED=true
+            INTERNET_PROBE_URL=https://www.cloudflare.com
+            INTERNET_PROBE_TIMEOUT_SEC=5
+            MONITOR_RESULTS_CONSUMER_ENABLED=true
+            MONITOR_RESULTS_QUEUE=monitoring:results
+            MONITOR_RESULTS_CONSUMER_BLOCK_SECONDS=5
             ENVEOF
 
   run-before-hooks:

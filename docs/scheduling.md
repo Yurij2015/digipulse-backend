@@ -29,6 +29,22 @@ The `schedule:work` command runs in the foreground and invokes the scheduler eve
 > [!IMPORTANT]
 > If this command is not running, your sites will not be checked automatically, even if they are active.
 
+### The `app:consume-monitor-results` Command
+
+If Go monitor publishes results to Redis, Laravel must run a dedicated consumer process to persist those results.
+
+Run this command in a separate terminal window:
+
+```bash
+./vendor/bin/sail artisan app:consume-monitor-results
+```
+
+For debugging a single payload:
+
+```bash
+./vendor/bin/sail artisan app:consume-monitor-results --once
+```
+
 ## Manual Execution
 
 If you want to trigger all due checks immediately without waiting for the scheduler, you can run the command directly:
@@ -110,4 +126,5 @@ In a production environment, you should not use `schedule:work`. Instead, a stan
 
 * **Checks not triggering:** Ensure `./vendor/bin/sail artisan schedule:work` is running.
 * **Queue not processing:** Ensure the `monitor-service` container is running (`sail ps`).
+* **Results not appearing in Laravel:** Ensure `./vendor/bin/sail artisan app:consume-monitor-results` is running and check `LLEN monitoring:results`.
 * **Check Intervals:** Sites are only picked up if their `last_checked_at` is older than the site's `update_interval`.
