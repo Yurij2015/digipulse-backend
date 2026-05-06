@@ -38,42 +38,54 @@ jobs:
             HETZNER_PORT=23
             HETZNER_DIR="backups/postgres"
 
-            LOCAL_DIR="/home/digipulse/backups"
+            LOCAL_DIR="$HOME/backups"
             DATE=$(date +%Y-%m-%d_%H-%M-%S)
             FILENAME="digipulse_${DATE}.dump"
 
+            echo "→ Environment Info:"
+            echo "  User: $(whoami)"
+            echo "  Home: $HOME"
+            echo "  Local Dir: $LOCAL_DIR"
+            echo "  Database: $DB_NAME"
+
             mkdir -p "$LOCAL_DIR"
 
-            echo "→ Dumping database..."
-            docker exec "$DB_CONTAINER" pg_dump \
+            echo "→ Step 1: Dumping database from container $DB_CONTAINER..."
+            if ! docker exec "$DB_CONTAINER" pg_dump \
               -U "$DB_USER" \
               -d "$DB_NAME" \
               --format=custom \
               --no-acl \
               --no-owner \
-              > "${LOCAL_DIR}/${FILENAME}"
+              > "${LOCAL_DIR}/${FILENAME}"; then
+                echo "❌ Database dump failed!"
+                exit 1
+            fi
 
             SIZE=$(du -sh "${LOCAL_DIR}/${FILENAME}" | cut -f1)
             echo "✓ Dump created: ${FILENAME} (${SIZE})"
 
-            echo "→ Uploading to Hetzner Storage Box..."
-            rsync -az \
+            echo "→ Step 2: Uploading to Hetzner Storage Box (path: ${HETZNER_DIR})..."
+            if ! rsync -az \
               -e "ssh -p ${HETZNER_PORT} -o StrictHostKeyChecking=no -o BatchMode=yes" \
               "${LOCAL_DIR}/${FILENAME}" \
-              "${HETZNER_USER}@${HETZNER_HOST}:${HETZNER_DIR}/"
+              "${HETZNER_USER}@${HETZNER_HOST}:${HETZNER_DIR}/"; then
+                echo "❌ Upload to Hetzner failed!"
+                exit 1
+            fi
             echo "✓ Uploaded to Hetzner"
 
-            # Remove local backups older than 3 days
-            echo "→ Cleaning local backups older than 3 days..."
+            echo "→ Step 3: Cleaning up old local backups..."
             find "$LOCAL_DIR" -name "*.dump" -mtime +3 -delete
+            echo "✓ Local cleanup complete"
 
-            # Remove remote backups older than 30 days
-            echo "→ Cleaning Hetzner backups older than 30 days..."
+            echo "→ Step 4: Cleaning up old remote backups (30+ days)..."
             ssh -p "$HETZNER_PORT" \
               -o StrictHostKeyChecking=no \
               -o BatchMode=yes \
               "${HETZNER_USER}@${HETZNER_HOST}" \
               "find ${HETZNER_DIR} -name '*.dump' -mtime +30 -delete 2>/dev/null || true"
+            echo "✓ Remote cleanup complete"
 
             echo ""
             echo "Current backups on Storage Box:"
@@ -81,9 +93,9 @@ jobs:
               -o StrictHostKeyChecking=no \
               -o BatchMode=yes \
               "${HETZNER_USER}@${HETZNER_HOST}" \
-              "ls -lht ${HETZNER_DIR}/ | head -10"
+              "ls -lht ${HETZNER_DIR}/ | head -5"
 
             echo ""
-            echo "✓ Backup complete: ${FILENAME}"
+            echo "✅ Backup process finished successfully!"
             echo "  Note: ${{ github.event.inputs.note || 'Scheduled backup' }}"
             echo "  Triggered by: ${{ github.actor }}"
