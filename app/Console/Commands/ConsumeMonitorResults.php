@@ -42,7 +42,9 @@ class ConsumeMonitorResults extends Command
     private function consumeOnce(ProcessMonitoringResult $useCase): void
     {
         $queue = (string) config('monitoring.results_consumer.queue', 'monitoring:results');
+        $failedQueue = (string) config('monitoring.results_consumer.failed_queue', 'monitoring:results:failed');
         $blockSeconds = (int) config('monitoring.results_consumer.block_seconds', 5);
+        $maxAttempts = (int) config('monitoring.results_consumer.max_attempts', 5);
 
         /** @var array{0:string,1:string}|null $result */
         $result = Redis::brpop([$queue], $blockSeconds);
@@ -56,6 +58,9 @@ class ConsumeMonitorResults extends Command
 
             return;
         }
+
+        $attempt = isset($payload['_attempt']) ? (int) $payload['_attempt'] : 1;
+        unset($payload['_attempt']);
 
         $validator = Validator::make($payload, [
             'configuration_id' => ['required', 'integer', 'exists:site_check_configurations,id'],
@@ -91,9 +96,29 @@ class ConsumeMonitorResults extends Command
                 $dto->status
             ));
         } catch (Throwable $exception) {
+            $retryPayload = $validated;
+            $retryPayload['_attempt'] = $attempt + 1;
+
+            if ($attempt >= $maxAttempts) {
+                Redis::lpush($failedQueue, (string) json_encode($retryPayload));
+                $this->error(sprintf(
+                    'Failed to process monitor result for configuration_id=%d after %d attempts. Moved to %s. Last error: %s',
+                    $dto->configurationId,
+                    $attempt,
+                    $failedQueue,
+                    $exception->getMessage()
+                ));
+
+                return;
+            }
+
+            Redis::lpush($queue, (string) json_encode($retryPayload));
             $this->error(sprintf(
-                'Failed to process monitor result for configuration_id=%d: %s',
+                'Failed to process monitor result for configuration_id=%d (attempt %d/%d). Requeued to %s. Error: %s',
                 $dto->configurationId,
+                $attempt,
+                $maxAttempts,
+                $queue,
                 $exception->getMessage()
             ));
         }

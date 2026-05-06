@@ -33,6 +33,8 @@ return [
     'results_consumer' => [
         'enabled' => filter_var(env('MONITOR_RESULTS_CONSUMER_ENABLED', 'true'), FILTER_VALIDATE_BOOLEAN),
         'queue' => env('MONITOR_RESULTS_QUEUE', 'monitoring:results'),
+        'failed_queue' => env('MONITOR_RESULTS_FAILED_QUEUE', 'monitoring:results:failed'),
         'block_seconds' => max(1, (int) env('MONITOR_RESULTS_CONSUMER_BLOCK_SECONDS', 5)),
+        'max_attempts' => max(1, (int) env('MONITOR_RESULTS_CONSUMER_MAX_ATTEMPTS', 5)),
     ],
 ];

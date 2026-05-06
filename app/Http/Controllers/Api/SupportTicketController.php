@@ -77,7 +77,6 @@ class SupportTicketController extends Controller
      */
     public function show(SupportTicket $ticket, Request $request): SupportTicketResource|JsonResponse
     {
-        // Only owner or admin can see the ticket
         if ($ticket->user_id !== $request->user()->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
