@@ -529,6 +529,43 @@
                         "bearerAuth": []
                     }
                 ]
+            },
+            "delete": {
+                "tags": [
+                    "Profile"
+                ],
+                "summary": "Delete user account",
+                "description": "Permanently delete the authenticated user's account and all associated data",
+                "operationId": "deleteAccount",
+                "responses": {
+                    "200": {
+                        "description": "Account deleted successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Account deleted successfully"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    },
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
         "/api/profile/password": {
@@ -631,82 +668,6 @@
                     },
                     {
                         "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/api/webhooks/results": {
-            "post": {
-                "tags": [
-                    "Internal"
-                ],
-                "summary": "Store a new check result from the monitor service",
-                "description": "Store a new check result from the monitor service.",
-                "operationId": "1d3c9b2c8aac3f11949b0dbd908fb70f",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "configuration_id",
-                                    "status"
-                                ],
-                                "properties": {
-                                    "configuration_id": {
-                                        "type": "integer",
-                                        "example": 1
-                                    },
-                                    "status": {
-                                        "type": "string",
-                                        "example": "up",
-                                        "enum": [
-                                            "up",
-                                            "down",
-                                            "slow"
-                                        ]
-                                    },
-                                    "response_time_ms": {
-                                        "type": "integer",
-                                        "example": 150
-                                    },
-                                    "error_message": {
-                                        "type": "string",
-                                        "example": "Connection timeout"
-                                    },
-                                    "metadata": {
-                                        "type": "object",
-                                        "example": {
-                                            "ip": "1.2.3.4"
-                                        }
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Result stored successfully",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "frontendKey": []
                     }
                 ]
             }
@@ -1824,10 +1785,6 @@
         {
             "name": "Check Types",
             "description": "Check Types"
-        },
-        {
-            "name": "Internal",
-            "description": "Internal"
         },
         {
             "name": "Sites",

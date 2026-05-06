@@ -196,8 +196,6 @@ jobs:
             GOOGLE_CLIENT_SECRET=$(get_val "${{ vars.GOOGLE_CLIENT_SECRET }}" "")
             TELEGRAM_BOT_TOKEN=$(get_val "${{ vars.TELEGRAM_BOT_TOKEN }}" "")
             TELEGRAM_BOT_USERNAME=$(get_val "${{ vars.TELEGRAM_BOT_USERNAME }}" "")
-            INTERNAL_MONITOR_KEY=$(get_val "${{ vars.INTERNAL_MONITOR_KEY }}" "")
-
             TURNSTILE_ACTIVE=$(get_val "${{ vars.TURNSTILE_ACTIVE }}" "false")
             TURNSTILE_SITE_KEY=$(get_val "${{ vars.TURNSTILE_SITE_KEY }}" "")
             TURNSTILE_SECRET_KEY=$(get_val "${{ vars.TURNSTILE_SECRET_KEY }}" "")
@@ -254,8 +252,6 @@ jobs:
 
             TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN
             TELEGRAM_BOT_USERNAME=$TELEGRAM_BOT_USERNAME
-
-            INTERNAL_MONITOR_KEY=$INTERNAL_MONITOR_KEY
 
             TURNSTILE_ACTIVE=$TURNSTILE_ACTIVE
             TURNSTILE_SITE_KEY=$TURNSTILE_SITE_KEY

@@ -5,12 +5,10 @@ use App\Http\Controllers\Api\Auth\EmailVerificationController;
 use App\Http\Controllers\Api\Auth\PasswordResetController;
 use App\Http\Controllers\Api\Auth\ProfileController;
 use App\Http\Controllers\Api\CheckTypeController;
-use App\Http\Controllers\Api\Internal\InternalCheckResultController;
 use App\Http\Controllers\Api\SiteController;
 use App\Http\Controllers\Api\SiteHistoryController;
 use App\Http\Controllers\Api\SupportTicketController;
 use App\Http\Controllers\Api\TelegramController;
-use App\Http\Middleware\InternalMonitorMiddleware;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['frontend.key'])->group(function () {
@@ -71,7 +69,3 @@ Route::middleware(['frontend.key'])->group(function () {
 });
 
 Route::post('/webhooks/telegram', [TelegramController::class, 'webhook'])->name('webhooks.telegram');
-
-Route::prefix('webhooks')->name('webhooks.')->middleware(InternalMonitorMiddleware::class)->group(function () {
-    Route::post('/results', [InternalCheckResultController::class, 'store'])->name('results');
-});

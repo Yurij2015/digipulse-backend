@@ -128,7 +128,4 @@ return [
     ],
 
     'frontend_key' => env('FRONTEND_KEY'),
-
-    'internal_monitor_key' => env('INTERNAL_MONITOR_KEY'),
-
 ];
