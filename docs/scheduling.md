@@ -102,16 +102,18 @@ The monitor service supports **Hot-Reloading** using [Air](https://github.com/ai
 
 If the scheduling command is working but checks aren't being processed, check the state of Redis.
 
-### Checking the Task Queue
+### Checking the Task/Result Queues
 
-To see if there are tasks waiting in the queue:
+To see if there are tasks or results waiting in Redis:
 
 ```bash
 # Check queue length (should be close to 0 if worker is active)
-./vendor/bin/sail exec redis redis-cli LLEN laravel-database-monitoring:tasks
+./vendor/bin/sail exec redis redis-cli LLEN monitoring:tasks
+./vendor/bin/sail exec redis redis-cli LLEN monitoring:results
 
 # View all tasks currently in the queue
-./vendor/bin/sail exec redis redis-cli LRANGE laravel-database-monitoring:tasks 0 -1
+./vendor/bin/sail exec redis redis-cli LRANGE monitoring:tasks 0 -1
+./vendor/bin/sail exec redis redis-cli LRANGE monitoring:results 0 -1
 ```
 
 ## Production Environment

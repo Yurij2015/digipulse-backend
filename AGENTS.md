@@ -193,7 +193,7 @@ This project follows Hexagonal (Ports and Adapters) architecture for core busine
 
 ### Cross-Service Consistency (Laravel & Go)
 - **Data Alignment**: Ensure that Go structs in `monitor/internal/worker/worker.go` (`CheckTask`, `CheckResult`) stay in sync with Laravel DTOs in `app/Domain/Monitoring/DTOs/`.
-- **Communication**: The Go service reports results via HTTP JSON webhooks or Redis. All payloads must be mapped to DTOs in Laravel immediately upon receipt.
+- **Communication**: The Go service reports results via Redis (`monitoring:results`). All payloads must be mapped to DTOs in Laravel immediately upon receipt.
 
 === pint/core rules ===
 
@@ -251,8 +251,7 @@ Use this addendum as the project-specific operating layer on top of Laravel Boos
 ### Monitor Ingestion Policy (Go <-> Laravel)
 
 - Primary principle: avoid data loss under transient failures.
-- If using webhook delivery, protect with retries/backoff and explicit monitoring.
-- If using Redis result ingestion (`monitoring:results`), run a dedicated consumer process (`app:consume-monitor-results`) and monitor queue depth.
+- Use Redis result ingestion (`monitoring:results`) with a dedicated consumer process (`app:consume-monitor-results`) and monitor queue depth.
 - Keep payload contracts aligned between Go `CheckTask`/`CheckResult` and Laravel DTO/request validation.
 
 ### Incident Checklists
@@ -264,10 +263,9 @@ Use this addendum as the project-specific operating layer on top of Laravel Boos
   - Verify event class implements intended broadcast mode (`ShouldBroadcastNow` vs queued).
 
 - **Monitor results not appearing**
-  - Verify producer path (Go webhook or Redis publish).
-  - If Redis mode: verify `app:consume-monitor-results` process is running.
+  - Verify producer path (Go Redis publish).
+  - Verify `app:consume-monitor-results` process is running.
   - Check queue depth and invalid payload logs.
-  - Confirm `INTERNAL_MONITOR_KEY` / monitor auth key alignment.
 
 ### Rule Conflict Command
 
