@@ -44,51 +44,52 @@ class ArchiveCheckResults extends Command
         foreach ($configIds as $configId) {
             $this->comment("Processing Configuration ID: {$configId}");
 
-            // Group results by ISO year and week for this configuration
-            $oldResults = CheckResult::where('configuration_id', $configId)
+            // Process in chunks to avoid loading all records into memory at once
+            CheckResult::where('configuration_id', $configId)
                 ->where('checked_at', '<=', $cutOffDate)
                 ->orderBy('checked_at')
-                ->get()
-                ->groupBy(fn ($result) => $result->checked_at->format('o-W'));
+                ->chunkById(500, function ($chunk) use ($configId) {
+                    $grouped = $chunk->groupBy(fn ($result) => $result->checked_at->format('o-W'));
 
-            foreach ($oldResults as $yearWeek => $results) {
-                [$year, $week] = explode('-', $yearWeek);
+                    foreach ($grouped as $yearWeek => $results) {
+                        [$year, $week] = explode('-', $yearWeek);
 
-                DB::transaction(function () use ($configId, $year, $week, $results) {
-                    $siteId = $results->first()->site_id;
-                    $newData = $results->toArray();
+                        DB::transaction(static function () use ($configId, $year, $week, $results) {
+                            $siteId = $results->first()->site_id;
+                            $newData = $results->toArray();
 
-                    $existingArchive = CheckResultArchive::where([
-                        'configuration_id' => $configId,
-                        'year' => (int) $year,
-                        'week' => (int) $week,
-                    ])->first();
+                            $existingArchive = CheckResultArchive::where([
+                                'configuration_id' => $configId,
+                                'year' => (int) $year,
+                                'week' => (int) $week,
+                            ])->first();
 
-                    if ($existingArchive) {
-                        $combinedData = array_merge($existingArchive->data, $newData);
-                        $existingArchive->update([
-                            'data' => $combinedData,
-                            'size_bytes' => $existingArchive->size_bytes + strlen(json_encode($newData)),
-                        ]);
-                    } else {
-                        CheckResultArchive::create([
-                            'site_id' => $siteId,
-                            'configuration_id' => $configId,
-                            'year' => (int) $year,
-                            'week' => (int) $week,
-                            'data' => $newData,
-                            'size_bytes' => strlen(json_encode($newData)),
-                        ]);
+                            if ($existingArchive) {
+                                $combinedData = array_merge($existingArchive->data, $newData);
+                                $existingArchive->update([
+                                    'data' => $combinedData,
+                                    'size_bytes' => strlen(json_encode($combinedData, JSON_THROW_ON_ERROR)),
+                                ]);
+                            } else {
+                                CheckResultArchive::create([
+                                    'site_id' => $siteId,
+                                    'configuration_id' => $configId,
+                                    'year' => (int) $year,
+                                    'week' => (int) $week,
+                                    'data' => $newData,
+                                    'size_bytes' => strlen(json_encode($newData, JSON_THROW_ON_ERROR)),
+                                ]);
+                            }
+
+                            // Delete the archived records
+                            CheckResult::whereIn('id', $results->pluck('id'))->delete();
+                        });
+
+                        $logMsg = "Archived Week {$week} of {$year} for Config ID {$configId} ({$results->count()} records)";
+                        $this->line("  - {$logMsg}");
+                        Log::info($logMsg);
                     }
-
-                    // Delete the archived records
-                    CheckResult::whereIn('id', $results->pluck('id'))->delete();
                 });
-
-                $logMsg = "Archived Week {$week} of {$year} for Config ID {$configId} ({$results->count()} records)";
-                $this->line("  - {$logMsg}");
-                Log::info($logMsg);
-            }
         }
     }
 
