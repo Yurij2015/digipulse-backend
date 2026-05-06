@@ -1,0 +1,89 @@
+name: Database Backup
+
+on:
+  # Manual trigger via GitHub UI — "Run workflow" button appears in Actions tab
+  workflow_dispatch:
+    inputs:
+      note:
+        description: 'Reason for backup (optional)'
+        required: false
+        default: 'Manual backup'
+
+  # Automatically every day at 03:00 UTC
+  schedule:
+    - cron: '0 3 * * *'
+
+jobs:
+  backup:
+    name: Backup PostgreSQL → Hetzner Storage Box
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Run backup on server
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ vars.SERVER_IP }}
+          username: ${{ vars.SERVER_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ vars.SERVER_PORT }}
+          script: |
+            set -euo pipefail
+
+            DB_CONTAINER="digipulse-db"
+            DB_NAME="${{ vars.DB_DATABASE }}"
+            DB_USER="${{ vars.DB_USERNAME }}"
+
+            HETZNER_USER="${{ vars.HETZNER_USER }}"
+            HETZNER_HOST="${HETZNER_USER}.your-storagebox.de"
+            HETZNER_PORT=23
+            HETZNER_DIR="backups/postgres"
+
+            LOCAL_DIR="/opt/digipulse/backups"
+            DATE=$(date +%Y-%m-%d_%H-%M-%S)
+            FILENAME="digipulse_${DATE}.dump"
+
+            mkdir -p "$LOCAL_DIR"
+
+            echo "→ Dumping database..."
+            docker exec "$DB_CONTAINER" pg_dump \
+              -U "$DB_USER" \
+              -d "$DB_NAME" \
+              --format=custom \
+              --no-acl \
+              --no-owner \
+              > "${LOCAL_DIR}/${FILENAME}"
+
+            SIZE=$(du -sh "${LOCAL_DIR}/${FILENAME}" | cut -f1)
+            echo "✓ Dump created: ${FILENAME} (${SIZE})"
+
+            echo "→ Uploading to Hetzner Storage Box..."
+            rsync -az \
+              -e "ssh -p ${HETZNER_PORT} -o StrictHostKeyChecking=no -o BatchMode=yes" \
+              "${LOCAL_DIR}/${FILENAME}" \
+              "${HETZNER_USER}@${HETZNER_HOST}:${HETZNER_DIR}/"
+            echo "✓ Uploaded to Hetzner"
+
+            # Remove local backups older than 3 days
+            echo "→ Cleaning local backups older than 3 days..."
+            find "$LOCAL_DIR" -name "*.dump" -mtime +3 -delete
+
+            # Remove remote backups older than 30 days
+            echo "→ Cleaning Hetzner backups older than 30 days..."
+            ssh -p "$HETZNER_PORT" \
+              -o StrictHostKeyChecking=no \
+              -o BatchMode=yes \
+              "${HETZNER_USER}@${HETZNER_HOST}" \
+              "find ${HETZNER_DIR} -name '*.dump' -mtime +30 -delete 2>/dev/null || true"
+
+            echo ""
+            echo "Current backups on Storage Box:"
+            ssh -p "$HETZNER_PORT" \
+              -o StrictHostKeyChecking=no \
+              -o BatchMode=yes \
+              "${HETZNER_USER}@${HETZNER_HOST}" \
+              "ls -lht ${HETZNER_DIR}/ | head -10"
+
+            echo ""
+            echo "✓ Backup complete: ${FILENAME}"
+            echo "  Note: ${{ github.event.inputs.note || 'Scheduled backup' }}"
+            echo "  Triggered by: ${{ github.actor }}"
