@@ -23,6 +23,8 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
             'configurations.checkType',
             'latestCheck',
             'latestHttpCheck',
+            'latestSslCheck',
+            'latestPingCheck',
         ])
             ->withCount([
                 'checks as checks_total_count' => fn ($q) => $q->where('checked_at', '>=', $since),
@@ -42,6 +44,8 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
                 'configurations.checkType',
                 'latestCheck',
                 'latestHttpCheck',
+                'latestSslCheck',
+                'latestPingCheck',
             ])
             ->withCount([
                 'checks as checks_total_count' => fn ($q) => $q->where('checked_at', '>=', $since),
