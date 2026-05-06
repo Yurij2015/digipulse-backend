@@ -45,7 +45,7 @@ jobs:
             HETZNER_PORT=23
             HETZNER_DIR="backups/postgres"
 
-            LOCAL_DIR="/home/digipulse/backups"
+            LOCAL_DIR="$HOME/backups"
             FILENAME="${{ github.event.inputs.filename }}"
 
             if [[ ! "$FILENAME" =~ ^digipulse_[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}\.dump$ ]]; then
