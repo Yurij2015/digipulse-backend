@@ -38,7 +38,7 @@ jobs:
             HETZNER_PORT=23
             HETZNER_DIR="backups/postgres"
 
-            LOCAL_DIR="/opt/digipulse/backups"
+            LOCAL_DIR="/home/digipulse/backups"
             DATE=$(date +%Y-%m-%d_%H-%M-%S)
             FILENAME="digipulse_${DATE}.dump"
 
