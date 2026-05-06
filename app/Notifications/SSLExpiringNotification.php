@@ -26,11 +26,11 @@ class SSLExpiringNotification extends Notification implements ShouldQueue, Teleg
     {
         $channels = [];
 
-        if ($notifiable->notify_telegram ?? true) {
+        if ($notifiable->notify_telegram ?? false) {
             $channels[] = TelegramChannel::class;
         }
 
-        if ($notifiable->notify_email ?? true) {
+        if ($notifiable->notify_email ?? false) {
             $channels[] = 'mail';
         }
 

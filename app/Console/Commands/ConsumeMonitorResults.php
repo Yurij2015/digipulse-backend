@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Validator;
 use Throwable;
 
-#[Signature('app:consume-monitor-results {--once : Process one message and exit}')]
+#[Signature('app:consume-monitor-results {--once : Process one message and exit} {--max-iterations=10000 : Stop after N iterations so Supervisor can restart the process and reclaim memory}')]
 #[Description('Consume monitor results from Redis and persist them.')]
 class ConsumeMonitorResults extends Command
 {
@@ -34,8 +34,17 @@ class ConsumeMonitorResults extends Command
 
         $this->info('Starting monitor results consumer...');
 
+        $maxIterations = (int) $this->option('max-iterations');
+        $iterations = 0;
+
         while (true) {
             $this->consumeOnce($useCase);
+            $iterations++;
+
+            if ($maxIterations > 0 && $iterations >= $maxIterations) {
+                $this->info("Reached {$maxIterations} iterations. Stopping to allow Supervisor to restart and reclaim memory.");
+                break;
+            }
         }
     }
 

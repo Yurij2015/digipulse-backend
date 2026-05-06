@@ -93,6 +93,9 @@ class ProfileController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
+        // Revoke all tokens so other sessions are forced to re-login
+        $user->tokens()->delete();
+
         return response()->json([
             'message' => 'Password changed successfully',
         ]);

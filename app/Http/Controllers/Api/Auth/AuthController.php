@@ -115,7 +115,7 @@ class AuthController extends Controller
     {
         /** @var User|null $user */
         $user = auth()->user();
-        $user?->tokens()->delete();
+        $user?->currentAccessToken()->delete();
 
         return response()->json([
             'success' => true,

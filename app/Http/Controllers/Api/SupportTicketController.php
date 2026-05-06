@@ -13,6 +13,7 @@ use App\Notifications\NewSupportTicketNotification;
 use App\Notifications\SupportTicketReplyNotification;
 use Filament\Notifications\Notification;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Log;
@@ -149,7 +150,7 @@ class SupportTicketController extends Controller
 
         return response()->json([
             'message' => 'Ticket submitted successfully.',
-            'ticket' => $ticket,
+            'ticket' => new SupportTicketResource($ticket),
         ], 201);
     }
 
@@ -217,7 +218,7 @@ class SupportTicketController extends Controller
         if ($admin) {
             Notification::make()
                 ->title('New Support Reply')
-                ->body("From {$message->user->name}: ".substr($message->message, 0, 50).'...')
+                ->body("From {$message->user->name}: ".Str::limit($message->message, 50))
                 ->icon('heroicon-o-chat-bubble-left-right')
                 ->success()
                 ->sendToDatabase($admin)

@@ -53,7 +53,10 @@ class AuthService
     {
         $user = User::where('email_bindex', User::generateBlindIndex($email))->first();
 
-        if (! $user || ! Hash::check($password, $user->password)) {
+        $dummyHash = '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi';
+        $passwordToCheck = $user ? $user->password : $dummyHash;
+
+        if (! Hash::check($password, $passwordToCheck) || ! $user) {
             return null;
         }
 
