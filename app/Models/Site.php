@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 
 class Site extends Model
 {
@@ -67,6 +66,32 @@ class Site extends Model
     }
 
     /**
+     * Get the latest SSL check result for the site.
+     */
+    public function latestSslCheck(): HasOne
+    {
+        return $this->hasOne(CheckResult::class)->ofMany([
+            'checked_at' => 'max',
+            'id' => 'max',
+        ], function ($query) {
+            $query->whereHas('configuration.checkType', fn ($q) => $q->where('slug', 'ssl'));
+        });
+    }
+
+    /**
+     * Get the latest Ping check result for the site.
+     */
+    public function latestPingCheck(): HasOne
+    {
+        return $this->hasOne(CheckResult::class)->ofMany([
+            'checked_at' => 'max',
+            'id' => 'max',
+        ], function ($query) {
+            $query->whereHas('configuration.checkType', fn ($q) => $q->where('slug', 'ping'));
+        });
+    }
+
+    /**
      * Get the response time of the latest check.
      */
     public function getResponseTimeAttribute(): ?int
@@ -87,38 +112,41 @@ class Site extends Model
      */
     public function getUptimeAttribute(): float
     {
-        $since = now()->subDays(30);
+        return Cache::remember("site_{$this->id}_uptime_v1", 300, function () {
+            $since = now()->subDays(30);
 
-        if (isset($this->checks_total_count) && isset($this->checks_up_count)) {
-            $total = (int) $this->checks_total_count;
-            $up = (int) $this->checks_up_count;
-        } else {
-            $total = $this->checks()->where('checked_at', '>=', $since)->count();
-            $up = $this->checks()->where('checked_at', '>=', $since)->where('status', 'up')->count();
-        }
+            if (isset($this->checks_total_count) && isset($this->checks_up_count)) {
+                $total = (int) $this->checks_total_count;
+                $up = (int) $this->checks_up_count;
+            } else {
+                $total = $this->checks()->where('checked_at', '>=', $since)->count();
+                $up = $this->checks()->where('checked_at', '>=', $since)->where('status', 'up')->count();
+            }
 
-        // Archived checks (older than 7 days)
-        $archives = CheckResultArchive::where('site_id', $this->id)
-            ->get();
+            // Archived checks (older than 7 days)
+            $archives = CheckResultArchive::where('site_id', $this->id)
+                ->where('created_at', '>=', $since->copy()->subDays(7))
+                ->get();
 
-        foreach ($archives as $archive) {
-            foreach ($archive->data as $result) {
-                $checkedAt = Carbon::parse($result['checked_at']);
+            foreach ($archives as $archive) {
+                foreach ($archive->data as $result) {
+                    $checkedAt = Carbon::parse($result['checked_at']);
 
-                if ($checkedAt->greaterThanOrEqualTo($since)) {
-                    $total++;
-                    if ($result['status'] === 'up') {
-                        $up++;
+                    if ($checkedAt->greaterThanOrEqualTo($since)) {
+                        $total++;
+                        if ($result['status'] === 'up') {
+                            $up++;
+                        }
                     }
                 }
             }
-        }
 
-        if ($total === 0) {
-            return 0;
-        }
+            if ($total === 0) {
+                return 100.0;
+            }
 
-        return round(($up / $total) * 100, 2);
+            return round(($up / $total) * 100, 2);
+        });
     }
 
     /**
@@ -162,10 +190,9 @@ class Site extends Model
      */
     public function getSslInfoAttribute(): ?array
     {
-        $latestSsl = $this->checks()
-            ->whereHas('configuration.checkType', fn ($q) => $q->where('slug', 'ssl'))
-            ->latest('checked_at')
-            ->first();
+        $latestSsl = $this->relationLoaded('latestSslCheck')
+            ? $this->latestSslCheck
+            : $this->latestSslCheck()->first();
 
         if ($latestSsl && isset($latestSsl->metadata['days_remaining'])) {
             return [
@@ -183,10 +210,9 @@ class Site extends Model
      */
     public function getPingInfoAttribute(): ?array
     {
-        $latestPing = $this->checks()
-            ->whereHas('configuration.checkType', fn ($q) => $q->where('slug', 'ping'))
-            ->latest('checked_at')
-            ->first();
+        $latestPing = $this->relationLoaded('latestPingCheck')
+            ? $this->latestPingCheck
+            : $this->latestPingCheck()->first();
 
         if ($latestPing) {
             return [
@@ -203,15 +229,17 @@ class Site extends Model
      */
     public function getResponseTimeHistoryAttribute(): array
     {
-        return $this->checks()
-            ->whereHas('configuration.checkType', fn ($q) => $q->where('slug', 'http'))
-            ->latest('checked_at')
-            ->limit(12)
-            ->get()
-            ->reverse()
-            ->map(fn ($check) => $check->response_time_ms)
-            ->values()
-            ->toArray();
+        return Cache::remember("site_{$this->id}_rt_history_v1", 300, function () {
+            return $this->checks()
+                ->whereHas('configuration.checkType', fn ($q) => $q->where('slug', 'http'))
+                ->latest('checked_at')
+                ->limit(12)
+                ->get()
+                ->reverse()
+                ->map(fn ($check) => $check->response_time_ms)
+                ->values()
+                ->toArray();
+        });
     }
 
     /**
@@ -219,48 +247,64 @@ class Site extends Model
      */
     public function getDailyUptimeHistoryAttribute(): array
     {
-        $days = [];
-        for ($i = 29; $i >= 0; $i--) {
-            $date = now()->subDays($i)->startOfDay();
-            $endOfDay = $date->copy()->endOfDay();
+        return Cache::remember("site_{$this->id}_daily_history_v1", 600, function () {
+            $since = now()->subDays(30)->startOfDay();
 
-            $total = $this->checks()
-                ->whereBetween('checked_at', [$date, $endOfDay])
-                ->count();
+            // 1. Get check results grouped by day and status
+            $checkStats = $this->checks()
+                ->where('checked_at', '>=', $since)
+                ->selectRaw('DATE(checked_at) as date, status, COUNT(*) as count')
+                ->groupBy('date', 'status')
+                ->get()
+                ->groupBy('date');
 
-            $up = $this->checks()
-                ->whereBetween('checked_at', [$date, $endOfDay])
-                ->where('status', 'up')
-                ->count();
-
-            // Include archives if needed
+            // 2. Get all archives for the last 30 days
             $archives = CheckResultArchive::where('site_id', $this->id)
-                ->where('year', $date->year)
-                ->where('week', $date->weekOfYear)
+                ->where('created_at', '>=', $since->copy()->subDays(7))
                 ->get();
 
-            foreach ($archives as $archive) {
-                foreach ($archive->data as $result) {
-                    $checkedAt = Carbon::parse($result['checked_at']);
-                    if ($checkedAt->between($date, $endOfDay)) {
-                        $total++;
-                        if ($result['status'] === 'up') {
-                            $up++;
+            $days = [];
+            for ($i = 29; $i >= 0; $i--) {
+                $date = now()->subDays($i)->startOfDay();
+                $dateStr = $date->format('Y-m-d');
+
+                $total = 0;
+                $up = 0;
+
+                // Add stats from check_results
+                if (isset($checkStats[$dateStr])) {
+                    foreach ($checkStats[$dateStr] as $stat) {
+                        $total += $stat->count;
+                        if ($stat->status === 'up') {
+                            $up += $stat->count;
                         }
                     }
                 }
+
+                // Add stats from archives
+                foreach ($archives as $archive) {
+                    foreach ($archive->data as $result) {
+                        $checkedAt = Carbon::parse($result['checked_at']);
+                        if ($checkedAt->isSameDay($date)) {
+                            $total++;
+                            if ($result['status'] === 'up') {
+                                $up++;
+                            }
+                        }
+                    }
+                }
+
+                $percentage = $total > 0 ? round(($up / $total) * 100, 2) : 100;
+
+                $days[] = [
+                    'date' => $dateStr,
+                    'uptime' => $percentage,
+                    'total_checks' => $total,
+                ];
             }
 
-            $percentage = $total > 0 ? round(($up / $total) * 100, 2) : 100;
-
-            $days[] = [
-                'date' => $date->format('Y-m-d'),
-                'uptime' => $percentage,
-                'total_checks' => $total,
-            ];
-        }
-
-        return $days;
+            return $days;
+        });
     }
 
     /**
@@ -271,7 +315,7 @@ class Site extends Model
     {
         return Cache::remember("site_{$this->id}_apdex_v1", 600, function () {
             $since = now()->subDays(30);
-            
+
             $stats = $this->checks()
                 ->where('checked_at', '>=', $since)
                 ->where('status', 'up')
@@ -283,7 +327,9 @@ class Site extends Model
                 ->first();
 
             $total = $this->checks()->where('checked_at', '>=', $since)->count();
-            if ($total === 0) return 1.0;
+            if ($total === 0) {
+                return 1.0;
+            }
 
             $satisfied = (int) ($stats->satisfied ?? 0);
             $tolerating = (int) ($stats->tolerating ?? 0);
@@ -299,7 +345,7 @@ class Site extends Model
     {
         return Cache::remember("site_{$this->id}_p95_v1", 600, function () {
             $since = now()->subDays(30);
-            
+
             // Using a more efficient way to get P95
             $times = $this->checks()
                 ->where('checked_at', '>=', $since)
@@ -308,12 +354,26 @@ class Site extends Model
                 ->orderBy('response_time_ms')
                 ->pluck('response_time_ms');
 
-            if ($times->isEmpty()) return null;
+            if ($times->isEmpty()) {
+                return null;
+            }
 
             $count = $times->count();
-            $index = max(0, (int)ceil(0.95 * $count) - 1);
-            
+            $index = max(0, (int) ceil(0.95 * $count) - 1);
+
             return (int) $times[$index];
         });
+    }
+
+    /**
+     * Clear all cached stats for this site.
+     */
+    public function clearCache(): void
+    {
+        Cache::forget("site_{$this->id}_uptime_v1");
+        Cache::forget("site_{$this->id}_rt_history_v1");
+        Cache::forget("site_{$this->id}_daily_history_v1");
+        Cache::forget("site_{$this->id}_apdex_v1");
+        Cache::forget("site_{$this->id}_p95_v1");
     }
 }

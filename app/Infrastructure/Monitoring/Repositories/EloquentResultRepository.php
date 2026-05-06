@@ -10,7 +10,7 @@ class EloquentResultRepository implements ResultRepositoryInterface
 {
     public function save(MonitoringResultData $dto): void
     {
-        CheckResult::create([
+        $result = CheckResult::create([
             'site_id' => $dto->siteId,
             'configuration_id' => $dto->configurationId,
             'status' => $dto->status,
@@ -19,5 +19,7 @@ class EloquentResultRepository implements ResultRepositoryInterface
             'metadata' => $dto->metadata,
             'checked_at' => now(),
         ]);
+
+        $result->site?->clearCache();
     }
 }
