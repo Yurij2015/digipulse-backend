@@ -87,3 +87,37 @@ Frontend and monitor services are launched separately from their respective repo
 Developed in 2025. Created because most existing monitoring solutions are either too expensive, too slow, or spam with false-positive notifications.
 
 It doesn't strive to be the largest. It strives to be the most reliable for those who use it.
+
+---
+
+## Database Backups & Restore
+
+Automated backups are stored on **Hetzner Storage Box**.
+
+### 🔑 Initial Setup (Authorization)
+
+For the backup workflow to work, the server must be authorized on Hetzner Storage Box:
+
+1. SSH into the server as your deploy user.
+2. Generate an ED25519 key (if it doesn't exist): `ssh-keygen -t ed25519`.
+3. Use the following command to authorize the server (the `-s` flag is mandatory for Storage Box):
+
+   ```bash
+   ssh-copy-id -p 23 -s <storage-box-user>@<storage-box-user>.your-storagebox.de
+   ```
+
+4. Enter the Storage Box password when prompted.
+5. Verify with `ssh -p 23 <storage-box-user>@<storage-box-user>.your-storagebox.de` (should login without password).
+
+### 🔄 Manual Restore
+
+You can restore the database using the `Database Restore` workflow in GitHub Actions:
+
+1. Go to **Actions** -> **Database Restore**.
+2. Click **Run workflow**.
+3. Provide the filename (e.g., `digipulse_YYYY-MM-DD_HH-MM-SS.dump`) and type `yes` to confirm.
+
+### 🧹 Retention Policy
+
+- **Local backups:** Kept for 3 days on the server (`~/backups`).
+- **Remote backups:** Kept for the last 30 backups on Hetzner Storage Box.
