@@ -79,13 +79,23 @@ jobs:
             find "$LOCAL_DIR" -name "*.dump" -mtime +3 -delete
             echo "✓ Local cleanup complete"
 
-            echo "→ Step 4: Cleaning up old remote backups (30+ days)..."
-            ssh -p "$HETZNER_PORT" \
-              -o StrictHostKeyChecking=no \
-              -o BatchMode=yes \
-              "${HETZNER_USER}@${HETZNER_HOST}" \
-              "find ${HETZNER_DIR} -name '*.dump' -mtime +30 -delete 2>/dev/null || true"
-            echo "✓ Remote cleanup complete"
+            echo "→ Step 4: Cleaning up old remote backups (keeping last 30)..."
+            REMOTE_FILES=$(ssh -p "$HETZNER_PORT" -o StrictHostKeyChecking=no -o BatchMode=yes "${HETZNER_USER}@${HETZNER_HOST}" "ls -1 ${HETZNER_DIR}/digipulse_*.dump" | sort -r || true)
+            
+            if [ -n "$REMOTE_FILES" ]; then
+              # Get files to delete (everything after the first 30)
+              FILES_TO_DELETE=$(echo "$REMOTE_FILES" | tail -n +31)
+              
+              if [ -n "$FILES_TO_DELETE" ]; then
+                for FILE in $FILES_TO_DELETE; do
+                  echo "  Removing old backup: $FILE"
+                  ssh -p "$HETZNER_PORT" -o StrictHostKeyChecking=no -o BatchMode=yes "${HETZNER_USER}@${HETZNER_HOST}" "rm $FILE"
+                done
+                echo "✓ Remote cleanup complete"
+              else
+                echo "  No old backups to remove (less than 30 files found)"
+              fi
+            fi
 
             echo ""
             echo "Current backups on Storage Box:"
@@ -93,7 +103,7 @@ jobs:
               -o StrictHostKeyChecking=no \
               -o BatchMode=yes \
               "${HETZNER_USER}@${HETZNER_HOST}" \
-              "ls -lht ${HETZNER_DIR}/ | head -5"
+              "ls -lht ${HETZNER_DIR}/"
 
             echo ""
             echo "✅ Backup process finished successfully!"
