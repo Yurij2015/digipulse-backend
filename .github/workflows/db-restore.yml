@@ -43,7 +43,7 @@ jobs:
             HETZNER_USER="${{ vars.HETZNER_USER }}"
             HETZNER_HOST="${HETZNER_USER}.your-storagebox.de"
             HETZNER_PORT=23
-            HETZNER_DIR="backups/postgres"
+            HETZNER_DIR="digipulse/backups/postgres"
 
             LOCAL_DIR="$HOME/backups"
             FILENAME="${{ github.event.inputs.filename }}"
