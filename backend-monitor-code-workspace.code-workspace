@@ -5,6 +5,12 @@
 		},
 		{
 			"path": "../monitor"
+		},
+		{
+			"path": "../frontend"
+		},
+		{
+			"path": "../infrastructure"
 		}
 	],
 	"settings": {}
