@@ -75,6 +75,12 @@ jobs:
               --format=custom > "$EMERGENCY" || echo "⚠ Emergency dump failed — continuing anyway"
             echo "✓ Emergency dump saved: $(du -sh ${EMERGENCY} | cut -f1)"
 
+            APP_CONTAINER="digipulse-app"
+            MONITOR_CONTAINER="digipulse-monitor"
+
+            echo "→ Stopping application containers to prevent DB writes..."
+            docker stop "$APP_CONTAINER" "$MONITOR_CONTAINER" || true
+
             # Terminate all active connections so we can drop the database
             echo "→ Terminating active connections..."
             docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d postgres -c \
@@ -99,16 +105,19 @@ jobs:
             RESTORE_END=$(date +%s)
             echo "✓ Restore complete in $((RESTORE_END - RESTORE_START))s"
 
+            echo "→ Starting application containers..."
+            docker start "$APP_CONTAINER" "$MONITOR_CONTAINER" || true
+
             # Run migrations in case the backup is older than the current codebase
             echo "→ Running migrations..."
-            docker exec digipulse-app php artisan migrate --force \
+            docker exec "$APP_CONTAINER" php artisan migrate --force \
               && echo "✓ Migrations done" \
               || echo "⚠ Migrations skipped (container may not be running)"
 
             # Clear cache so stale data does not leak through
             echo "→ Clearing cache/config..."
-            docker exec digipulse-app php artisan cache:clear || echo "⚠ cache:clear skipped"
-            docker exec digipulse-app php artisan config:clear || echo "⚠ config:clear skipped"
+            docker exec "$APP_CONTAINER" php artisan cache:clear || echo "⚠ cache:clear skipped"
+            docker exec "$APP_CONTAINER" php artisan config:clear || echo "⚠ config:clear skipped"
             echo "✓ Cache/config step complete"
 
             rm -f "$TEMP_FILE"
@@ -135,5 +144,5 @@ jobs:
               -o StrictHostKeyChecking=no \
               -o BatchMode=yes \
               "${{ vars.HETZNER_USER }}@${{ vars.HETZNER_USER }}.your-storagebox.de" \
-              "ls -lht backups/postgres/*.dump 2>/dev/null | awk '{print \$5, \$9}' | sed 's|backups/postgres/||'" \
+              "ls -lht digipulse/backups/postgres/*.dump 2>/dev/null | awk '{print \$5, \$9}' | sed 's|digipulse/backups/postgres/||'" \
               || echo "(no backups found)"
