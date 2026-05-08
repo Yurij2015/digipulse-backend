@@ -33,8 +33,10 @@ jobs:
           username: ${{ vars.SERVER_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ vars.SERVER_PORT }}
+          debug: true
           script: |
             set -euo pipefail
+            set -x
 
             DB_CONTAINER="digipulse-db"
             DB_NAME="${{ vars.DB_DATABASE }}"
@@ -58,11 +60,12 @@ jobs:
             mkdir -p "$LOCAL_DIR"
 
             echo "→ Downloading ${FILENAME} from Hetzner..."
-            rsync -az \
+            rsync -av --progress \
               -e "ssh -p ${HETZNER_PORT} -o StrictHostKeyChecking=no -o BatchMode=yes" \
               "${HETZNER_USER}@${HETZNER_HOST}:${HETZNER_DIR}/${FILENAME}" \
               "${TEMP_FILE}"
             echo "✓ Downloaded: $(du -sh ${TEMP_FILE} | cut -f1)"
+            ls -lh "${TEMP_FILE}"
 
             # Safety net: dump current state before overwriting anything
             EMERGENCY="${LOCAL_DIR}/pre_restore_$(date +%Y-%m-%d_%H-%M-%S).dump"
@@ -75,35 +78,38 @@ jobs:
             # Terminate all active connections so we can drop the database
             echo "→ Terminating active connections..."
             docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d postgres -c \
-              "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='${DB_NAME}' AND pid <> pg_backend_pid();" \
-              > /dev/null 2>&1 || true
+              "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='${DB_NAME}' AND pid <> pg_backend_pid();" || true
 
             echo "→ Dropping and recreating database..."
             docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d postgres \
-              -c "DROP DATABASE IF EXISTS ${DB_NAME};" > /dev/null
+              -c "DROP DATABASE IF EXISTS ${DB_NAME};"
 
             docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d postgres \
-              -c "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};" > /dev/null
+              -c "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};"
 
             echo "→ Restoring from ${FILENAME}..."
+            RESTORE_START=$(date +%s)
             docker exec -i "$DB_CONTAINER" pg_restore \
               -U "$DB_USER" \
               -d "$DB_NAME" \
               --no-owner \
               --no-acl \
+              -v \
               < "$TEMP_FILE"
-            echo "✓ Restore complete"
+            RESTORE_END=$(date +%s)
+            echo "✓ Restore complete in $((RESTORE_END - RESTORE_START))s"
 
             # Run migrations in case the backup is older than the current codebase
             echo "→ Running migrations..."
-            docker exec digipulse-app php artisan migrate --force 2>/dev/null \
+            docker exec digipulse-app php artisan migrate --force \
               && echo "✓ Migrations done" \
               || echo "⚠ Migrations skipped (container may not be running)"
 
             # Clear cache so stale data does not leak through
-            docker exec digipulse-app php artisan cache:clear 2>/dev/null || true
-            docker exec digipulse-app php artisan config:clear 2>/dev/null || true
-            echo "✓ Cache cleared"
+            echo "→ Clearing cache/config..."
+            docker exec digipulse-app php artisan cache:clear || echo "⚠ cache:clear skipped"
+            docker exec digipulse-app php artisan config:clear || echo "⚠ config:clear skipped"
+            echo "✓ Cache/config step complete"
 
             rm -f "$TEMP_FILE"
 
@@ -111,6 +117,7 @@ jobs:
             echo "✓ Restore complete!"
             echo "  Restored from: ${FILENAME}"
             echo "  Emergency dump: ${EMERGENCY}"
+            echo "  Emergency dump size: $(du -sh ${EMERGENCY} | cut -f1)"
             echo "  Triggered by: ${{ github.actor }}"
 
       # Show available backups after restore so the operator can verify state
@@ -121,6 +128,7 @@ jobs:
           username: ${{ vars.SERVER_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ vars.SERVER_PORT }}
+          debug: true
           script: |
             echo "Available backups on Hetzner:"
             ssh -p 23 \
