@@ -28,31 +28,28 @@ class ResponseTimeChart extends ChartWidget
 
     protected function getData(): array
     {
-        $days = match ($this->filter) {
-            'today' => 0,
-            'week' => 7,
-            'month' => 30,
-            default => 7,
+        [$start, $end, $periodLabel] = match ($this->filter) {
+            'today' => [now()->startOfDay(), now(), 'today'],
+            'week' => [now()->subDays(6)->startOfDay(), now(), 'week'],
+            'month' => [now()->subDays(29)->startOfDay(), now(), 'month'],
+            default => [now()->subDays(6)->startOfDay(), now(), 'week'],
         };
-
-        $since = $days === 0 ? now()->startOfDay() : now()->subDays($days);
 
         // 1. Get Trend from raw data (CheckResult)
         $rawTrend = Trend::model(CheckResult::class)
-            ->between(start: $since, end: now());
+            ->dateColumn('checked_at')
+            ->between(start: $start, end: $end);
 
-        $data = $days > 7 ? $rawTrend->perDay()->average('response_time_ms') : $rawTrend->perHour()->average('response_time_ms');
-
-        if ($days === 7) {
-            $data = $data->nth(8);
-        }
+        $data = $periodLabel === 'today'
+            ? $rawTrend->perHour()->average('response_time_ms')
+            : $rawTrend->perDay()->average('response_time_ms');
 
         $chartData = $data->mapWithKeys(fn (TrendValue $value) => [$value->date => $value->aggregate])->toArray();
 
         // 2. If 'month', add archived data
         if ($this->filter === 'month') {
             $archiveAggregated = [];
-            $archives = CheckResultArchive::where('created_at', '>=', $since)->get();
+            $archives = CheckResultArchive::where('created_at', '>=', $start)->get();
 
             foreach ($archives as $archive) {
                 foreach ($archive->data as $result) {
@@ -85,8 +82,10 @@ class ResponseTimeChart extends ChartWidget
                     'backgroundColor' => 'rgba(6, 182, 212, 0.1)',
                 ],
             ],
-            'labels' => array_map(static function ($date) use ($days) {
-                return $days <= 1 ? $date : Carbon::parse($date)->format('M d H:i');
+            'labels' => array_map(static function ($date) use ($periodLabel) {
+                return $periodLabel === 'today'
+                    ? Carbon::parse($date)->format('H:i')
+                    : Carbon::parse($date)->format('M d');
             }, array_keys($chartData)),
         ];
     }
