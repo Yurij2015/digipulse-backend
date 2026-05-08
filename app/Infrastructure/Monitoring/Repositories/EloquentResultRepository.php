@@ -20,6 +20,10 @@ class EloquentResultRepository implements ResultRepositoryInterface
             'checked_at' => now(),
         ]);
 
-        $result->site?->clearCache();
+        $site = $result->site;
+
+        if ($site) {
+            $site->clearCache();
+        }
     }
 }

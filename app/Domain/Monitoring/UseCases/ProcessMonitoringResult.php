@@ -7,6 +7,7 @@ use App\Domain\Monitoring\Contracts\CachePortInterface;
 use App\Domain\Monitoring\Contracts\ResultRepositoryInterface;
 use App\Domain\Monitoring\Contracts\SiteRepositoryInterface;
 use App\Domain\Monitoring\Data\MonitoringResultData;
+use App\Events\SiteStatusUpdated;
 
 /**
  * Use Case for processing a new monitoring result.
@@ -39,6 +40,17 @@ readonly class ProcessMonitoringResult
 
         $this->siteRepository->updateStatus($dto->configurationId, $dto->status);
         $this->resultRepository->save($enrichedDto);
+
+        event(new SiteStatusUpdated(
+            userId: $context['user_id'],
+            payload: [
+                'site_id' => $context['site_id'],
+                'configuration_id' => $dto->configurationId,
+                'status' => $dto->status,
+                'response_time_ms' => $dto->responseTimeMs,
+                'checked_at' => now()->toISOString(),
+            ],
+        ));
 
         if ($context['last_status'] !== 'down' && $dto->status === 'down') {
             $this->alertService->sendSiteDownAlert($dto->configurationId);
