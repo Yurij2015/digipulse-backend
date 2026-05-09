@@ -46,6 +46,8 @@ class ConsumeMonitorResults extends Command
                 break;
             }
         }
+
+        return self::SUCCESS;
     }
 
     private function consumeOnce(ProcessMonitoringResult $useCase): void
@@ -96,7 +98,7 @@ class ConsumeMonitorResults extends Command
         );
 
         try {
-            DB::transaction(fn () => $useCase->execute($dto));
+            DB::transaction(static fn () => $useCase->execute($dto));
 
             $this->info(sprintf(
                 '[%s] Successfully processed result for Configuration ID: %d (Status: %s)',
@@ -109,7 +111,7 @@ class ConsumeMonitorResults extends Command
             $retryPayload['_attempt'] = $attempt + 1;
 
             if ($attempt >= $maxAttempts) {
-                Redis::lpush($failedQueue, (string) json_encode($retryPayload));
+                Redis::lpush($failedQueue, (string) json_encode($retryPayload, JSON_THROW_ON_ERROR));
                 $this->error(sprintf(
                     'Failed to process monitor result for configuration_id=%d after %d attempts. Moved to %s. Last error: %s',
                     $dto->configurationId,
@@ -121,7 +123,7 @@ class ConsumeMonitorResults extends Command
                 return;
             }
 
-            Redis::lpush($queue, (string) json_encode($retryPayload));
+            Redis::lpush($queue, (string) json_encode($retryPayload, JSON_THROW_ON_ERROR));
             $this->error(sprintf(
                 'Failed to process monitor result for configuration_id=%d (attempt %d/%d). Requeued to %s. Error: %s',
                 $dto->configurationId,

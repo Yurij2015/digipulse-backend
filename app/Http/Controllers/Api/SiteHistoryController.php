@@ -102,7 +102,7 @@ class SiteHistoryController extends Controller
                 : $this->getArchivedData($site, $year, $week, $configId);
 
             // Fallback to live data if archive is empty
-            if (!$isCurrentWeek && empty($historyData['stats'])) {
+            if (! $isCurrentWeek && empty($historyData['stats'])) {
                 $historyData = $this->getLiveData($site, $year, $week, $configId);
             }
 
@@ -120,13 +120,22 @@ class SiteHistoryController extends Controller
      */
     private function getRecentResults(Site $site): array
     {
-        $latestResults = [];
         $configs = $site->configurations()->with('checkType')->where('is_active', true)->get();
+        $configIds = $configs->pluck('id');
 
+        $latestByConfig = CheckResult::whereIn('configuration_id', $configIds)
+            ->whereIn('id', function ($sub) use ($configIds) {
+                $sub->selectRaw('MAX(id)')
+                    ->from('check_results')
+                    ->whereIn('configuration_id', $configIds)
+                    ->groupBy('configuration_id');
+            })
+            ->get()
+            ->keyBy('configuration_id');
+
+        $latestResults = [];
         foreach ($configs as $config) {
-            $result = CheckResult::where('configuration_id', $config->id)
-                ->latest('checked_at')
-                ->first();
+            $result = $latestByConfig->get($config->id);
 
             if ($result) {
                 $latestResults[] = [

@@ -35,11 +35,12 @@ class CheckSSLExpirations extends Command
             if ($latestResult && isset($latestResult->metadata['days_remaining'])) {
                 $days = (int) $latestResult->metadata['days_remaining'];
 
-                if ($days < 7 && $site->user) {
+                if ($days <= 7 && $site->user) {
                     // Deduplicate: only send one notification per site per day
-                    $cacheKey = "ssl_notified:{$site->id}:" . now()->format('Y-m-d');
+                    $cacheKey = "ssl_notified:{$site->id}:".now()->format('Y-m-d');
                     if (Cache::has($cacheKey)) {
                         $this->line("Skipping {$site->url} — already notified today");
+
                         continue;
                     }
 

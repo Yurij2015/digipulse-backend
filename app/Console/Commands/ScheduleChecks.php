@@ -7,17 +7,14 @@ use App\Models\SiteCheckConfiguration;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
+use Throwable;
 
 #[Signature('app:schedule-checks')]
 #[Description('Scan due checks and push them to the monitor queue.')]
 class ScheduleChecks extends Command
 {
-    /**
-     * Execute the console command.
-     *
-     * @throws \JsonException
-     */
     public function handle(OutboundInternetProbe $outboundInternetProbe): void
     {
         if (! $outboundInternetProbe->isReachable()) {
@@ -36,33 +33,47 @@ class ScheduleChecks extends Command
             return;
         }
 
+        $scheduled = 0;
+
         foreach ($dueConfigs as $config) {
-            $payload = json_encode([
-                'id' => (string) str()->uuid(),
-                'configuration_id' => $config->id,
-                'site_id' => $config->site_id,
-                'url' => $config->site->url,
-                'type' => $config->checkType->slug,
-                'params' => $config->params,
-                'update_interval' => $config->site->update_interval,
-                'scheduled_at' => now()->toIso8601String(),
-            ], JSON_THROW_ON_ERROR);
+            try {
+                $payload = json_encode([
+                    'id' => (string) str()->uuid(),
+                    'configuration_id' => $config->id,
+                    'site_id' => $config->site_id,
+                    'url' => $config->site->url,
+                    'type' => $config->checkType->slug,
+                    'params' => $config->params,
+                    'update_interval' => $config->site->update_interval,
+                    'scheduled_at' => now()->toIso8601String(),
+                ], JSON_THROW_ON_ERROR);
 
-            Redis::lpush('monitoring:tasks', $payload);
+                Redis::lpush('monitoring:tasks', $payload);
 
-            $config->update(['last_checked_at' => now()]);
+                $config->update(['last_checked_at' => now()]);
 
-            $config->checkType->slug
-                |> strtoupper(...)
-                |> (static fn ($x) => sprintf(
-                    'Scheduled [%s] check for Site: %s (ID: %d)',
-                    $x,
-                    $config->site->url,
-                    $config->id
-                ))
-                |> $this->info(...);
+                $config->checkType->slug
+                    |> strtoupper(...)
+                    |> (static fn ($x) => sprintf(
+                        'Scheduled [%s] check for Site: %s (ID: %d)',
+                        $x,
+                        $config->site->url,
+                        $config->id
+                    ))
+                    |> $this->info(...);
+
+                $scheduled++;
+            } catch (Throwable $e) {
+                $message = sprintf(
+                    'Failed to schedule check for Configuration ID: %d — %s',
+                    $config->id,
+                    $e->getMessage()
+                );
+                $this->error($message);
+                Log::error($message, ['exception' => $e]);
+            }
         }
 
-        $this->info(sprintf('Successfully scheduled %d check(s).', $dueConfigs->count()));
+        $this->info(sprintf('Successfully scheduled %d/%d check(s).', $scheduled, $dueConfigs->count()));
     }
 }

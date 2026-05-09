@@ -5,6 +5,8 @@ namespace App\Infrastructure\Monitoring\Repositories;
 use App\Domain\Monitoring\Contracts\ResultRepositoryInterface;
 use App\Domain\Monitoring\Data\MonitoringResultData;
 use App\Models\CheckResult;
+use App\Models\Site;
+use Illuminate\Support\Facades\DB;
 
 class EloquentResultRepository implements ResultRepositoryInterface
 {
@@ -20,10 +22,10 @@ class EloquentResultRepository implements ResultRepositoryInterface
             'checked_at' => now(),
         ]);
 
-        $site = $result->site;
+        $siteId = $result->site_id;
 
-        if ($site) {
-            $site->clearCache();
+        if ($siteId) {
+            DB::afterCommit(static fn () => Site::find($siteId)?->clearCache());
         }
     }
 }
