@@ -100,7 +100,12 @@ class ArchiveCheckResults extends Command
     {
         $this->info('Purging archives older than 1 year...');
 
-        $deletedCount = CheckResultArchive::where('created_at', '<', now()->subYear())
+        $oneYearAgo = now()->subYear();
+        $deletedCount = CheckResultArchive::where('year', '<', (int) $oneYearAgo->format('o'))
+            ->orWhere(function ($q) use ($oneYearAgo) {
+                $q->where('year', (int) $oneYearAgo->format('o'))
+                    ->where('week', '<', (int) $oneYearAgo->format('W'));
+            })
             ->delete();
 
         if ($deletedCount > 0) {

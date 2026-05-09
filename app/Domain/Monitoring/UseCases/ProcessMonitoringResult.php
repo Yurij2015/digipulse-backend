@@ -52,7 +52,7 @@ readonly class ProcessMonitoringResult
             ],
         ));
 
-        if ($context['last_status'] !== 'down' && $dto->status === 'down') {
+        if (($context['last_status'] ?? 'up') !== 'down' && $dto->status === 'down') {
             $this->alertService->sendSiteDownAlert($dto->configurationId);
         }
 

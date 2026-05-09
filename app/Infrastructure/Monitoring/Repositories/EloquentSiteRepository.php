@@ -9,6 +9,7 @@ use App\Domain\Monitoring\Models\Site as DomainSite;
 use App\Infrastructure\Monitoring\Mappers\EloquentSiteMapper;
 use App\Models\Site as EloquentSite;
 use App\Models\SiteCheckConfiguration;
+use Illuminate\Support\Facades\DB;
 
 readonly class EloquentSiteRepository implements SiteManagementRepositoryInterface, SiteRepositoryInterface
 {
@@ -85,20 +86,22 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
 
     public function syncConfigurations(int $siteId, array $configurations): void
     {
-        $site = EloquentSite::findOrFail($siteId);
-        $updatedIds = [];
+        DB::transaction(function () use ($siteId, $configurations) {
+            $site = EloquentSite::findOrFail($siteId);
+            $updatedIds = [];
 
-        foreach ($configurations as $configData) {
-            if (isset($configData['id'])) {
-                $config = $site->configurations()->findOrFail($configData['id']);
-                $config->update($configData);
-            } else {
-                $config = $site->configurations()->create($configData);
+            foreach ($configurations as $configData) {
+                if (isset($configData['id'])) {
+                    $config = $site->configurations()->findOrFail($configData['id']);
+                    $config->update($configData);
+                } else {
+                    $config = $site->configurations()->create($configData);
+                }
+                $updatedIds[] = $config->id;
             }
-            $updatedIds[] = $config->id;
-        }
 
-        $site->configurations()->whereNotIn('id', $updatedIds)->delete();
+            $site->configurations()->whereNotIn('id', $updatedIds)->delete();
+        });
     }
 
     public function delete(int $id): bool

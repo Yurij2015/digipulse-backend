@@ -9,6 +9,6 @@ class CacheService implements CachePortInterface
 {
     public function clearUserSitesCache(int $userId): void
     {
-        Cache::forget("user_sites_v3:{$userId}");
+        Cache::forget("user_sites_v9:{$userId}");
     }
 }

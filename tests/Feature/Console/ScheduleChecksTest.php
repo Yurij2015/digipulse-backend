@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Http;
 uses(RefreshDatabase::class);
 
 it('does not enqueue checks when the outbound internet probe fails', function () {
-    Http::fake(fn () => Http::response('', 503));
+    Http::fake(fn () => throw new \Illuminate\Http\Client\ConnectionException('Simulated connection failure'));
 
     $config = SiteCheckConfiguration::factory()->create([
         'last_checked_at' => null,

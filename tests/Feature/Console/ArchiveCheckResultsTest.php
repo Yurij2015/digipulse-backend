@@ -50,18 +50,23 @@ it('purges archives older than 1 year', function () {
     // 1. Setup data
     $config = SiteCheckConfiguration::factory()->create();
 
-    // Valid archive (6 months old)
+    $recentDate = now()->subMonths(6);
+    $expiredDate = now()->subMonths(13);
+
+    // Valid archive (6 months old by year/week)
     CheckResultArchive::factory()->create([
         'configuration_id' => $config->id,
         'site_id' => $config->site_id,
-        'created_at' => now()->subMonths(6),
+        'year' => (int) $recentDate->format('o'),
+        'week' => (int) $recentDate->format('W'),
     ]);
 
-    // Expired archive (13 months old)
+    // Expired archive (13 months old by year/week)
     CheckResultArchive::factory()->create([
         'configuration_id' => $config->id,
         'site_id' => $config->site_id,
-        'created_at' => now()->subMonths(13),
+        'year' => (int) $expiredDate->format('o'),
+        'week' => (int) $expiredDate->format('W'),
     ]);
 
     // 2. Run the command
@@ -69,5 +74,5 @@ it('purges archives older than 1 year', function () {
 
     // 3. Assertions
     expect(CheckResultArchive::count())->toBe(1);
-    expect(CheckResultArchive::where('created_at', '<', now()->subYear())->count())->toBe(0);
+    expect(CheckResultArchive::first()->year)->toBe((int) $recentDate->format('o'));
 });

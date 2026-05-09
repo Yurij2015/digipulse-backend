@@ -23,7 +23,7 @@ final class OutboundInternetProbe
                 ->withHeaders(['User-Agent' => 'DigiPulse-Scheduler/Connectivity-Probe'])
                 ->get($url);
 
-            return $response->status() > 0 && $response->status() < 500;
+            return $response->status() > 0;
         } catch (Throwable) {
             return false;
         }
