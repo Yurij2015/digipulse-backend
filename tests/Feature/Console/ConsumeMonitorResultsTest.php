@@ -1,9 +1,13 @@
 <?php
 
 use App\Domain\Monitoring\Contracts\SiteRepositoryInterface;
+use App\Events\SiteStatusUpdated;
 use App\Models\CheckResult;
 use App\Models\SiteCheckConfiguration;
+use App\Notifications\SiteDownNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Redis;
 
 uses(RefreshDatabase::class);
@@ -73,6 +77,91 @@ it('requeues payload when processing fails before max attempts', function () {
 
     $this->artisan('app:consume-monitor-results', ['--once' => true])
         ->assertExitCode(0);
+});
+
+it('dispatches SiteStatusUpdated event after processing', function () {
+    Event::fake([SiteStatusUpdated::class]);
+
+    $configuration = SiteCheckConfiguration::factory()->create(['last_status' => 'up']);
+
+    $payload = json_encode([
+        'configuration_id' => $configuration->id,
+        'status' => 'up',
+        'response_time_ms' => 120,
+    ], JSON_THROW_ON_ERROR);
+
+    Redis::shouldReceive('brpop')
+        ->once()
+        ->andReturn(['monitoring:results', $payload]);
+
+    $this->artisan('app:consume-monitor-results', ['--once' => true])
+        ->assertExitCode(0);
+
+    Event::assertDispatched(SiteStatusUpdated::class, function (SiteStatusUpdated $event) use ($configuration) {
+        return $event->payload['configuration_id'] === $configuration->id
+            && $event->payload['status'] === 'up';
+    });
+});
+
+it('sends a site down notification when transitioning from up to down', function () {
+    Notification::fake();
+
+    $configuration = SiteCheckConfiguration::factory()->create(['last_status' => 'up']);
+
+    $payload = json_encode([
+        'configuration_id' => $configuration->id,
+        'status' => 'down',
+        'error_message' => 'Connection refused',
+    ], JSON_THROW_ON_ERROR);
+
+    Redis::shouldReceive('brpop')
+        ->once()
+        ->andReturn(['monitoring:results', $payload]);
+
+    $this->artisan('app:consume-monitor-results', ['--once' => true])
+        ->assertExitCode(0);
+
+    Notification::assertSentTo($configuration->site->user, SiteDownNotification::class);
+});
+
+it('does not send a notification when site is already down', function () {
+    Notification::fake();
+
+    $configuration = SiteCheckConfiguration::factory()->create(['last_status' => 'down']);
+
+    $payload = json_encode([
+        'configuration_id' => $configuration->id,
+        'status' => 'down',
+    ], JSON_THROW_ON_ERROR);
+
+    Redis::shouldReceive('brpop')
+        ->once()
+        ->andReturn(['monitoring:results', $payload]);
+
+    $this->artisan('app:consume-monitor-results', ['--once' => true])
+        ->assertExitCode(0);
+
+    Notification::assertNothingSent();
+});
+
+it('sends a notification on first check when site is immediately down', function () {
+    Notification::fake();
+
+    $configuration = SiteCheckConfiguration::factory()->create(['last_status' => null]);
+
+    $payload = json_encode([
+        'configuration_id' => $configuration->id,
+        'status' => 'down',
+    ], JSON_THROW_ON_ERROR);
+
+    Redis::shouldReceive('brpop')
+        ->once()
+        ->andReturn(['monitoring:results', $payload]);
+
+    $this->artisan('app:consume-monitor-results', ['--once' => true])
+        ->assertExitCode(0);
+
+    Notification::assertSentTo($configuration->site->user, SiteDownNotification::class);
 });
 
 it('moves payload to failed queue when max attempts reached', function () {
