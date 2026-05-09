@@ -113,6 +113,48 @@ it('returns aggregated stats from archived data for past weeks', function () {
     expect($incidents[0]['error_message'])->toBe('500 Internal Server Error');
 });
 
+it('prevents another user from accessing site history', function () {
+    $otherUser = User::factory()->create();
+
+    $this->actingAs($otherUser)
+        ->getJson(route('sites.history', ['site' => $this->site->id]), [
+            'X-Frontend-Key' => config('app.frontend_key'),
+        ])
+        ->assertStatus(404);
+});
+
+it('returns latest_results for each active configuration', function () {
+    $now = Carbon::now();
+
+    CheckResult::factory()->create([
+        'site_id' => $this->site->id,
+        'configuration_id' => $this->config->id,
+        'status' => 'up',
+        'checked_at' => $now,
+    ]);
+
+    $response = $this->actingAs($this->user)
+        ->getJson(route('sites.history', ['site' => $this->site->id]), [
+            'X-Frontend-Key' => config('app.frontend_key'),
+        ]);
+
+    $response->assertStatus(200)
+        ->assertJsonStructure(['data' => ['latest_results']]);
+
+    $latestResults = $response->json('data.latest_results');
+    expect($latestResults)->toHaveCount(1);
+    expect($latestResults[0]['config_id'])->toBe($this->config->id);
+});
+
+it('rejects an invalid week format', function () {
+    $this->actingAs($this->user)
+        ->getJson(route('sites.history', ['site' => $this->site->id, 'week' => 'bad-format']), [
+            'X-Frontend-Key' => config('app.frontend_key'),
+        ])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['week']);
+});
+
 it('filters history by configuration_id', function () {
     $otherConfig = SiteCheckConfiguration::factory()->create(['site_id' => $this->site->id]);
     $now = Carbon::now();

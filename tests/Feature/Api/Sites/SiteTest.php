@@ -135,3 +135,85 @@ test('request must have valid frontend key', function () {
         'X-Frontend-Key' => 'invalid-key',
     ])->assertStatus(401);
 });
+
+test('authenticated user can view their own site', function () {
+    $user = User::factory()->create();
+    $site = Site::factory()->create(['user_id' => $user->id]);
+
+    Sanctum::actingAs($user);
+
+    $this->getJson(route('sites.show', $site), ['X-Frontend-Key' => $this->frontendKey])
+        ->assertStatus(200)
+        ->assertJsonPath('data.id', $site->id);
+});
+
+test('authenticated user cannot view another user\'s site', function () {
+    $user = User::factory()->create();
+    $otherSite = Site::factory()->create();
+
+    Sanctum::actingAs($user);
+
+    $this->getJson(route('sites.show', $otherSite), ['X-Frontend-Key' => $this->frontendKey])
+        ->assertStatus(404);
+});
+
+test('authenticated user can update their site', function () {
+    $user = User::factory()->create();
+    $site = Site::factory()->create(['user_id' => $user->id, 'name' => 'Old Name']);
+
+    Sanctum::actingAs($user);
+
+    $this->putJson(route('sites.update', $site), ['name' => 'New Name'], ['X-Frontend-Key' => $this->frontendKey])
+        ->assertStatus(200)
+        ->assertJsonPath('data.name', 'New Name');
+
+    $this->assertDatabaseHas('sites', ['id' => $site->id, 'name' => 'New Name']);
+});
+
+test('authenticated user cannot update another user\'s site', function () {
+    $user = User::factory()->create();
+    $otherSite = Site::factory()->create();
+
+    Sanctum::actingAs($user);
+
+    $this->putJson(route('sites.update', $otherSite), ['name' => 'Hacked'], ['X-Frontend-Key' => $this->frontendKey])
+        ->assertStatus(404);
+});
+
+test('authenticated user can delete their site', function () {
+    $user = User::factory()->create();
+    $site = Site::factory()->create(['user_id' => $user->id]);
+
+    Sanctum::actingAs($user);
+
+    $this->deleteJson(route('sites.destroy', $site), [], ['X-Frontend-Key' => $this->frontendKey])
+        ->assertStatus(204);
+
+    $this->assertDatabaseMissing('sites', ['id' => $site->id]);
+});
+
+test('authenticated user cannot delete another user\'s site', function () {
+    $user = User::factory()->create();
+    $otherSite = Site::factory()->create();
+
+    Sanctum::actingAs($user);
+
+    $this->deleteJson(route('sites.destroy', $otherSite), [], ['X-Frontend-Key' => $this->frontendKey])
+        ->assertStatus(404);
+
+    $this->assertDatabaseHas('sites', ['id' => $otherSite->id]);
+});
+
+test('cannot create a site with a duplicate url', function () {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    Site::factory()->create(['url' => 'https://example.com']);
+
+    $this->postJson(route('sites.store'), [
+        'name' => 'Duplicate',
+        'url' => 'https://example.com',
+    ], ['X-Frontend-Key' => $this->frontendKey])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['url']);
+});
