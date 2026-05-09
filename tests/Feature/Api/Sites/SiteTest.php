@@ -204,6 +204,19 @@ test('authenticated user cannot delete another user\'s site', function () {
     $this->assertDatabaseHas('sites', ['id' => $otherSite->id]);
 });
 
+test('regular user cannot create more than 3 sites', function () {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    Site::factory()->count(3)->create(['user_id' => $user->id]);
+
+    $this->postJson(route('sites.store'), [
+        'name' => 'Fourth Site',
+        'url' => 'https://fourth.example.com',
+    ], ['X-Frontend-Key' => $this->frontendKey])
+        ->assertStatus(403);
+});
+
 test('cannot create a site with a duplicate url', function () {
     $user = User::factory()->create();
     Sanctum::actingAs($user);

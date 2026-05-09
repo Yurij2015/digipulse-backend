@@ -25,7 +25,7 @@ class StoreSupportTicketRequest extends FormRequest
         return [
             'subject' => ['required', 'string', 'max:255'],
             'message' => ['required', 'string'],
-            'contact_email' => ['required_without:user_id', 'nullable', 'email'],
+            'contact_email' => [$this->user() ? 'nullable' : 'required', 'nullable', 'email'],
             'priority' => ['nullable', 'string', 'in:low,medium,high'],
         ];
     }
