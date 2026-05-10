@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Auth\EmailVerificationController;
 use App\Http\Controllers\Api\Auth\PasswordResetController;
 use App\Http\Controllers\Api\Auth\ProfileController;
 use App\Http\Controllers\Api\CheckTypeController;
+use App\Http\Controllers\Api\KnowledgeBaseController;
 use App\Http\Controllers\Api\SiteController;
 use App\Http\Controllers\Api\SiteHistoryController;
 use App\Http\Controllers\Api\SupportTicketController;
@@ -31,6 +32,12 @@ Route::middleware(['frontend.key'])->group(function () {
     });
 
     Route::post('/email/verify', [EmailVerificationController::class, 'verify'])->name('verification.verify');
+
+    Route::prefix('knowledge-base')->name('knowledge-base.')->group(function () {
+        Route::get('/categories', [KnowledgeBaseController::class, 'categories'])->name('categories');
+        Route::get('/categories/{slug}', [KnowledgeBaseController::class, 'category'])->name('category');
+        Route::get('/articles/{slug}', [KnowledgeBaseController::class, 'article'])->name('article');
+    });
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/email/verification-notification', [EmailVerificationController::class, 'sendVerificationNotification'])

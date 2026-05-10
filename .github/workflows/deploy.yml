@@ -188,6 +188,13 @@ jobs:
             DB_PASSWORD=$(get_val "${{ vars.DB_PASSWORD }}" "")
             REDIS_HOST=$(get_val "${{ vars.REDIS_HOST }}" "digipulse-redis")
 
+            MINIO_ENDPOINT=$(get_val "${{ vars.MINIO_ENDPOINT }}" "")
+            AWS_ACCESS_KEY_ID=$(get_val "${{ vars.AWS_ACCESS_KEY_ID }}" "")
+            AWS_SECRET_ACCESS_KEY=$(get_val "${{ vars.AWS_SECRET_ACCESS_KEY }}" "")
+            AWS_DEFAULT_REGION=$(get_val "${{ vars.AWS_DEFAULT_REGION }}" "eus3")
+            AWS_BUCKET=$(get_val "${{ vars.AWS_BUCKET }}" "")
+            AWS_USE_PATH_STYLE_ENDPOINT=$(get_val "${{ vars.AWS_USE_PATH_STYLE_ENDPOINT }}" "true")
+
             FRONTEND_KEY=$(get_val "${{ vars.FRONTEND_KEY }}" "")
             MAIL_FROM_ADDRESS=$(get_val "${{ vars.MAIL_FROM_ADDRESS }}" "support@pulse.digispace.pro")
             RESEND_API_KEY=$(get_val "${{ secrets.RESEND_API_KEY }}" "")
@@ -241,6 +248,14 @@ jobs:
             SESSION_LIFETIME=120
 
             FILESYSTEM_DISK=local
+
+            # MinIO (S3-compatible; disk "minio" in config/filesystems.php)
+            MINIO_ENDPOINT=$MINIO_ENDPOINT
+            AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+            AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+            AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
+            AWS_BUCKET=$AWS_BUCKET
+            AWS_USE_PATH_STYLE_ENDPOINT=$AWS_USE_PATH_STYLE_ENDPOINT
 
             MAIL_MAILER=resend
             MAIL_FROM_ADDRESS=$MAIL_FROM_ADDRESS
