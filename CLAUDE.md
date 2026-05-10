@@ -8,33 +8,35 @@ DigiPulse is a website uptime, SSL certificate, and domain monitoring platform. 
 
 ## Commands
 
+All commands must be prefixed with `snip --` to reduce token usage (see `.agents/rules/snip-rules.md`).
+
 ```bash
 # Start all services (app, pgsql, redis, mailpit, monitor, redisinsight)
-vendor/bin/sail up -d
+snip -- vendor/bin/sail up -d
 
 # Run migrations
-vendor/bin/sail artisan migrate
+snip -- vendor/bin/sail artisan migrate
 
 # Run all tests
-vendor/bin/sail artisan test --compact
+snip -- vendor/bin/sail artisan test --compact
 
 # Run a single test or filter
-vendor/bin/sail artisan test --compact --filter=testName
+snip -- vendor/bin/sail artisan test --compact --filter=testName
 
 # Format PHP (required after any PHP edits)
-vendor/bin/sail bin pint --dirty --format agent
+snip -- vendor/bin/sail bin pint --dirty --format agent
 
 # List routes
-vendor/bin/sail artisan route:list --except-vendor
+snip -- vendor/bin/sail artisan route:list --except-vendor
 
 # Tinker (always use single quotes to prevent shell expansion)
-vendor/bin/sail artisan tinker --execute 'User::count();'
+snip -- vendor/bin/sail artisan tinker --execute 'User::count();'
 
 # Manually consume one monitor result from Redis
-vendor/bin/sail artisan app:consume-monitor-results --once
+snip -- vendor/bin/sail artisan app:consume-monitor-results --once
 
 # Push due checks to the Go monitor queue
-vendor/bin/sail artisan app:schedule-checks
+snip -- vendor/bin/sail artisan app:schedule-checks
 ```
 
 ## Architecture
