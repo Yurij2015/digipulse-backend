@@ -182,6 +182,7 @@ jobs:
 
             APP_KEY=$(get_val "${{ vars.APP_KEY_NEW }}" "")
             APP_URL=$(get_val "${{ vars.APP_URL }}" "http://localhost")
+            APP_URL="${APP_URL%/}"
             DB_HOST=$(get_val "${{ vars.DB_HOST }}" "digipulse-db")
             DB_DATABASE=$(get_val "${{ vars.DB_DATABASE }}" "digipulse")
             DB_USERNAME=$(get_val "${{ vars.DB_USERNAME }}" "digipulse")
