@@ -187,6 +187,8 @@ jobs:
             DB_USERNAME=$(get_val "${{ vars.DB_USERNAME }}" "digipulse")
             DB_PASSWORD=$(get_val "${{ vars.DB_PASSWORD }}" "")
             REDIS_HOST=$(get_val "${{ vars.REDIS_HOST }}" "digipulse-redis")
+            SESSION_DOMAIN=$(get_val "${{ vars.SESSION_DOMAIN }}" "")
+            SANCTUM_STATEFUL_DOMAINS=$(get_val "${{ vars.SANCTUM_STATEFUL_DOMAINS }}" "")
 
             MINIO_ENDPOINT=$(get_val "${{ vars.MINIO_ENDPOINT }}" "")
             AWS_ACCESS_KEY_ID=$(get_val "${{ vars.AWS_ACCESS_KEY_ID }}" "")
@@ -194,6 +196,7 @@ jobs:
             AWS_DEFAULT_REGION=$(get_val "${{ vars.AWS_DEFAULT_REGION }}" "eus3")
             AWS_BUCKET=$(get_val "${{ vars.AWS_BUCKET }}" "")
             AWS_USE_PATH_STYLE_ENDPOINT=$(get_val "${{ vars.AWS_USE_PATH_STYLE_ENDPOINT }}" "true")
+            AWS_URL=$(get_val "${{ vars.AWS_URL }}" "")
 
             FRONTEND_KEY=$(get_val "${{ vars.FRONTEND_KEY }}" "")
             MAIL_FROM_ADDRESS=$(get_val "${{ vars.MAIL_FROM_ADDRESS }}" "support@pulse.digispace.pro")
@@ -246,6 +249,8 @@ jobs:
             CACHE_STORE=redis
             SESSION_DRIVER=redis
             SESSION_LIFETIME=120
+            SESSION_DOMAIN=$SESSION_DOMAIN
+            SANCTUM_STATEFUL_DOMAINS=$SANCTUM_STATEFUL_DOMAINS
 
             FILESYSTEM_DISK=local
 
@@ -256,6 +261,7 @@ jobs:
             AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
             AWS_BUCKET=$AWS_BUCKET
             AWS_USE_PATH_STYLE_ENDPOINT=$AWS_USE_PATH_STYLE_ENDPOINT
+            AWS_URL=$AWS_URL
 
             MAIL_MAILER=resend
             MAIL_FROM_ADDRESS=$MAIL_FROM_ADDRESS
