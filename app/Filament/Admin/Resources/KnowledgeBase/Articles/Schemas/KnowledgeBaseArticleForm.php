@@ -121,6 +121,7 @@ class KnowledgeBaseArticleForm
                             ->label('Cover Image')
                             ->image()
                             ->disk('minio')
+                            ->visibility('public')
                             ->directory('knowledge-base/covers')
                             ->imageResizeMode('cover')
                             ->imageCropAspectRatio('16:9')

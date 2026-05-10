@@ -25,6 +25,7 @@ class KnowledgeBaseArticlesTable
                 ImageColumn::make('cover_image')
                     ->label('Cover')
                     ->disk('minio')
+                    ->visibility('public')
                     ->width(60)
                     ->height(40),
 
