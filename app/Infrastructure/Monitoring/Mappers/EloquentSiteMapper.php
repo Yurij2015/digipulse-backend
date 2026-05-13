@@ -2,6 +2,7 @@
 
 namespace App\Infrastructure\Monitoring\Mappers;
 
+use App\Domain\Monitoring\Data\SiteStats;
 use App\Domain\Monitoring\Models\Site as DomainSite;
 use App\Models\Site as EloquentSite;
 use App\Models\SiteCheckConfiguration as EloquentConfiguration;
@@ -13,7 +14,7 @@ final class EloquentSiteMapper
         private EloquentConfigurationMapper $configurationMapper
     ) {}
 
-    public function toDomain(EloquentSite $site): DomainSite
+    public function toDomain(EloquentSite $site, ?SiteStats $stats = null, array $configurations = []): DomainSite
     {
         return new DomainSite(
             id: $site->id,
@@ -22,19 +23,23 @@ final class EloquentSiteMapper
             url: $site->url,
             updateInterval: $site->update_interval,
             isActive: (bool) $site->is_active,
-            configurations: $site->relationLoaded('configurations')
-                ? $site->configurations->map(fn (EloquentConfiguration $configuration) => $this->configurationMapper->toDomain($configuration))->all()
-                : [],
-            uptime: $site->uptime,
-            responseTime: $site->response_time,
-            lastCheckedAt: $this->formatDate($site->last_checked_at),
-            serverInfo: $site->server_info,
-            sslInfo: $site->ssl_info,
-            pingInfo: $site->ping_info,
-            responseTimeHistory: $site->response_time_history,
-            dailyUptimeHistory: $site->daily_uptime_history,
-            apdexScore: $site->apdex_score,
-            p95ResponseTime: $site->p95_response_time,
+            configurations: $configurations ?: ($site->relationLoaded('configurations')
+                ? $site->configurations->map(fn (EloquentConfiguration $c) => $this->configurationMapper->toDomain($c))->all()
+                : []),
+            uptime: $stats?->uptime,
+            responseTime: $site->relationLoaded('latestHttpCheck')
+                ? $site->latestHttpCheck?->response_time_ms
+                : null,
+            lastCheckedAt: $site->relationLoaded('latestCheck')
+                ? $this->formatDate($site->latestCheck?->checked_at)
+                : null,
+            serverInfo: $this->extractServerInfo($site),
+            sslInfo: $this->extractSslInfo($site),
+            pingInfo: $this->extractPingInfo($site),
+            responseTimeHistory: $stats?->responseTimeHistory ?? [],
+            dailyUptimeHistory: $stats?->dailyUptimeHistory ?? [],
+            apdexScore: $stats?->apdexScore ?? 1.0,
+            p95ResponseTime: $stats?->p95ResponseTime,
             createdAt: $this->formatDate($site->created_at),
             updatedAt: $this->formatDate($site->updated_at),
         );
@@ -63,6 +68,61 @@ final class EloquentSiteMapper
             createdAt: $data['created_at'] ?? null,
             updatedAt: $data['updated_at'] ?? null,
         );
+    }
+
+    private function extractServerInfo(EloquentSite $site): ?array
+    {
+        if (! $site->relationLoaded('latestCheck')) {
+            return null;
+        }
+
+        $latest = $site->latestCheck;
+        if (! $latest || ! isset($latest->metadata['ip'])) {
+            return null;
+        }
+
+        return [
+            'ip' => $latest->metadata['ip'],
+            'country' => $latest->metadata['country'] ?? null,
+            'country_code' => $latest->metadata['country_code'] ?? null,
+            'city' => $latest->metadata['city'] ?? null,
+            'isp' => $latest->metadata['isp'] ?? null,
+        ];
+    }
+
+    private function extractSslInfo(EloquentSite $site): ?array
+    {
+        if (! $site->relationLoaded('latestSslCheck')) {
+            return null;
+        }
+
+        $latest = $site->latestSslCheck;
+        if (! $latest || ! isset($latest->metadata['days_remaining'])) {
+            return null;
+        }
+
+        return [
+            'days_remaining' => (int) $latest->metadata['days_remaining'],
+            'issuer' => $latest->metadata['issuer'] ?? null,
+            'expires_at' => $latest->metadata['expires_at'] ?? null,
+        ];
+    }
+
+    private function extractPingInfo(EloquentSite $site): ?array
+    {
+        if (! $site->relationLoaded('latestPingCheck')) {
+            return null;
+        }
+
+        $latest = $site->latestPingCheck;
+        if (! $latest) {
+            return null;
+        }
+
+        return [
+            'latency' => (int) $latest->response_time_ms,
+            'status' => $latest->status,
+        ];
     }
 
     private function formatDate(mixed $date): ?string
