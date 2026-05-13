@@ -23,9 +23,7 @@ final class EloquentSiteMapper
             url: $site->url,
             updateInterval: $site->update_interval,
             isActive: (bool) $site->is_active,
-            configurations: $configurations ?: ($site->relationLoaded('configurations')
-                ? $site->configurations->map(fn (EloquentConfiguration $c) => $this->configurationMapper->toDomain($c))->all()
-                : []),
+            configurations: $this->resolveConfigurations($site, $configurations),
             uptime: $stats?->uptime,
             responseTime: $site->relationLoaded('latestHttpCheck')
                 ? $site->latestHttpCheck?->response_time_ms
@@ -68,6 +66,21 @@ final class EloquentSiteMapper
             createdAt: $data['created_at'] ?? null,
             updatedAt: $data['updated_at'] ?? null,
         );
+    }
+
+    private function resolveConfigurations(EloquentSite $site, array $configurations): array
+    {
+        if ($configurations !== []) {
+            return $configurations;
+        }
+
+        if ($site->relationLoaded('configurations')) {
+            return $site->configurations
+                ->map(fn (EloquentConfiguration $c) => $this->configurationMapper->toDomain($c))
+                ->all();
+        }
+
+        return [];
     }
 
     private function extractServerInfo(EloquentSite $site): ?array
