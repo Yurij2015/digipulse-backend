@@ -146,7 +146,7 @@ class SiteHistoryController extends Controller
                 'type_name' => $config->checkType->name,
                 'type_slug' => $config->checkType->slug,
                 'is_active' => (bool) $config->is_active,
-                'result' => $result ? $result->toArray() : null,
+                'result' => $result?->toArray(),
             ];
         }
 

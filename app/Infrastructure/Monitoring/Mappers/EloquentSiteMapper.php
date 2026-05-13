@@ -8,10 +8,10 @@ use App\Models\Site as EloquentSite;
 use App\Models\SiteCheckConfiguration as EloquentConfiguration;
 use Illuminate\Support\Carbon;
 
-final class EloquentSiteMapper
+final readonly class EloquentSiteMapper
 {
     public function __construct(
-        private readonly EloquentConfigurationMapper $configurationMapper
+        private EloquentConfigurationMapper $configurationMapper
     ) {}
 
     public function toDomain(EloquentSite $site, ?SiteStats $stats = null, array $configurations = []): DomainSite
