@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 class EloquentResultRepository implements ResultRepositoryInterface
 {
     public function __construct(
-        private SiteStatsRepositoryInterface $statsRepository,
+        private readonly SiteStatsRepositoryInterface $statsRepository,
     ) {}
 
     public function save(MonitoringResultData $dto): void
