@@ -144,6 +144,60 @@ it('returns latest_results for each active configuration', function () {
     $latestResults = $response->json('data.latest_results');
     expect($latestResults)->toHaveCount(1);
     expect($latestResults[0]['config_id'])->toBe($this->config->id);
+    expect($latestResults[0]['is_active'])->toBeTrue();
+    expect($latestResults[0]['result'])->not->toBeNull();
+});
+
+it('includes disabled configurations in latest_results with last known result', function () {
+    $now = Carbon::now();
+
+    $disabledConfig = SiteCheckConfiguration::factory()->create([
+        'site_id' => $this->site->id,
+        'is_active' => false,
+    ]);
+
+    CheckResult::factory()->create([
+        'site_id' => $this->site->id,
+        'configuration_id' => $disabledConfig->id,
+        'status' => 'up',
+        'checked_at' => $now->copy()->subDays(3),
+    ]);
+
+    $response = $this->actingAs($this->user)
+        ->getJson(route('sites.history', ['site' => $this->site->id]), [
+            'X-Frontend-Key' => config('app.frontend_key'),
+        ]);
+
+    $response->assertStatus(200);
+
+    $latestResults = $response->json('data.latest_results');
+    $disabledEntry = collect($latestResults)->firstWhere('config_id', $disabledConfig->id);
+
+    expect($disabledEntry)->not->toBeNull();
+    expect($disabledEntry['is_active'])->toBeFalse();
+    expect($disabledEntry['result'])->not->toBeNull();
+    expect($disabledEntry['result']['status'])->toBe('up');
+});
+
+it('includes disabled configurations with null result when they never ran', function () {
+    $disabledConfig = SiteCheckConfiguration::factory()->create([
+        'site_id' => $this->site->id,
+        'is_active' => false,
+    ]);
+
+    $response = $this->actingAs($this->user)
+        ->getJson(route('sites.history', ['site' => $this->site->id]), [
+            'X-Frontend-Key' => config('app.frontend_key'),
+        ]);
+
+    $response->assertStatus(200);
+
+    $latestResults = $response->json('data.latest_results');
+    $disabledEntry = collect($latestResults)->firstWhere('config_id', $disabledConfig->id);
+
+    expect($disabledEntry)->not->toBeNull();
+    expect($disabledEntry['is_active'])->toBeFalse();
+    expect($disabledEntry['result'])->toBeNull();
 });
 
 it('rejects an invalid week format', function () {

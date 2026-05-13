@@ -116,12 +116,16 @@ class SiteHistoryController extends Controller
     }
 
     /**
-     * Get the last result for each active check configuration.
+     * Get the last result for each check configuration (active and disabled).
      */
     private function getRecentResults(Site $site): array
     {
-        $configs = $site->configurations()->with('checkType')->where('is_active', true)->get();
+        $configs = $site->configurations()->with('checkType')->get();
         $configIds = $configs->pluck('id');
+
+        if ($configIds->isEmpty()) {
+            return [];
+        }
 
         $latestByConfig = CheckResult::whereIn('configuration_id', $configIds)
             ->whereIn('id', function ($sub) use ($configIds) {
@@ -137,14 +141,13 @@ class SiteHistoryController extends Controller
         foreach ($configs as $config) {
             $result = $latestByConfig->get($config->id);
 
-            if ($result) {
-                $latestResults[] = [
-                    'config_id' => $config->id,
-                    'type_name' => $config->checkType->name,
-                    'type_slug' => $config->checkType->slug,
-                    'result' => $result->toArray(),
-                ];
-            }
+            $latestResults[] = [
+                'config_id' => $config->id,
+                'type_name' => $config->checkType->name,
+                'type_slug' => $config->checkType->slug,
+                'is_active' => (bool) $config->is_active,
+                'result' => $result ? $result->toArray() : null,
+            ];
         }
 
         return $latestResults;
