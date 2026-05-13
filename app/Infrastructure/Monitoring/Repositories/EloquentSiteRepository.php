@@ -4,57 +4,70 @@ namespace App\Infrastructure\Monitoring\Repositories;
 
 use App\Domain\Monitoring\Contracts\SiteManagementRepositoryInterface;
 use App\Domain\Monitoring\Contracts\SiteRepositoryInterface;
+use App\Domain\Monitoring\Contracts\SiteStatsRepositoryInterface;
 use App\Domain\Monitoring\Data\CreateSiteData;
+use App\Domain\Monitoring\Models\Configuration as DomainConfiguration;
 use App\Domain\Monitoring\Models\Site as DomainSite;
+use App\Infrastructure\Monitoring\Mappers\EloquentConfigurationMapper;
 use App\Infrastructure\Monitoring\Mappers\EloquentSiteMapper;
 use App\Models\Site as EloquentSite;
 use App\Models\SiteCheckConfiguration;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 readonly class EloquentSiteRepository implements SiteManagementRepositoryInterface, SiteRepositoryInterface
 {
+    private const string CONFIG_CACHE_VERSION = 'v1';
+
+    private const int CONFIG_CACHE_TTL = 3600;
+
     public function __construct(
         private EloquentSiteMapper $mapper,
+        private EloquentConfigurationMapper $configurationMapper,
+        private SiteStatsRepositoryInterface $statsRepository,
     ) {}
 
     public function findById(int $id): ?DomainSite
     {
-        $since = now()->subDays(30);
         $site = EloquentSite::with([
-            'configurations.checkType',
             'latestCheck',
             'latestHttpCheck',
             'latestSslCheck',
             'latestPingCheck',
-        ])
-            ->withCount([
-                'checks as checks_total_count' => fn ($q) => $q->where('checked_at', '>=', $since),
-                'checks as checks_up_count' => fn ($q) => $q->where('checked_at', '>=', $since)->where('status', 'up'),
-            ])
-            ->find($id);
+        ])->find($id);
 
-        return $site ? $this->mapper->toDomain($site) : null;
+        if (! $site) {
+            return null;
+        }
+
+        return $this->mapper->toDomain(
+            $site,
+            $this->statsRepository->loadForSite($site->id, $site->update_interval),
+            $this->getCachedConfigurations($site->id),
+        );
     }
 
     public function findByUser(int $userId): array
     {
-        $since = now()->subDays(30);
-
-        return EloquentSite::where('user_id', $userId)
+        $sites = EloquentSite::where('user_id', $userId)
             ->with([
-                'configurations.checkType',
                 'latestCheck',
                 'latestHttpCheck',
                 'latestSslCheck',
                 'latestPingCheck',
             ])
-            ->withCount([
-                'checks as checks_total_count' => fn ($q) => $q->where('checked_at', '>=', $since),
-                'checks as checks_up_count' => fn ($q) => $q->where('checked_at', '>=', $since)->where('status', 'up'),
-            ])
             ->latest()
-            ->get()
-            ->map(fn (EloquentSite $site) => $this->mapper->toDomain($site))
+            ->get();
+
+        $siteIntervals = $sites->pluck('update_interval', 'id')->toArray();
+        $statsBySiteId = $this->statsRepository->loadForSites($siteIntervals);
+
+        return $sites
+            ->map(fn (EloquentSite $site) => $this->mapper->toDomain(
+                $site,
+                $statsBySiteId[$site->id] ?? null,
+                $this->getCachedConfigurations($site->id),
+            ))
             ->toArray();
     }
 
@@ -73,7 +86,9 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
             'is_active' => $dto->isActive,
         ]);
 
-        return $this->mapper->toDomain($site->load(['configurations.checkType']));
+        $this->clearConfigurationsCache($site->id);
+
+        return $this->mapper->toDomain($site, configurations: $this->getCachedConfigurations($site->id));
     }
 
     public function update(int $id, array $data): DomainSite
@@ -81,7 +96,7 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
         $site = EloquentSite::findOrFail($id);
         $site->update($data);
 
-        return $this->mapper->toDomain($site->load(['configurations.checkType']));
+        return $this->mapper->toDomain($site, configurations: $this->getCachedConfigurations($site->id));
     }
 
     public function syncConfigurations(int $siteId, array $configurations): void
@@ -102,10 +117,14 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
 
             $site->configurations()->whereNotIn('id', $updatedIds)->delete();
         });
+
+        $this->clearConfigurationsCache($siteId);
     }
 
     public function delete(int $id): bool
     {
+        $this->clearConfigurationsCache($id);
+
         return (bool) EloquentSite::where('id', $id)->delete();
     }
 
@@ -141,5 +160,26 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
     public function fromArray(array $data): DomainSite
     {
         return $this->mapper->arrayToSite($data);
+    }
+
+    /** @return DomainConfiguration[] */
+    private function getCachedConfigurations(int $siteId): array
+    {
+        $version = self::CONFIG_CACHE_VERSION;
+        $cached = Cache::remember("site_{$siteId}_configurations_{$version}", self::CONFIG_CACHE_TTL, function () use ($siteId) {
+            return SiteCheckConfiguration::where('site_id', $siteId)
+                ->with('checkType')
+                ->get()
+                ->map(fn (SiteCheckConfiguration $c) => $this->configurationMapper->toDomain($c)->toArray())
+                ->toArray();
+        });
+
+        return array_map(fn (array $data) => $this->configurationMapper->arrayToDomain($data), $cached);
+    }
+
+    private function clearConfigurationsCache(int $siteId): void
+    {
+        $version = self::CONFIG_CACHE_VERSION;
+        Cache::forget("site_{$siteId}_configurations_{$version}");
     }
 }

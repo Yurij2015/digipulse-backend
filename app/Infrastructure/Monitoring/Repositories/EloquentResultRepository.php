@@ -3,13 +3,17 @@
 namespace App\Infrastructure\Monitoring\Repositories;
 
 use App\Domain\Monitoring\Contracts\ResultRepositoryInterface;
+use App\Domain\Monitoring\Contracts\SiteStatsRepositoryInterface;
 use App\Domain\Monitoring\Data\MonitoringResultData;
 use App\Models\CheckResult;
-use App\Models\Site;
 use Illuminate\Support\Facades\DB;
 
 class EloquentResultRepository implements ResultRepositoryInterface
 {
+    public function __construct(
+        private SiteStatsRepositoryInterface $statsRepository,
+    ) {}
+
     public function save(MonitoringResultData $dto): void
     {
         $result = CheckResult::create([
@@ -25,7 +29,7 @@ class EloquentResultRepository implements ResultRepositoryInterface
         $siteId = $result->site_id;
 
         if ($siteId) {
-            DB::afterCommit(static fn () => Site::find($siteId)?->clearCache());
+            DB::afterCommit(fn () => $this->statsRepository->clearCache($siteId));
         }
     }
 }
