@@ -31,6 +31,9 @@ final class EloquentSiteMapper
             lastCheckedAt: $site->relationLoaded('latestCheck')
                 ? $this->formatDate($site->latestCheck?->checked_at)
                 : null,
+            status: $site->relationLoaded('latestCheck') && $site->latestCheck
+                ? $site->latestCheck->status
+                : 'pending',
             serverInfo: $this->extractServerInfo($site),
             sslInfo: $this->extractSslInfo($site),
             pingInfo: $this->extractPingInfo($site),
@@ -56,6 +59,7 @@ final class EloquentSiteMapper
             uptime: isset($data['uptime']) ? (float) $data['uptime'] : null,
             responseTime: isset($data['response_time']) ? (int) $data['response_time'] : null,
             lastCheckedAt: $data['last_checked_at'] ?? null,
+            status: $data['status'] ?? 'pending',
             serverInfo: $data['server_info'] ?? null,
             sslInfo: $data['ssl_info'] ?? null,
             pingInfo: $data['ping_info'] ?? null,

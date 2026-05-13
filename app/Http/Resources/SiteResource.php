@@ -22,6 +22,7 @@ class SiteResource extends JsonResource
             'is_active' => $this->isActive,
             'response_time' => $this->responseTime,
             'uptime' => $this->uptime,
+            'status' => $this->status,
             'last_checked_at' => $this->lastCheckedAt,
             'server_info' => $this->serverInfo,
             'ssl_info' => $this->sslInfo,
