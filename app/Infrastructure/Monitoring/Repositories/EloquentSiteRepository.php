@@ -99,9 +99,12 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
         return $this->mapper->toDomain($site, configurations: $this->getCachedConfigurations($site->id));
     }
 
+    /**
+     * @throws \Throwable
+     */
     public function syncConfigurations(int $siteId, array $configurations): void
     {
-        DB::transaction(function () use ($siteId, $configurations) {
+        DB::transaction(static function () use ($siteId, $configurations) {
             $site = EloquentSite::findOrFail($siteId);
             $updatedIds = [];
 
