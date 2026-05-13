@@ -11,7 +11,7 @@ use Illuminate\Support\Carbon;
 final class EloquentSiteMapper
 {
     public function __construct(
-        private EloquentConfigurationMapper $configurationMapper
+        private readonly EloquentConfigurationMapper $configurationMapper
     ) {}
 
     public function toDomain(EloquentSite $site, ?SiteStats $stats = null, array $configurations = []): DomainSite

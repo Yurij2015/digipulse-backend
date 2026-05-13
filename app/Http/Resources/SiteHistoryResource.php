@@ -3,7 +3,6 @@
 namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
-use App\Http\Resources\CheckResultResource;
 
 class SiteHistoryResource extends JsonResource
 {
@@ -21,7 +20,8 @@ class SiteHistoryResource extends JsonResource
                 'config_id' => $item['config_id'],
                 'type_name' => $item['type_name'],
                 'type_slug' => $item['type_slug'],
-                'result' => new CheckResultResource($item['result']),
+                'is_active' => $item['is_active'],
+                'result' => $item['result'] ? new CheckResultResource($item['result']) : null,
             ], $this->resource['latest_results'] ?? []),
         ];
     }
