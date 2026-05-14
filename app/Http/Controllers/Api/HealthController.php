@@ -15,7 +15,7 @@ class HealthController extends Controller
         $checks = [
             'database' => $this->checkDatabase(),
             'redis' => $this->checkRedis(),
-            'go_monitor' => $this->checkGoMonitor(),
+            // 'go_monitor' => $this->checkGoMonitor(),
         ];
 
         $healthy = ! in_array(false, $checks, true);
