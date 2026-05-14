@@ -35,7 +35,14 @@ class StoreSiteRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+
+        // Admin can have unlimited sites
+        if ($user->email === config('app.admin_email')) {
+            return true;
+        }
+
+        return $user->sites()->count() < 3;
     }
 
     /**

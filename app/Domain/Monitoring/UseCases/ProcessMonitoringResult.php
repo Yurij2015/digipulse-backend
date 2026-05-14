@@ -56,6 +56,10 @@ readonly class ProcessMonitoringResult
             $this->alertService->sendSiteDownAlert($dto->configurationId);
         }
 
+        if (($context['last_status'] ?? 'up') === 'down' && $dto->status === 'up') {
+            $this->alertService->sendSiteUpAlert($dto->configurationId);
+        }
+
         $this->cachePort->clearUserSitesCache($context['user_id']);
     }
 }
