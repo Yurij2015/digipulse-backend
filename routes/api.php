@@ -5,12 +5,15 @@ use App\Http\Controllers\Api\Auth\EmailVerificationController;
 use App\Http\Controllers\Api\Auth\PasswordResetController;
 use App\Http\Controllers\Api\Auth\ProfileController;
 use App\Http\Controllers\Api\CheckTypeController;
+use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\KnowledgeBaseController;
 use App\Http\Controllers\Api\SiteController;
 use App\Http\Controllers\Api\SiteHistoryController;
 use App\Http\Controllers\Api\SupportTicketController;
 use App\Http\Controllers\Api\TelegramController;
 use Illuminate\Support\Facades\Route;
+
+Route::middleware('frontend.key')->get('/health', HealthController::class)->name('health');
 
 Route::middleware(['frontend.key'])->group(function () {
     Route::middleware(['turnstile'])->group(function () {

@@ -1,0 +1,31 @@
+name: API Health Check
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check API health
+        id: check
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 10 \
+            -H "X-Frontend-Key: ${{ secrets.FRONTEND_KEY }}" \
+            https://panel-pulse.digispace.pro/api/health)
+          echo "status=$response" >> $GITHUB_OUTPUT
+          if [ "$response" != "200" ]; then
+            echo "API is down or degraded! HTTP status: $response"
+            exit 1
+          fi
+
+      - name: Notify via Telegram
+        if: failure()
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}" \
+            -d parse_mode="HTML" \
+            -d text="🔴 <b>DigiPulse API is down!</b>%0A%0AHTTP status: ${{ steps.check.outputs.status }}%0Ahttps://panel-pulse.digispace.pro/api/health"
