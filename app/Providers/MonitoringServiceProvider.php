@@ -8,6 +8,7 @@ use App\Domain\Monitoring\Contracts\ResultRepositoryInterface;
 use App\Domain\Monitoring\Contracts\SiteManagementRepositoryInterface;
 use App\Domain\Monitoring\Contracts\SiteRepositoryInterface;
 use App\Domain\Monitoring\Contracts\SiteStatsRepositoryInterface;
+use App\Domain\Monitoring\UseCases\CreateSiteUseCase;
 use App\Infrastructure\Monitoring\Cache\CacheService;
 use App\Infrastructure\Monitoring\Notifications\NotificationService;
 use App\Infrastructure\Monitoring\Repositories\EloquentResultRepository;
@@ -50,6 +51,15 @@ class MonitoringServiceProvider extends ServiceProvider
         $this->app->singleton(
             SiteStatsRepositoryInterface::class,
             EloquentSiteStatsRepository::class
+        );
+
+        $this->app->bind(
+            CreateSiteUseCase::class,
+            fn ($app) => new CreateSiteUseCase(
+                siteRepository: $app->make(SiteManagementRepositoryInterface::class),
+                cachePort: $app->make(CachePortInterface::class),
+                siteLimit: (int) config('monitoring.site_limit', 3),
+            )
         );
     }
 
