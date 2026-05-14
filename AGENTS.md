@@ -219,6 +219,7 @@ Use this addendum as the project-specific operating layer on top of Laravel Boos
 ### MUST (hard requirements)
 
 - Use `vendor/bin/sail` for all PHP/Artisan/Composer/Node commands.
+- **Architecture-First Investigation**: Before modifying or adding logic to any layer (Controller, FormRequest, UseCase, Repository, Notification, etc.), ALWAYS trace the full call chain first. Check the UseCase, Domain Contracts, and Infrastructure implementations to understand what already exists. Never add business logic to the HTTP layer if it belongs in the Domain layer. Never duplicate checks that are already handled by a UseCase or Service.
 - Keep architecture boundaries strict:
   - `app/Domain/*`: pure business logic, no framework adapters.
   - `app/Infrastructure/*`: framework/db/external integrations.
