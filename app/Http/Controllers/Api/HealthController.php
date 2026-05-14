@@ -15,6 +15,7 @@ class HealthController extends Controller
         $checks = [
             'database' => $this->checkDatabase(),
             'redis' => $this->checkRedis(),
+            'go_monitor' => $this->checkGoMonitor(),
         ];
 
         $healthy = ! in_array(false, $checks, true);
@@ -46,6 +47,17 @@ class HealthController extends Controller
             Redis::ping();
 
             return true;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    private function checkGoMonitor(): bool
+    {
+        try {
+            $lastBeat = Redis::get('go_monitor:last_heartbeat');
+
+            return $lastBeat && (time() - (int) $lastBeat) < 5 * 60;
         } catch (\Throwable) {
             return false;
         }
