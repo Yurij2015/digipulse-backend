@@ -18,6 +18,7 @@ readonly class CreateSiteUseCase
     public function __construct(
         private SiteManagementRepositoryInterface $siteRepository,
         private CachePortInterface $cachePort,
+        private int $siteLimit = 3,
     ) {}
 
     /**
@@ -30,10 +31,10 @@ readonly class CreateSiteUseCase
     public function execute(CreateSiteData $dto, User $user, array $configurations = []): Site
     {
         // Enforce site limit for regular users
-        if (! $user->hasRole('admin')) {
+        if (! $user->hasRole('admin') && $this->siteLimit > 0) {
             $siteCount = $this->siteRepository->countByUser($dto->userId);
 
-            if ($siteCount >= 3) {
+            if ($siteCount >= $this->siteLimit) {
                 throw new SiteLimitExceededException;
             }
         }

@@ -37,4 +37,15 @@ return [
         'block_seconds' => max(1, (int) env('MONITOR_RESULTS_CONSUMER_BLOCK_SECONDS', 5)),
         'max_attempts' => max(1, (int) env('MONITOR_RESULTS_CONSUMER_MAX_ATTEMPTS', 5)),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Site Limit
+    |--------------------------------------------------------------------------
+    |
+    | Maximum number of sites a regular (non-admin) user can create.
+    | Set to 0 for unlimited.
+    |
+    */
+    'site_limit' => (int) env('SITE_LIMIT', 3),
 ];

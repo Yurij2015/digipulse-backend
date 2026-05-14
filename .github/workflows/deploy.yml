@@ -126,6 +126,7 @@ jobs:
           QUEUE_CONNECTION: sync
           MAIL_MAILER: log
           BROADCAST_CONNECTION: log
+          SITE_LIMIT: 3
         run: php artisan test --compact
 
   build-docker-image:
