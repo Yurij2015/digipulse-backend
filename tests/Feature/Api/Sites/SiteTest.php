@@ -217,6 +217,17 @@ test('regular user cannot create more than 3 sites', function () {
         ->assertStatus(403);
 });
 
+test('unverified user cannot create a site', function () {
+    $user = User::factory()->unverified()->create();
+    Sanctum::actingAs($user);
+
+    $this->postJson(route('sites.store'), [
+        'name' => 'My Site',
+        'url' => 'https://unverified.example.com',
+    ], ['X-Frontend-Key' => $this->frontendKey])
+        ->assertStatus(403);
+});
+
 test('cannot create a site with a duplicate url', function () {
     $user = User::factory()->create();
     Sanctum::actingAs($user);
