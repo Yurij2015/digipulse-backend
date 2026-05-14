@@ -224,7 +224,7 @@ jobs:
             PUSHER_APP_CLUSTER=$(get_val "${{ vars.PUSHER_APP_CLUSTER }}" "eu")
 
             SENTRY_LARAVEL_DSN=$(get_val "${{ secrets.SENTRY_LARAVEL_DSN }}" "")
-            SENTRY_TRACES_SAMPLE_RATE=$(get_val "${{ vars.SENTRY_TRACES_SAMPLE_RATE }}" "1.0")
+            SENTRY_TRACES_SAMPLE_RATE=$(get_val "${{ vars.SENTRY_TRACES_SAMPLE_RATE }}" "0.2")
 
             # Generate .env file
             cat > ${{ matrix.server.path }}/.env << ENVEOF
@@ -293,6 +293,7 @@ jobs:
             REDIS_PREFIX=laravel-database-
             OCTANE_SERVER=frankenphp
             LOG_CHANNEL=stack
+            LOG_STACK=daily
             LOG_LEVEL=error
 
             # Monitoring
