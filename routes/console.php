@@ -10,6 +10,7 @@ Artisan::command('inspire', function () {
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('app:schedule-checks')->everyMinute();
+Schedule::command('app:check-monitor-heartbeat')->everyMinute();
 Schedule::command('app:archive-check-results')->dailyAt('01:00');
 Schedule::command('app:check-ssl-expirations')->dailyAt('02:00');
 Schedule::command('telescope:prune')->daily();
