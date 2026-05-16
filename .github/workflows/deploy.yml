@@ -258,7 +258,7 @@ jobs:
             AWS_USE_PATH_STYLE_ENDPOINT=$(get_val "${{ vars.AWS_USE_PATH_STYLE_ENDPOINT }}" "true")
             AWS_URL=$(get_val "${{ vars.AWS_URL }}" "")
 
-            FRONTEND_KEY=$(get_val "${{ vars.FRONTEND_KEY }}" "")
+            FRONTEND_KEY=$(get_val "${{ secrets.FRONTEND_KEY }}" "")
             MAIL_FROM_ADDRESS=$(get_val "${{ vars.MAIL_FROM_ADDRESS }}" "support@pulse.digispace.pro")
             RESEND_API_KEY=$(get_val "${{ secrets.RESEND_API_KEY }}" "")
 
