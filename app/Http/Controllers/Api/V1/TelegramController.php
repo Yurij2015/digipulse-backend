@@ -71,7 +71,7 @@ class TelegramController extends Controller
             'connected' => false,
             'token' => $token,
             'bot_username' => $botUsername,
-            'url' => "https://t.me/{$botUsername}?start={$token}",
+            'url' => "https://t.me/$botUsername?start=$token",
         ]);
     }
 
@@ -159,7 +159,7 @@ class TelegramController extends Controller
             return response()->json(['status' => 'ok']);
         }
 
-        if (Cache::has("telegram_reply_ticket_{$chatId}")) {
+        if (Cache::has("telegram_reply_ticket_$chatId")) {
             return $this->handleSupportReply((string) $chatId, $text);
         }
 
@@ -222,10 +222,10 @@ class TelegramController extends Controller
 
         if (str_starts_with($data, 'support_reply:')) {
             $ticketId = str_replace('support_reply:', '', $data);
-            Cache::put("telegram_reply_ticket_{$chatId}", $ticketId, now()->addMinutes(15));
+            Cache::put("telegram_reply_ticket_$chatId", $ticketId, now()->addMinutes(15));
 
             $this->telegram->sendMessage($chatId, [
-                'text' => "✍️ *Ticket \#{$ticketId}*\n\nPlease enter your answer below\. I will send it to the user\.",
+                'text' => "✍️ *Ticket \#$ticketId*\n\nPlease enter your answer below\. I will send it to the user\.",
                 'parse_mode' => 'MarkdownV2',
             ]);
             $this->telegram->answerCallbackQuery($callbackQueryId);
@@ -241,11 +241,11 @@ class TelegramController extends Controller
      */
     private function handleSupportReply(string $chatId, string $text): JsonResponse
     {
-        $ticketId = Cache::pull("telegram_reply_ticket_{$chatId}");
+        $ticketId = Cache::pull("telegram_reply_ticket_$chatId");
         $ticket = SupportTicket::find($ticketId);
 
         if (! $ticket) {
-            $this->telegram->sendMessage($chatId, "⚠️ Error: Ticket #{$ticketId} not found.");
+            $this->telegram->sendMessage($chatId, "⚠️ Error: Ticket #$ticketId not found.");
 
             return response()->json(['status' => 'ok']);
         }
@@ -266,7 +266,7 @@ class TelegramController extends Controller
         broadcast(new MessageSent($message))->toOthers();
 
         $this->telegram->sendMessage($chatId, [
-            'text' => "✅ *Response sent\!*\n\nYour message has been delivered and saved to Ticket \#{$ticket->id}\.",
+            'text' => "✅ *Response sent\!*\n\nYour message has been delivered and saved to Ticket \#$ticket->id\.",
             'parse_mode' => 'MarkdownV2',
         ]);
 
