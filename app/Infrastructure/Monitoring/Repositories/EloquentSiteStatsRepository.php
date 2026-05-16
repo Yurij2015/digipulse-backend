@@ -82,12 +82,12 @@ class EloquentSiteStatsRepository implements SiteStatsRepositoryInterface
                     [$siteId, $since, $siteId, $archiveSince, $since]
                 );
 
-                $total = (int)($row->total ?? 0);
+                $total = (int) ($row->total ?? 0);
                 if ($total === 0) {
                     return 100.0;
                 }
 
-                return round(((int)($row->up_count ?? 0) / $total) * 100, 2);
+                return round(((int) ($row->up_count ?? 0) / $total) * 100, 2);
             }
         );
     }
@@ -96,12 +96,12 @@ class EloquentSiteStatsRepository implements SiteStatsRepositoryInterface
     {
         return Cache::remember("site_{$siteId}_rt_history_v1", $this->ttl($updateInterval), function () use ($siteId) {
             return CheckResult::where('site_id', $siteId)
-                ->whereHas('configuration.checkType', fn($q) => $q->where('slug', 'http'))
+                ->whereHas('configuration.checkType', fn ($q) => $q->where('slug', 'http'))
                 ->latest('checked_at')
                 ->limit(12)
                 ->get()
                 ->reverse()
-                ->map(fn($check) => $check->response_time_ms)
+                ->map(fn ($check) => $check->response_time_ms)
                 ->values()
                 ->toArray();
         });
@@ -156,12 +156,12 @@ class EloquentSiteStatsRepository implements SiteStatsRepositoryInterface
                     [$seriesStart, $siteId, $since, $siteId, $archiveSince, $since]
                 );
 
-                return array_map(static fn($row) => [
+                return array_map(static fn ($row) => [
                     'date' => $row->date,
                     'uptime' => $row->total_checks > 0
-                        ? round(((int)$row->up_count / (int)$row->total_checks) * 100, 2)
+                        ? round(((int) $row->up_count / (int) $row->total_checks) * 100, 2)
                         : 100.0,
-                    'total_checks' => (int)$row->total_checks,
+                    'total_checks' => (int) $row->total_checks,
                 ], $rows);
             }
         );
@@ -183,13 +183,13 @@ class EloquentSiteStatsRepository implements SiteStatsRepositoryInterface
                 )
                 ->first();
 
-            $total = (int)($stats->total ?? 0);
+            $total = (int) ($stats->total ?? 0);
             if ($total === 0) {
                 return 1.0;
             }
 
-            $satisfied = (int)($stats->satisfied ?? 0);
-            $tolerating = (int)($stats->tolerating ?? 0);
+            $satisfied = (int) ($stats->satisfied ?? 0);
+            $tolerating = (int) ($stats->tolerating ?? 0);
 
             return round(($satisfied + ($tolerating / 2)) / $total, 2);
         });
@@ -207,7 +207,7 @@ class EloquentSiteStatsRepository implements SiteStatsRepositoryInterface
                 ->selectRaw('PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY response_time_ms) AS p95')
                 ->value('p95');
 
-            return $result !== null ? (int)$result : null;
+            return $result !== null ? (int) $result : null;
         });
     }
 }

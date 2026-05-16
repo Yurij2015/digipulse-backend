@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api\Auth;
+namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Auth\Events\PasswordReset;
@@ -15,7 +15,7 @@ use OpenApi\Attributes as OA;
 class PasswordResetController extends Controller
 {
     #[OA\Post(
-        path: '/api/forgot-password',
+        path: '/api/v1/forgot-password',
         operationId: 'forgotPassword',
         description: 'Send a password reset link to the user\'s email',
         summary: 'Send password reset link',
@@ -92,11 +92,10 @@ class PasswordResetController extends Controller
     }
 
     #[OA\Post(
-        path: '/api/reset-password',
-        summary: 'Reset password',
-        description: 'Reset user password using the token from email',
+        path: '/api/v1/reset-password',
         operationId: 'resetPassword',
-        tags: ['Auth'],
+        description: 'Reset user password using the token from email',
+        summary: 'Reset password',
         security: [['frontendKey' => []]],
         requestBody: new OA\RequestBody(
             required: true,
@@ -110,6 +109,7 @@ class PasswordResetController extends Controller
                 ]
             )
         ),
+        tags: ['Auth'],
         responses: [
             new OA\Response(
                 response: 200,
@@ -142,7 +142,7 @@ class PasswordResetController extends Controller
 
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
-            function ($user) use ($request) {
+            static function ($user) use ($request) {
                 $user->forceFill([
                     'password' => Hash::make($request->password),
                     'remember_token' => Str::random(60),

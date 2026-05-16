@@ -69,7 +69,7 @@ class SupportTicketReplyNotification extends Notification implements ShouldQueue
         $ticket = $this->reply->ticket;
         $author = $this->reply->user->name ?? 'Guest';
 
-        $typeStr = $this->reply->is_admin_reply ? "🛠 <b>Support Reply!</b>" : "💬 <b>User Reply!</b>";
+        $typeStr = $this->reply->is_admin_reply ? '🛠 <b>Support Reply!</b>' : '💬 <b>User Reply!</b>';
 
         $safeSubject = htmlspecialchars($ticket->subject ?? '');
         $safeAuthor = htmlspecialchars($author ?? '');

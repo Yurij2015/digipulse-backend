@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\CheckTypeResource;
@@ -11,7 +11,7 @@ use OpenApi\Attributes as OA;
 class CheckTypeController extends Controller
 {
     #[OA\Get(
-        path: '/api/check-types',
+        path: '/api/v1/check-types',
         summary: 'List available check types',
         security: [['frontendKey' => []], ['bearerAuth' => []]],
         tags: ['Check Types'],

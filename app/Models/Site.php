@@ -12,11 +12,16 @@ class Site extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'name', 'url', 'update_interval', 'is_active'];
+    protected $fillable = ['user_id', 'project_id', 'name', 'url', 'update_interval', 'is_active'];
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
     }
 
     public function configurations(): HasMany

@@ -46,7 +46,7 @@ it('returns aggregated live stats for the current week', function () {
     ]);
 
     $response = $this->actingAs($this->user)
-        ->getJson(route('sites.history', [
+        ->getJson(route('v1.sites.history', [
             'site' => $this->site->id,
             'week' => $now->format('Y-\WW'),
         ]), [
@@ -96,7 +96,7 @@ it('returns aggregated stats from archived data for past weeks', function () {
     ]);
 
     $response = $this->actingAs($this->user)
-        ->getJson(route('sites.history', [
+        ->getJson(route('v1.sites.history', [
             'site' => $this->site->id,
             'week' => $pastWeek->format('Y-\WW'),
         ]), [
@@ -117,7 +117,7 @@ it('prevents another user from accessing site history', function () {
     $otherUser = User::factory()->create();
 
     $this->actingAs($otherUser)
-        ->getJson(route('sites.history', ['site' => $this->site->id]), [
+        ->getJson(route('v1.sites.history', ['site' => $this->site->id]), [
             'X-Frontend-Key' => config('app.frontend_key'),
         ])
         ->assertStatus(404);
@@ -134,7 +134,7 @@ it('returns latest_results for each active configuration', function () {
     ]);
 
     $response = $this->actingAs($this->user)
-        ->getJson(route('sites.history', ['site' => $this->site->id]), [
+        ->getJson(route('v1.sites.history', ['site' => $this->site->id]), [
             'X-Frontend-Key' => config('app.frontend_key'),
         ]);
 
@@ -164,7 +164,7 @@ it('includes disabled configurations in latest_results with last known result', 
     ]);
 
     $response = $this->actingAs($this->user)
-        ->getJson(route('sites.history', ['site' => $this->site->id]), [
+        ->getJson(route('v1.sites.history', ['site' => $this->site->id]), [
             'X-Frontend-Key' => config('app.frontend_key'),
         ]);
 
@@ -186,7 +186,7 @@ it('includes disabled configurations with null result when they never ran', func
     ]);
 
     $response = $this->actingAs($this->user)
-        ->getJson(route('sites.history', ['site' => $this->site->id]), [
+        ->getJson(route('v1.sites.history', ['site' => $this->site->id]), [
             'X-Frontend-Key' => config('app.frontend_key'),
         ]);
 
@@ -202,7 +202,7 @@ it('includes disabled configurations with null result when they never ran', func
 
 it('rejects an invalid week format', function () {
     $this->actingAs($this->user)
-        ->getJson(route('sites.history', ['site' => $this->site->id, 'week' => 'bad-format']), [
+        ->getJson(route('v1.sites.history', ['site' => $this->site->id, 'week' => 'bad-format']), [
             'X-Frontend-Key' => config('app.frontend_key'),
         ])
         ->assertStatus(422)
@@ -226,7 +226,7 @@ it('filters history by configuration_id', function () {
     ]);
 
     $response = $this->actingAs($this->user)
-        ->getJson(route('sites.history', [
+        ->getJson(route('v1.sites.history', [
             'site' => $this->site->id,
             'configuration_id' => $this->config->id,
         ]), [

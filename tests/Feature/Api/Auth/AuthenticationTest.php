@@ -9,13 +9,13 @@ const FRONTEND_KEY = 'test-frontend-key';
 
 describe('Frontend Key Authorization', function () {
     it('fails if X-Frontend-Key is missing', function () {
-        $this->postJson('/api/login', [])
+        $this->postJson('/api/v1/login', [])
             ->assertStatus(401)
             ->assertJson(['error' => 'Unauthorized']);
     });
 
     it('fails if X-Frontend-Key is invalid', function () {
-        $this->postJson('/api/login', [], ['X-Frontend-Key' => 'invalid-key'])
+        $this->postJson('/api/v1/login', [], ['X-Frontend-Key' => 'invalid-key'])
             ->assertStatus(401)
             ->assertJson(['error' => 'Unauthorized']);
     });
@@ -23,7 +23,7 @@ describe('Frontend Key Authorization', function () {
 
 describe('User Registration', function () {
     it('can register a new user', function () {
-        $response = $this->postJson('/api/register', [
+        $response = $this->postJson('/api/v1/register', [
             'name' => 'johndoe',
             'first_name' => 'John',
             'last_name' => 'Doe',
@@ -44,7 +44,7 @@ describe('User Registration', function () {
     });
 
     it('fails registration with validation errors', function () {
-        $this->postJson('/api/register', [], ['X-Frontend-Key' => FRONTEND_KEY])
+        $this->postJson('/api/v1/register', [], ['X-Frontend-Key' => FRONTEND_KEY])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['name', 'email', 'password', 'first_name', 'last_name']);
     });
@@ -56,7 +56,7 @@ describe('User Authentication', function () {
             'password' => bcrypt($password = 'StrongPass123!'),
         ]);
 
-        $response = $this->postJson('/api/login', [
+        $response = $this->postJson('/api/v1/login', [
             'email' => $user->email,
             'password' => $password,
         ], ['X-Frontend-Key' => FRONTEND_KEY]);
@@ -70,7 +70,7 @@ describe('User Authentication', function () {
             'password' => bcrypt('StrongPass123!'),
         ]);
 
-        $this->postJson('/api/login', [
+        $this->postJson('/api/v1/login', [
             'email' => $user->email,
             'password' => 'wrong-password',
         ], ['X-Frontend-Key' => FRONTEND_KEY])
@@ -82,7 +82,7 @@ describe('User Authentication', function () {
         $user = User::factory()->create();
         $token = $user->createToken('test-token')->plainTextToken;
 
-        $this->postJson('/api/logout', [], [
+        $this->postJson('/api/v1/logout', [], [
             'X-Frontend-Key' => FRONTEND_KEY,
             'Authorization' => "Bearer $token",
         ])->assertStatus(200)

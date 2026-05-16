@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\V1;
 
 use App\Channels\TelegramChannel;
 use App\Events\MessageSent;
@@ -23,7 +23,7 @@ class TelegramController extends Controller
     ) {}
 
     #[OA\Get(
-        path: '/api/telegram/connect',
+        path: '/api/v1/telegram/connect',
         summary: 'Get Telegram connection link',
         security: [['frontendKey' => []], ['bearerAuth' => []]],
         tags: ['Telegram'],
@@ -76,7 +76,7 @@ class TelegramController extends Controller
     }
 
     #[OA\Post(
-        path: '/api/telegram/disconnect',
+        path: '/api/v1/telegram/disconnect',
         summary: 'Disconnect Telegram bot',
         security: [['frontendKey' => []], ['bearerAuth' => []]],
         tags: ['Telegram'],
