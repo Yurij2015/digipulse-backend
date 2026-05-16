@@ -10,5 +10,6 @@ readonly class CreateSiteData
         public string $url,
         public int $updateInterval = 5,
         public bool $isActive = true,
+        public ?int $projectId = null,
     ) {}
 }

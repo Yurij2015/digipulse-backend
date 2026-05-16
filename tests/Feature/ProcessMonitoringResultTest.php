@@ -6,8 +6,8 @@ use App\Domain\Monitoring\Contracts\ResultRepositoryInterface;
 use App\Domain\Monitoring\Contracts\SiteRepositoryInterface;
 use App\Domain\Monitoring\Data\MonitoringResultData;
 use App\Domain\Monitoring\UseCases\ProcessMonitoringResult;
-use Illuminate\Support\Facades\Event;
 use App\Events\SiteStatusUpdated;
+use Illuminate\Support\Facades\Event;
 
 beforeEach(function () {
     $this->siteRepository = Mockery::mock(SiteRepositoryInterface::class);

@@ -29,7 +29,7 @@ test('authenticated user can list their sites', function () {
 
     Sanctum::actingAs($user);
 
-    $response = $this->getJson(route('sites.index'), [
+    $response = $this->getJson(route('v1.sites.index'), [
         'X-Frontend-Key' => $this->frontendKey,
     ]);
 
@@ -52,7 +52,7 @@ test('authenticated user can create a site', function () {
         'update_interval' => 600,
     ];
 
-    $response = $this->postJson(route('sites.store'), $siteData, [
+    $response = $this->postJson(route('v1.sites.store'), $siteData, [
         'X-Frontend-Key' => $this->frontendKey,
     ]);
 
@@ -69,11 +69,11 @@ test('authenticated user can create a site', function () {
 });
 
 test('guest cannot list or create sites', function () {
-    $this->getJson(route('sites.index'), [
+    $this->getJson(route('v1.sites.index'), [
         'X-Frontend-Key' => $this->frontendKey,
     ])->assertStatus(401);
 
-    $this->postJson(route('sites.store'), [], [
+    $this->postJson(route('v1.sites.store'), [], [
         'X-Frontend-Key' => $this->frontendKey,
     ])->assertStatus(401);
 });
@@ -95,7 +95,7 @@ test('authenticated user can create a site with checks', function () {
         ],
     ];
 
-    $response = $this->postJson(route('sites.store'), $siteData, [
+    $response = $this->postJson(route('v1.sites.store'), $siteData, [
         'X-Frontend-Key' => $this->frontendKey,
     ]);
 
@@ -115,7 +115,7 @@ test('authenticated user can list available check types', function () {
     $user = User::factory()->create();
     Sanctum::actingAs($user);
 
-    $response = $this->getJson(route('check-types.index'), [
+    $response = $this->getJson(route('v1.check-types.index'), [
         'X-Frontend-Key' => $this->frontendKey,
     ]);
 
@@ -131,7 +131,7 @@ test('request must have valid frontend key', function () {
     $user = User::factory()->create();
     Sanctum::actingAs($user);
 
-    $this->getJson(route('sites.index'), [
+    $this->getJson(route('v1.sites.index'), [
         'X-Frontend-Key' => 'invalid-key',
     ])->assertStatus(401);
 });
@@ -142,7 +142,7 @@ test('authenticated user can view their own site', function () {
 
     Sanctum::actingAs($user);
 
-    $this->getJson(route('sites.show', $site), ['X-Frontend-Key' => $this->frontendKey])
+    $this->getJson(route('v1.sites.show', $site), ['X-Frontend-Key' => $this->frontendKey])
         ->assertStatus(200)
         ->assertJsonPath('data.id', $site->id);
 });
@@ -153,7 +153,7 @@ test('authenticated user cannot view another user\'s site', function () {
 
     Sanctum::actingAs($user);
 
-    $this->getJson(route('sites.show', $otherSite), ['X-Frontend-Key' => $this->frontendKey])
+    $this->getJson(route('v1.sites.show', $otherSite), ['X-Frontend-Key' => $this->frontendKey])
         ->assertStatus(404);
 });
 
@@ -163,7 +163,7 @@ test('authenticated user can update their site', function () {
 
     Sanctum::actingAs($user);
 
-    $this->putJson(route('sites.update', $site), ['name' => 'New Name'], ['X-Frontend-Key' => $this->frontendKey])
+    $this->putJson(route('v1.sites.update', $site), ['name' => 'New Name'], ['X-Frontend-Key' => $this->frontendKey])
         ->assertStatus(200)
         ->assertJsonPath('data.name', 'New Name');
 
@@ -176,7 +176,7 @@ test('authenticated user cannot update another user\'s site', function () {
 
     Sanctum::actingAs($user);
 
-    $this->putJson(route('sites.update', $otherSite), ['name' => 'Hacked'], ['X-Frontend-Key' => $this->frontendKey])
+    $this->putJson(route('v1.sites.update', $otherSite), ['name' => 'Hacked'], ['X-Frontend-Key' => $this->frontendKey])
         ->assertStatus(404);
 });
 
@@ -186,7 +186,7 @@ test('authenticated user can delete their site', function () {
 
     Sanctum::actingAs($user);
 
-    $this->deleteJson(route('sites.destroy', $site), [], ['X-Frontend-Key' => $this->frontendKey])
+    $this->deleteJson(route('v1.sites.destroy', $site), [], ['X-Frontend-Key' => $this->frontendKey])
         ->assertStatus(204);
 
     $this->assertDatabaseMissing('sites', ['id' => $site->id]);
@@ -198,19 +198,19 @@ test('authenticated user cannot delete another user\'s site', function () {
 
     Sanctum::actingAs($user);
 
-    $this->deleteJson(route('sites.destroy', $otherSite), [], ['X-Frontend-Key' => $this->frontendKey])
+    $this->deleteJson(route('v1.sites.destroy', $otherSite), [], ['X-Frontend-Key' => $this->frontendKey])
         ->assertStatus(404);
 
     $this->assertDatabaseHas('sites', ['id' => $otherSite->id]);
 });
 
-test('regular user cannot create more than 3 sites', function () {
+test('regular user cannot create more than 6 sites', function () {
     $user = User::factory()->create();
     Sanctum::actingAs($user);
 
-    Site::factory()->count(3)->create(['user_id' => $user->id]);
+    Site::factory()->count(6)->create(['user_id' => $user->id]);
 
-    $this->postJson(route('sites.store'), [
+    $this->postJson(route('v1.sites.store'), [
         'name' => 'Fourth Site',
         'url' => 'https://fourth.example.com',
     ], ['X-Frontend-Key' => $this->frontendKey])
@@ -221,7 +221,7 @@ test('unverified user cannot create a site', function () {
     $user = User::factory()->unverified()->create();
     Sanctum::actingAs($user);
 
-    $this->postJson(route('sites.store'), [
+    $this->postJson(route('v1.sites.store'), [
         'name' => 'My Site',
         'url' => 'https://unverified.example.com',
     ], ['X-Frontend-Key' => $this->frontendKey])
@@ -234,7 +234,7 @@ test('cannot create a site with a duplicate url', function () {
 
     Site::factory()->create(['url' => 'https://example.com']);
 
-    $this->postJson(route('sites.store'), [
+    $this->postJson(route('v1.sites.store'), [
         'name' => 'Duplicate',
         'url' => 'https://example.com',
     ], ['X-Frontend-Key' => $this->frontendKey])

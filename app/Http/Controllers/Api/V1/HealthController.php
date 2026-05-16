@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
@@ -15,7 +15,7 @@ class HealthController extends Controller
         $checks = [
             'database' => $this->checkDatabase(),
             'redis' => $this->checkRedis(),
-            // 'go_monitor' => $this->checkGoMonitor(),
+            'go_monitor' => $this->checkGoMonitor(),
         ];
 
         $healthy = ! in_array(false, $checks, true);

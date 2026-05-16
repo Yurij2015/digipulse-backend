@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api\Auth;
+namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Auth\ChangePasswordRequest;
@@ -14,7 +14,7 @@ use OpenApi\Attributes as OA;
 class ProfileController extends Controller
 {
     #[OA\Put(
-        path: '/api/profile',
+        path: '/api/v1/profile',
         operationId: 'updateProfile',
         description: 'Update the authenticated user\'s profile information',
         summary: 'Update user profile',
@@ -55,7 +55,7 @@ class ProfileController extends Controller
     }
 
     #[OA\Put(
-        path: '/api/profile/password',
+        path: '/api/v1/profile/password',
         operationId: 'changePassword',
         description: 'Change the authenticated user\'s password',
         summary: 'Change user password',
@@ -102,7 +102,7 @@ class ProfileController extends Controller
     }
 
     #[OA\Delete(
-        path: '/api/profile',
+        path: '/api/v1/profile',
         operationId: 'deleteAccount',
         description: 'Permanently delete the authenticated user\'s account and all associated data',
         summary: 'Delete user account',

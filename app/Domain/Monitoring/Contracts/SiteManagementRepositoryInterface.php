@@ -13,11 +13,11 @@ interface SiteManagementRepositoryInterface
     public function findById(int $id): ?Site;
 
     /**
-     * Get all sites for a user.
+     * Get all sites for a user, optionally filtered by project.
      *
      * @return Site[]
      */
-    public function findByUser(int $userId): array;
+    public function findByUser(int $userId, ?int $projectId = null): array;
 
     /**
      * Count total sites for a user.

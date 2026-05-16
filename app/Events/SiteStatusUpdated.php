@@ -57,4 +57,3 @@ class SiteStatusUpdated implements ShouldBroadcastNow, ShouldDispatchAfterCommit
         return $this->payload;
     }
 }
-

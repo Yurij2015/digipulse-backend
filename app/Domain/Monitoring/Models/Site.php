@@ -24,6 +24,7 @@ readonly class Site
         public array $dailyUptimeHistory = [],
         public float $apdexScore = 1.0,
         public ?int $p95ResponseTime = null,
+        public ?int $projectId = null,
         public ?string $createdAt = null,
         public ?string $updatedAt = null,
     ) {}
@@ -49,6 +50,7 @@ readonly class Site
             'daily_uptime_history' => $this->dailyUptimeHistory,
             'apdex_score' => $this->apdexScore,
             'p95_response_time' => $this->p95ResponseTime,
+            'project_id' => $this->projectId,
             'created_at' => $this->createdAt,
             'updated_at' => $this->updatedAt,
         ];

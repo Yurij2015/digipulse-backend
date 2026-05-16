@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\Monitoring\Contracts\SiteManagementRepositoryInterface;
 use App\Domain\Monitoring\Data\CreateSiteData;
@@ -29,7 +29,7 @@ class SiteController extends Controller
     ) {}
 
     #[OA\Get(
-        path: '/api/sites',
+        path: '/api/v1/sites',
         summary: 'List user sites',
         security: [['frontendKey' => []], ['bearerAuth' => []]],
         tags: ['Sites'],
@@ -50,11 +50,12 @@ class SiteController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $userId = $request->user()->id;
+        $projectId = $request->integer('project_id') ?: null;
         $version = self::CACHE_VERSION;
-        $cacheKey = "user_sites_{$version}:{$userId}";
+        $cacheKey = "user_sites_{$version}:{$userId}".($projectId ? ":project_{$projectId}" : '');
 
-        $sitesData = Cache::remember($cacheKey, 60, function () use ($userId) {
-            $sites = $this->siteRepository->findByUser($userId);
+        $sitesData = Cache::remember($cacheKey, 60, function () use ($userId, $projectId) {
+            $sites = $this->siteRepository->findByUser($userId, $projectId);
 
             return array_map(static fn (Site $site) => $site->toArray(), $sites);
         });
@@ -65,7 +66,7 @@ class SiteController extends Controller
     }
 
     #[OA\Post(
-        path: '/api/sites',
+        path: '/api/v1/sites',
         description: 'Creates a new site for monitoring. You can optionally pass an array of checks to be configured for this site.',
         summary: 'Store a new site',
         security: [['frontendKey' => []], ['bearerAuth' => []]],
@@ -88,6 +89,7 @@ class SiteController extends Controller
     )]
     /**
      * Store a newly created site in storage.
+     *
      * @throws \Throwable
      */
     public function store(StoreSiteRequest $request): JsonResponse
@@ -100,6 +102,7 @@ class SiteController extends Controller
                 url: $validated['url'],
                 updateInterval: $validated['update_interval'] ?? 5,
                 isActive: $validated['is_active'] ?? true,
+                projectId: $validated['project_id'] ?? null,
             );
 
             $site = $this->createSiteUseCase->execute(
@@ -115,7 +118,7 @@ class SiteController extends Controller
     }
 
     #[OA\Get(
-        path: '/api/sites/{site}',
+        path: '/api/v1/sites/{site}',
         summary: 'Get site record',
         security: [['frontendKey' => []], ['bearerAuth' => []]],
         tags: ['Sites'],
@@ -155,7 +158,7 @@ class SiteController extends Controller
     }
 
     #[OA\Put(
-        path: '/api/sites/{site}',
+        path: '/api/v1/sites/{site}',
         summary: 'Update existing site',
         security: [['frontendKey' => []], ['bearerAuth' => []]],
         requestBody: new OA\RequestBody(
@@ -201,11 +204,21 @@ class SiteController extends Controller
             abort(404);
         }
 
-        return DB::transaction(function () use ($request, $id) {
+        $checks = null;
+        if ($request->has('checks')) {
+            $existingByType = array_column($site->configurations, 'id', 'checkTypeId');
+            $checks = array_map(static function (array $check) use ($existingByType) {
+                $check['id'] ??= $existingByType[$check['check_type_id']] ?? null;
+
+                return $check;
+            }, $request->checks);
+        }
+
+        return DB::transaction(function () use ($request, $id, $checks) {
             $site = $this->siteRepository->update($id, $request->safe()->except('checks'));
 
-            if ($request->has('checks')) {
-                $this->siteRepository->syncConfigurations($id, $request->checks);
+            if ($checks !== null) {
+                $this->siteRepository->syncConfigurations($id, $checks);
                 // Reload site to get updated configurations
                 $site = $this->siteRepository->findById($id);
             }
@@ -217,7 +230,7 @@ class SiteController extends Controller
     }
 
     #[OA\Delete(
-        path: '/api/sites/{site}',
+        path: '/api/v1/sites/{site}',
         summary: 'Delete site',
         security: [['frontendKey' => []], ['bearerAuth' => []]],
         tags: ['Sites'],

@@ -41,6 +41,7 @@ final readonly class EloquentSiteMapper
             dailyUptimeHistory: $stats?->dailyUptimeHistory ?? [],
             apdexScore: $stats?->apdexScore ?? 1.0,
             p95ResponseTime: $stats?->p95ResponseTime,
+            projectId: $site->project_id,
             createdAt: $this->formatDate($site->created_at),
             updatedAt: $this->formatDate($site->updated_at),
         );
@@ -67,6 +68,7 @@ final readonly class EloquentSiteMapper
             dailyUptimeHistory: $data['daily_uptime_history'] ?? [],
             apdexScore: $data['apdex_score'] ?? 1.0,
             p95ResponseTime: $data['p95_response_time'] ?? null,
+            projectId: $data['project_id'] ?? null,
             createdAt: $data['created_at'] ?? null,
             updatedAt: $data['updated_at'] ?? null,
         );

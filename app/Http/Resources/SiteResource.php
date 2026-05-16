@@ -31,6 +31,7 @@ class SiteResource extends JsonResource
             'daily_uptime_history' => $this->dailyUptimeHistory,
             'apdex_score' => $this->apdexScore,
             'p95_response_time' => $this->p95ResponseTime,
+            'project_id' => $this->projectId,
             'configurations' => ConfigurationResource::collection($this->configurations ?? [])->resolve(),
             'created_at' => $this->createdAt,
             'updated_at' => $this->updatedAt,

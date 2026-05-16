@@ -40,12 +40,35 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Site Limit
+    | Go monitor heartbeat (Redis)
     |--------------------------------------------------------------------------
     |
-    | Maximum number of sites a regular (non-admin) user can create.
-    | Set to 0 for unlimited.
+    | Go writes the full key (REDIS_PREFIX + key) via MONITOR_HEARTBEAT_KEY.
+    | Laravel reads the logical key below; the Redis client adds REDIS_PREFIX.
     |
     */
-    'site_limit' => (int) env('SITE_LIMIT', 3),
+    'heartbeat' => [
+        'key' => 'go_monitor:last_heartbeat',
+        'alert_after_minutes' => max(1, (int) env('MONITOR_HEARTBEAT_ALERT_AFTER_MINUTES', 5)),
+        'alert_throttle_minutes' => max(1, (int) env('MONITOR_HEARTBEAT_ALERT_THROTTLE_MINUTES', 30)),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Go monitor HTTP health (active liveness probe from Laravel)
+    |--------------------------------------------------------------------------
+    |
+    | When the Redis heartbeat is stale, Laravel calls the monitor /health
+    | endpoint before alerting. Prevents false positives when checks still run.
+    |
+    */
+    'health' => [
+        'url' => env('MONITOR_HEALTH_URL', 'http://digipulse-monitor:8080/health'),
+        'timeout_seconds' => max(1, (int) env('MONITOR_HEALTH_TIMEOUT_SEC', 5)),
+    ],
+
+    'site_limits' => [
+        'default' => (int) env('SITE_LIMIT_DEFAULT', 6),
+        'agency' => (int) env('SITE_LIMIT_AGENCY', 60),
+    ],
 ];

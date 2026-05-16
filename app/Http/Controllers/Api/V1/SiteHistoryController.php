@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\SiteHistoryResource;
@@ -16,7 +16,7 @@ use OpenApi\Attributes as OA;
 class SiteHistoryController extends Controller
 {
     #[OA\Get(
-        path: '/api/sites/{site}/history',
+        path: '/api/v1/sites/{site}/history',
         description: 'Returns hourly aggregated stats (avg response time, uptime %) and a list of individual "down" incidents for the given ISO week. Defaults to the current week if no `week` param is provided. For past weeks (older than 7 days), data is served from the weekly archive.',
         summary: 'Get aggregated check history for a site',
         security: [['frontendKey' => []], ['bearerAuth' => []]],

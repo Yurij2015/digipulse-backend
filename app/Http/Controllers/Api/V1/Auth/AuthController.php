@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api\Auth;
+namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Auth\LoginRequest;
@@ -16,7 +16,7 @@ class AuthController extends Controller
     public function __construct(private readonly AuthService $authService) {}
 
     #[OA\Post(
-        path: '/api/register',
+        path: '/api/v1/register',
         summary: 'Register a new user',
         security: [['frontendKey' => []]],
         requestBody: new OA\RequestBody(
@@ -49,7 +49,7 @@ class AuthController extends Controller
     }
 
     #[OA\Post(
-        path: '/api/login',
+        path: '/api/v1/login',
         operationId: 'loginUser',
         description: 'Authenticate a user and return a token',
         summary: 'Login user',
@@ -89,7 +89,7 @@ class AuthController extends Controller
     }
 
     #[OA\Post(
-        path: '/api/logout',
+        path: '/api/v1/logout',
         operationId: 'logoutUser',
         description: 'Revoke the authenticated user\'s tokens',
         summary: 'Logout user',
@@ -124,7 +124,7 @@ class AuthController extends Controller
     }
 
     #[OA\Get(
-        path: '/api/me',
+        path: '/api/v1/me',
         operationId: 'getMe',
         summary: 'Get authenticated user',
         security: [['frontendKey' => []], ['bearerAuth' => []]],

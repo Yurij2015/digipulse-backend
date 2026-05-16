@@ -19,7 +19,7 @@ it('lists only the authenticated user\'s tickets', function () {
 
     Sanctum::actingAs($this->user);
 
-    $response = $this->getJson(route('support.tickets.index'), ['X-Frontend-Key' => $this->frontendKey]);
+    $response = $this->getJson(route('v1.support.tickets.index'), ['X-Frontend-Key' => $this->frontendKey]);
 
     $response->assertStatus(200)
         ->assertJsonCount(1, 'data');
@@ -32,7 +32,7 @@ it('can view own ticket with messages', function () {
 
     Sanctum::actingAs($this->user);
 
-    $this->getJson(route('support.tickets.show', $ticket), ['X-Frontend-Key' => $this->frontendKey])
+    $this->getJson(route('v1.support.tickets.show', $ticket), ['X-Frontend-Key' => $this->frontendKey])
         ->assertStatus(200)
         ->assertJsonPath('data.id', $ticket->id);
 });
@@ -42,7 +42,7 @@ it('cannot view another user\'s ticket', function () {
 
     Sanctum::actingAs($this->user);
 
-    $this->getJson(route('support.tickets.show', $ticket), ['X-Frontend-Key' => $this->frontendKey])
+    $this->getJson(route('v1.support.tickets.show', $ticket), ['X-Frontend-Key' => $this->frontendKey])
         ->assertStatus(403);
 });
 
@@ -50,7 +50,7 @@ it('can create a support ticket', function () {
     Notification::fake();
     Sanctum::actingAs($this->user);
 
-    $this->postJson(route('support.tickets.store'), [
+    $this->postJson(route('v1.support.tickets.store'), [
         'subject' => 'Need help',
         'message' => 'Something is not working.',
         'priority' => 'high',
@@ -72,7 +72,7 @@ it('can reply to own ticket', function () {
 
     Sanctum::actingAs($this->user);
 
-    $this->postJson(route('support.tickets.reply', $ticket), [
+    $this->postJson(route('v1.support.tickets.reply', $ticket), [
         'message' => 'Here is more detail.',
     ], ['X-Frontend-Key' => $this->frontendKey])
         ->assertStatus(201);
@@ -90,7 +90,7 @@ it('cannot reply to another user\'s ticket', function () {
 
     Sanctum::actingAs($this->user);
 
-    $this->postJson(route('support.tickets.reply', $ticket), [
+    $this->postJson(route('v1.support.tickets.reply', $ticket), [
         'message' => 'Sneaky reply.',
     ], ['X-Frontend-Key' => $this->frontendKey])
         ->assertStatus(403);
@@ -103,7 +103,7 @@ it('reopens a closed ticket when user replies', function () {
 
     Sanctum::actingAs($this->user);
 
-    $this->postJson(route('support.tickets.reply', $ticket), [
+    $this->postJson(route('v1.support.tickets.reply', $ticket), [
         'message' => 'Still having issues.',
     ], ['X-Frontend-Key' => $this->frontendKey])
         ->assertStatus(201);

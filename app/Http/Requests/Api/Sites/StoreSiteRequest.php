@@ -4,17 +4,18 @@ namespace App\Http\Requests\Api\Sites;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 use OpenApi\Attributes as OA;
 
 #[OA\Schema(
     schema: 'StoreSiteRequest',
-    type: 'object',
     required: ['name', 'url'],
     properties: [
         new OA\Property(property: 'name', type: 'string', example: 'Example Site'),
         new OA\Property(property: 'url', type: 'string', format: 'url', example: 'https://example.com'),
-        new OA\Property(property: 'update_interval', type: 'integer', example: 300, description: 'Interval in seconds'),
+        new OA\Property(property: 'update_interval', description: 'Interval in seconds', type: 'integer', example: 300),
         new OA\Property(property: 'is_active', type: 'boolean', example: true),
+        new OA\Property(property: 'project_id', type: 'integer', example: 1, nullable: true),
         new OA\Property(
             property: 'checks',
             type: 'array',
@@ -26,7 +27,8 @@ use OpenApi\Attributes as OA;
                 type: 'object'
             )
         ),
-    ]
+    ],
+    type: 'object'
 )]
 class StoreSiteRequest extends FormRequest
 {
@@ -48,6 +50,11 @@ class StoreSiteRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'url' => ['required', 'url', 'max:255', 'unique:sites,url'],
+            'project_id' => [
+                'sometimes',
+                'nullable',
+                Rule::exists('projects', 'id')->where('user_id', $this->user()?->id),
+            ],
             'update_interval' => ['sometimes', 'integer', 'min:60', 'max:86400'],
             'is_active' => ['sometimes', 'boolean'],
             'checks' => ['sometimes', 'array'],

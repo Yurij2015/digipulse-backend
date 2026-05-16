@@ -127,3 +127,44 @@ The Go-based monitor service logs its activity to the Docker stdout.
    * **Redis**: `monitoring:results` should not accumulate when consumer is running.
    * **Consumer logs**: Should show no validation/processing errors.
 5. **Database**: Check the **Sites Dashboard** in the browser to see the updated status.
+
+---
+
+## 5. Laravel Octane (Application Server)
+
+The backend runs on **Laravel Octane** with FrankenPHP as the application server. Unlike a standard PHP-FPM setup, Octane keeps workers in memory, which means **code changes are NOT picked up automatically**.
+
+### Reloading Workers After Code Changes
+
+After modifying any PHP file (controllers, models, services, providers, etc.), reload the workers without downtime:
+
+```bash
+docker exec digipulse-app php artisan octane:reload
+```
+
+This performs a **hot reload** — workers are replaced one by one, so there is no service interruption.
+
+### Restarting the Full Container
+
+If `octane:reload` doesn't help (e.g., config changes, new service providers, `.env` changes), restart the container:
+
+```bash
+docker restart digipulse-app
+```
+
+### Checking Octane Status
+
+```bash
+docker exec digipulse-app php artisan octane:status
+```
+
+### When to use each
+
+| Situation | Command |
+|---|---|
+| Changed a controller / model / service | `octane:reload` |
+| Changed `.env` or `config/` | `docker restart digipulse-app` |
+| Added a new Service Provider | `docker restart digipulse-app` |
+| Something feels stuck / weird | `docker restart digipulse-app` |
+
+> **Note:** Running tests via `php artisan test` inside the container does NOT require an Octane reload — tests boot their own application instance.

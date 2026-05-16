@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api\Auth;
+namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -12,7 +12,7 @@ use OpenApi\Attributes as OA;
 class EmailVerificationController extends Controller
 {
     #[OA\Post(
-        path: '/api/email/verification-notification',
+        path: '/api/v1/email/verification-notification',
         operationId: 'sendVerificationNotification',
         description: 'Send a verification email to the authenticated user',
         summary: 'Send email verification notification',
@@ -52,7 +52,7 @@ class EmailVerificationController extends Controller
     }
 
     #[OA\Post(
-        path: '/api/email/verify',
+        path: '/api/v1/email/verify',
         summary: 'Verify email address',
         description: 'Verify user email using POST request with signature',
         operationId: 'verifyEmail',

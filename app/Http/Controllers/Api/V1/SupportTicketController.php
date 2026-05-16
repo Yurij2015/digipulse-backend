@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\V1;
 
 use App\Events\MessageSent;
 use App\Http\Controllers\Controller;
@@ -13,16 +13,16 @@ use App\Notifications\NewSupportTicketNotification;
 use App\Notifications\SupportTicketReplyNotification;
 use Filament\Notifications\Notification;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use OpenApi\Attributes as OA;
 
 class SupportTicketController extends Controller
 {
     #[OA\Get(
-        path: '/api/support/tickets',
+        path: '/api/v1/support/tickets',
         summary: 'List user support tickets',
         security: [['frontendKey' => []], ['bearerAuth' => []]],
         tags: ['Support'],
@@ -48,7 +48,7 @@ class SupportTicketController extends Controller
     }
 
     #[OA\Get(
-        path: '/api/support/tickets/{ticket}',
+        path: '/api/v1/support/tickets/{ticket}',
         summary: 'Get specific support ticket',
         security: [['frontendKey' => []], ['bearerAuth' => []]],
         tags: ['Support'],
@@ -88,7 +88,7 @@ class SupportTicketController extends Controller
     }
 
     #[OA\Post(
-        path: '/api/support/tickets',
+        path: '/api/v1/support/tickets',
         summary: 'Create a new support ticket',
         security: [['frontendKey' => []], ['bearerAuth' => []]],
         requestBody: new OA\RequestBody(
@@ -155,7 +155,7 @@ class SupportTicketController extends Controller
     }
 
     #[OA\Post(
-        path: '/api/support/tickets/{ticket}/reply',
+        path: '/api/v1/support/tickets/{ticket}/reply',
         summary: 'Add a message to an existing ticket',
         security: [['frontendKey' => []], ['bearerAuth' => []]],
         requestBody: new OA\RequestBody(

@@ -47,17 +47,21 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
         );
     }
 
-    public function findByUser(int $userId): array
+    public function findByUser(int $userId, ?int $projectId = null): array
     {
-        $sites = EloquentSite::where('user_id', $userId)
+        $query = EloquentSite::where('user_id', $userId)
             ->with([
                 'latestCheck',
                 'latestHttpCheck',
                 'latestSslCheck',
                 'latestPingCheck',
-            ])
-            ->latest()
-            ->get();
+            ]);
+
+        if ($projectId !== null) {
+            $query->where('project_id', $projectId);
+        }
+
+        $sites = $query->latest()->get();
 
         $siteIntervals = $sites->pluck('update_interval', 'id')->toArray();
         $statsBySiteId = $this->statsRepository->loadForSites($siteIntervals);
@@ -80,6 +84,7 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
     {
         $site = EloquentSite::create([
             'user_id' => $dto->userId,
+            'project_id' => $dto->projectId,
             'name' => $dto->name,
             'url' => $dto->url,
             'update_interval' => $dto->updateInterval,
@@ -95,8 +100,13 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
     {
         $site = EloquentSite::findOrFail($id);
         $site->update($data);
+        $site->load(['latestCheck', 'latestHttpCheck', 'latestSslCheck', 'latestPingCheck']);
 
-        return $this->mapper->toDomain($site, configurations: $this->getCachedConfigurations($site->id));
+        return $this->mapper->toDomain(
+            $site,
+            $this->statsRepository->loadForSite($site->id, $site->update_interval),
+            $this->getCachedConfigurations($site->id),
+        );
     }
 
     /**
@@ -118,7 +128,10 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
                 $updatedIds[] = $config->id;
             }
 
-            $site->configurations()->whereNotIn('id', $updatedIds)->delete();
+            // Deactivate removed configurations instead of deleting to preserve check_results history
+            $site->configurations()
+                ->whereNotIn('id', $updatedIds)
+                ->update(['is_active' => false]);
         });
 
         $this->clearConfigurationsCache($siteId);
@@ -171,6 +184,7 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
         $version = self::CONFIG_CACHE_VERSION;
         $cached = Cache::remember("site_{$siteId}_configurations_{$version}", self::CONFIG_CACHE_TTL, function () use ($siteId) {
             return SiteCheckConfiguration::where('site_id', $siteId)
+                ->where('is_active', true)
                 ->with('checkType')
                 ->get()
                 ->map(fn (SiteCheckConfiguration $c) => $this->configurationMapper->toDomain($c)->toArray())
