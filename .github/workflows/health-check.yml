@@ -15,10 +15,12 @@ jobs:
     steps:
       - name: Check API health
         id: check
+        env:
+          FRONTEND_KEY: ${{ secrets.FRONTEND_KEY }}
         run: |
           response=$(curl -s -o /dev/null -w "%{http_code}" \
             --max-time 10 \
-            -H "X-Frontend-Key: ${{ vars.FRONTEND_KEY }}" \
+            -H "X-Frontend-Key: ${FRONTEND_KEY}" \
             https://panel-pulse.digispace.pro/api/v1/health)
           echo "status=$response" >> $GITHUB_OUTPUT
           if [ "$response" != "200" ]; then
