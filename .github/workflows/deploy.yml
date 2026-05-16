@@ -55,12 +55,7 @@ jobs:
           path: ${{ github.sha }}.tar.gz
       - name: Export deployment matrix
         id: export-deployment-matrix
-        run: |
-          delimiter="$(openssl rand -hex 8)"
-          JSON="$(cat ./deployment-config.json)"
-          echo "DEPLOYMENT_MATRIX<<${delimiter}" >> "${GITHUB_OUTPUT}"
-          echo "$JSON" >> "${GITHUB_OUTPUT}"
-          echo "${delimiter}" >> "${GITHUB_OUTPUT}"
+        uses: ./.github/actions/export-deploy-matrix
 
       - name: Check if Docker image needs rebuild
         id: docker-check
@@ -393,9 +388,8 @@ jobs:
           port: ${{ matrix.server.port }}
           envs: GITHUB_SHA,RELEASE_PATH,ACTIVE_RELEASE_PATH,STORAGE_PATH,BASE_PATH
           script: |
-            HOOKS="${{ matrix.server.beforeHooks }}"
-            if [ -n "$HOOKS" ]; then
-              eval "$HOOKS"
+            if [ -n "${{ vars.DEPLOY_BEFORE_HOOKS }}" ]; then
+              eval "${{ vars.DEPLOY_BEFORE_HOOKS }}"
             fi
 
   activate-release:
@@ -453,7 +447,8 @@ jobs:
       matrix:
         server: ${{ fromJson(needs.create-deployment-artifacts.outputs.DEPLOYMENT_MATRIX) }}
     steps:
-      - name: Run after hooks
+      - uses: actions/checkout@v6
+      - name: Run after deploy
         uses: appleboy/ssh-action@v1.2.5
         env:
           GITHUB_SHA: ${{ github.sha }}
@@ -461,18 +456,24 @@ jobs:
           ACTIVE_RELEASE_PATH: ${{ matrix.server.path }}/current
           STORAGE_PATH: ${{ matrix.server.path }}/storage
           BASE_PATH: ${{ matrix.server.path }}
-          AFTER_HOOKS: ${{ matrix.server.afterHooks }}
         with:
           host: ${{ matrix.server.ip }}
           username: ${{ matrix.server.username }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ matrix.server.port }}
-          envs: GITHUB_SHA,RELEASE_PATH,ACTIVE_RELEASE_PATH,STORAGE_PATH,BASE_PATH,AFTER_HOOKS
+          envs: GITHUB_SHA,RELEASE_PATH,ACTIVE_RELEASE_PATH,STORAGE_PATH,BASE_PATH
+          script_path: .github/scripts/after-deploy.sh
+      - name: Optional extra after deploy commands
+        if: ${{ vars.DEPLOY_AFTER_HOOKS != '' }}
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ matrix.server.ip }}
+          username: ${{ matrix.server.username }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ matrix.server.port }}
           script: |
             set -euo pipefail
-            if [ -n "${AFTER_HOOKS:-}" ]; then
-              eval "$AFTER_HOOKS"
-            fi
+            eval "${{ vars.DEPLOY_AFTER_HOOKS }}"
 
   clean-up:
     name: "${{ matrix.server.name }}: Clean up"
