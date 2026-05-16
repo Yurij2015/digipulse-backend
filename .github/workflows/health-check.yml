@@ -19,7 +19,7 @@ jobs:
           response=$(curl -s -o /dev/null -w "%{http_code}" \
             --max-time 10 \
             -H "X-Frontend-Key: ${{ vars.FRONTEND_KEY }}" \
-            https://panel-pulse.digispace.pro/api/health)
+            https://panel-pulse.digispace.pro/api/v1/health)
           echo "status=$response" >> $GITHUB_OUTPUT
           if [ "$response" != "200" ]; then
             echo "API is down or degraded! HTTP status: $response"
@@ -32,4 +32,4 @@ jobs:
           curl -s -X POST "https://api.telegram.org/bot${{ vars.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="${{ vars.TELEGRAM_ADMIN_CHAT_ID }}" \
             -d parse_mode="HTML" \
-            -d text="🔴 <b>DigiPulse API is down!</b>%0A%0AHTTP status: ${{ steps.check.outputs.status }}%0Ahttps://panel-pulse.digispace.pro/api/health"
+            -d text="🔴 <b>DigiPulse API is down!</b>%0A%0AHTTP status: ${{ steps.check.outputs.status }}%0Ahttps://panel-pulse.digispace.pro/api/v1/health"
