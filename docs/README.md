@@ -27,6 +27,7 @@ How to use the interactive Swagger UI for testing and exploring the API endpoint
 - **[Scheduling & Dispatching](./scheduling.md)** - How checks are queued.
 - **[Development Tools](./monitoring_tools.md)** - Useful tools for monitoring during development.
 - **[Testing Strategy](./testing.md)** - Guide to running tests in DigiPulse.
+- **[CI/CD Pipeline](./cicd.md)** - GitHub Actions workflows, deployment matrix, and server configuration.
 
 ---
 

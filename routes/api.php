@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
+use App\Http\Controllers\Api\V1\Mcp\IncidentsController;
+use App\Http\Controllers\Api\V1\Mcp\OverviewController;
+use App\Http\Controllers\Api\V1\Mcp\SiteHistoryController as McpSiteHistoryController;
 use App\Http\Controllers\Api\V1\Auth\EmailVerificationController;
 use App\Http\Controllers\Api\V1\Auth\PasswordResetController;
 use App\Http\Controllers\Api\V1\Auth\ProfileController;
@@ -80,6 +83,12 @@ Route::prefix('v1')->name('v1.')->group(function () {
 
             Route::get('/telegram/connect', [TelegramController::class, 'connect'])->name('telegram.connect');
             Route::post('/telegram/disconnect', [TelegramController::class, 'disconnect'])->name('telegram.disconnect');
+
+            Route::prefix('mcp')->name('mcp.')->group(function () {
+                Route::get('/overview', OverviewController::class)->name('overview');
+                Route::get('/sites/{siteId}/history', McpSiteHistoryController::class)->name('sites.history');
+                Route::get('/incidents', IncidentsController::class)->name('incidents');
+            });
         });
     });
 });
