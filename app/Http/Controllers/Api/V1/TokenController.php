@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Tokens\CreateTokenRequest;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use OpenApi\Attributes as OA;
 
 class TokenController extends Controller
@@ -42,11 +44,16 @@ class TokenController extends Controller
     )]
     public function index(Request $request): JsonResponse
     {
-        $tokens = $request->user()
-            ->tokens()
-            ->where('name', '!=', 'auth_token')
-            ->orderByDesc('created_at')
-            ->get(['id', 'name', 'created_at', 'last_used_at']);
+        $userId = $request->user()->id;
+
+        $tokens = Cache::remember("user_tokens:{$userId}", 300, static function () use ($userId) {
+            return User::find($userId)
+                ->tokens()
+                ->where('name', '!=', 'auth_token')
+                ->orderByDesc('created_at')
+                ->get(['id', 'name', 'created_at', 'last_used_at'])
+                ->toArray();
+        });
 
         return response()->json(['tokens' => $tokens]);
     }
@@ -90,6 +97,8 @@ class TokenController extends Controller
         $base = rtrim(config('app.mcp_server_url') ?: config('app.url'), '/');
         $mcpUrl = $base.'/mcp?token='.$newToken->plainTextToken;
 
+        Cache::forget("user_tokens:{$request->user()->id}");
+
         return response()->json([
             'id' => $newToken->accessToken->id,
             'name' => $newToken->accessToken->name,
@@ -124,6 +133,8 @@ class TokenController extends Controller
         if (! $deleted) {
             return response()->json(['message' => 'Token not found'], 404);
         }
+
+        Cache::forget("user_tokens:{$request->user()->id}");
 
         return response()->json(null, 204);
     }
