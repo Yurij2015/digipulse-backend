@@ -20,6 +20,13 @@ interface SiteManagementRepositoryInterface
     public function findByUser(int $userId, ?int $projectId = null): array;
 
     /**
+     * Get site IDs for a user, optionally filtered by project and/or specific site.
+     *
+     * @return int[]
+     */
+    public function findIdsByUser(int $userId, ?int $projectId = null, ?int $siteId = null): array;
+
+    /**
      * Count total sites for a user.
      */
     public function countByUser(int $userId): int;
