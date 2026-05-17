@@ -75,6 +75,15 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
             ->toArray();
     }
 
+    public function findIdsByUser(int $userId, ?int $projectId = null, ?int $siteId = null): array
+    {
+        return EloquentSite::where('user_id', $userId)
+            ->when($projectId !== null, fn ($q) => $q->where('project_id', $projectId))
+            ->when($siteId !== null, fn ($q) => $q->where('id', $siteId))
+            ->pluck('id')
+            ->toArray();
+    }
+
     public function countByUser(int $userId): int
     {
         return EloquentSite::where('user_id', $userId)->count();

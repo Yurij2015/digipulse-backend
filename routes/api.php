@@ -1,20 +1,21 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
-use App\Http\Controllers\Api\V1\Mcp\IncidentsController;
-use App\Http\Controllers\Api\V1\Mcp\OverviewController;
-use App\Http\Controllers\Api\V1\Mcp\SiteHistoryController as McpSiteHistoryController;
 use App\Http\Controllers\Api\V1\Auth\EmailVerificationController;
 use App\Http\Controllers\Api\V1\Auth\PasswordResetController;
 use App\Http\Controllers\Api\V1\Auth\ProfileController;
 use App\Http\Controllers\Api\V1\CheckTypeController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\KnowledgeBaseController;
+use App\Http\Controllers\Api\V1\Mcp\IncidentsController;
+use App\Http\Controllers\Api\V1\Mcp\OverviewController;
+use App\Http\Controllers\Api\V1\Mcp\SiteHistoryController as McpSiteHistoryController;
 use App\Http\Controllers\Api\V1\ProjectController;
 use App\Http\Controllers\Api\V1\SiteController;
 use App\Http\Controllers\Api\V1\SiteHistoryController;
 use App\Http\Controllers\Api\V1\SupportTicketController;
 use App\Http\Controllers\Api\V1\TelegramController;
+use App\Http\Controllers\Api\V1\TokenController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('v1.')->group(function () {
@@ -83,6 +84,10 @@ Route::prefix('v1')->name('v1.')->group(function () {
 
             Route::get('/telegram/connect', [TelegramController::class, 'connect'])->name('telegram.connect');
             Route::post('/telegram/disconnect', [TelegramController::class, 'disconnect'])->name('telegram.disconnect');
+
+            Route::get('/tokens', [TokenController::class, 'index'])->name('tokens.index');
+            Route::post('/tokens', [TokenController::class, 'store'])->name('tokens.store');
+            Route::delete('/tokens/{id}', [TokenController::class, 'destroy'])->name('tokens.destroy');
 
             Route::prefix('mcp')->name('mcp.')->group(function () {
                 Route::get('/overview', OverviewController::class)->name('overview');

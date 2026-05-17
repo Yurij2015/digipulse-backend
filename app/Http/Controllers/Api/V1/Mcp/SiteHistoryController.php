@@ -9,9 +9,48 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use OpenApi\Attributes as OA;
 
 class SiteHistoryController extends Controller
 {
+    #[OA\Get(
+        path: '/api/v1/mcp/sites/{siteId}/history',
+        operationId: 'mcpSiteHistory',
+        description: 'Returns aggregated uptime and response time stats for a site. Intended for MCP tool use.',
+        summary: 'MCP: site check history',
+        security: [['frontendKey' => []], ['bearerAuth' => []]],
+        tags: ['MCP'],
+        parameters: [
+            new OA\Parameter(name: 'siteId', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'from', in: 'query', required: false, schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'to', in: 'query', required: false, schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'granularity', in: 'query', required: false, schema: new OA\Schema(type: 'string', enum: ['hour', 'day'], default: 'hour')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Site history',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            properties: [
+                                new OA\Property(property: 'site_id', type: 'integer'),
+                                new OA\Property(property: 'from', type: 'string', format: 'date-time'),
+                                new OA\Property(property: 'to', type: 'string', format: 'date-time'),
+                                new OA\Property(property: 'granularity', type: 'string'),
+                                new OA\Property(property: 'stats', type: 'array', items: new OA\Items(type: 'object')),
+                                new OA\Property(property: 'incidents', type: 'array', items: new OA\Items(type: 'object')),
+                            ],
+                            type: 'object'
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthorized'),
+            new OA\Response(response: 404, description: 'Site not found'),
+        ]
+    )]
     public function __invoke(Request $request, int $siteId): JsonResponse
     {
         $site = Site::where('id', $siteId)

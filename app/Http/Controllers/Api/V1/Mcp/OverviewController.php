@@ -9,6 +9,7 @@ use App\Domain\Monitoring\Models\Site as DomainSite;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use OpenApi\Attributes as OA;
 
 class OverviewController extends Controller
 {
@@ -17,6 +18,48 @@ class OverviewController extends Controller
         private readonly ProjectRepositoryInterface $projectRepository,
     ) {}
 
+    #[OA\Get(
+        path: '/api/v1/mcp/overview',
+        operationId: 'mcpOverview',
+        description: 'Returns all user sites grouped by project with status summary. Intended for MCP tool use.',
+        summary: 'MCP: sites and projects overview',
+        security: [['frontendKey' => []], ['bearerAuth' => []]],
+        tags: ['MCP'],
+        parameters: [
+            new OA\Parameter(name: 'project_id', in: 'query', required: false, schema: new OA\Schema(type: 'integer')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Overview data',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(
+                            property: 'data',
+                            properties: [
+                                new OA\Property(property: 'projects', type: 'array', items: new OA\Items(type: 'object')),
+                                new OA\Property(property: 'sites_without_project', type: 'array', items: new OA\Items(type: 'object')),
+                                new OA\Property(
+                                    property: 'summary',
+                                    properties: [
+                                        new OA\Property(property: 'total_sites', type: 'integer'),
+                                        new OA\Property(property: 'up', type: 'integer'),
+                                        new OA\Property(property: 'down', type: 'integer'),
+                                        new OA\Property(property: 'pending', type: 'integer'),
+                                        new OA\Property(property: 'avg_uptime', type: 'number'),
+                                        new OA\Property(property: 'avg_response_time', type: 'number'),
+                                    ],
+                                    type: 'object'
+                                ),
+                            ],
+                            type: 'object'
+                        ),
+                    ]
+                )
+            ),
+            new OA\Response(response: 401, description: 'Unauthorized'),
+        ]
+    )]
     public function __invoke(Request $request): JsonResponse
     {
         $userId = $request->user()->id;
