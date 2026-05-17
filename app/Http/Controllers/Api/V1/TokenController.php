@@ -87,7 +87,8 @@ class TokenController extends Controller
     {
         $newToken = $request->user()->createToken($request->name, ['mcp']);
 
-        $mcpUrl = rtrim(config('app.url'), '/').'/mcp?token='.$newToken->plainTextToken;
+        $base = rtrim(config('app.mcp_server_url') ?: config('app.url'), '/');
+        $mcpUrl = $base.'/mcp?token='.$newToken->plainTextToken;
 
         return response()->json([
             'id' => $newToken->accessToken->id,

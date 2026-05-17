@@ -103,6 +103,7 @@ GitHub Actions matrix strategy automatically parallelizes all deployment jobs fo
 | `PUSHER_APP_ID` / `PUSHER_APP_KEY` / `PUSHER_APP_CLUSTER` | Pusher config |
 | `FILAMENT_ADMIN_EMAIL` | Initial Filament admin email |
 | `FRONTEND_URL` | Frontend app URL |
+| `MCP_SERVER_URL` | MCP server public URL (used to generate token connection links; falls back to `APP_URL` if empty) |
 | `SENTRY_TRACES_SAMPLE_RATE` | Sentry tracing sample rate |
 | `DEPLOY_BEFORE_HOOKS` | Optional shell commands run before release activation |
 | `DEPLOY_AFTER_HOOKS` | Optional shell commands run after release activation |
