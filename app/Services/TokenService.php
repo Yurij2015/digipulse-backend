@@ -27,8 +27,8 @@ class TokenService
                 return [
                     'id' => $token->id,
                     'name' => $token->name,
-                    'created_at' => $token->created_at,
-                    'last_used_at' => $token->last_used_at,
+                    'created_at' => $token->created_at?->toISOString(),
+                    'last_used_at' => $token->last_used_at?->toISOString(),
                     'total_requests' => $usage ? (int) $usage->total_requests : 0,
                 ];
             })->all();
@@ -47,7 +47,7 @@ class TokenService
             'id' => $newToken->accessToken->id,
             'name' => $newToken->accessToken->name,
             'mcp_url' => $base.'/mcp?token='.$newToken->plainTextToken,
-            'created_at' => $newToken->accessToken->created_at,
+            'created_at' => $newToken->accessToken->created_at?->toISOString(),
         ];
     }
 
