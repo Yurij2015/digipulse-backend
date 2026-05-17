@@ -21,14 +21,16 @@ describe('GET /tokens/{id}/usage', function () {
         McpTokenUsage::track($this->user->id, $token->id, 'v1.mcp.overview');
         McpTokenUsage::track($this->user->id, $token->id, 'v1.mcp.incidents');
 
-        $this->getJson(route('v1.tokens.usage', $token->id), $this->headers)
+        $response = $this->getJson(route('v1.tokens.usage', $token->id), $this->headers)
             ->assertOk()
             ->assertJsonStructure(['token_id', 'token_name', 'total_requests', 'by_endpoint', 'by_day'])
             ->assertJsonPath('token_id', $token->id)
             ->assertJsonPath('token_name', 'My token')
-            ->assertJsonPath('total_requests', 3)
-            ->assertJsonPath('by_endpoint.v1.mcp.overview', 2)
-            ->assertJsonPath('by_endpoint.v1.mcp.incidents', 1);
+            ->assertJsonPath('total_requests', 3);
+
+        $byEndpoint = $response->json('by_endpoint');
+        expect($byEndpoint['v1.mcp.overview'])->toBe(2)
+            ->and($byEndpoint['v1.mcp.incidents'])->toBe(1);
     });
 
     it('returns zero stats when no usage recorded', function () {
