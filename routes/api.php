@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\SiteHistoryController;
 use App\Http\Controllers\Api\V1\SupportTicketController;
 use App\Http\Controllers\Api\V1\TelegramController;
 use App\Http\Controllers\Api\V1\TokenController;
+use App\Http\Middleware\TrackMcpUsage;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->name('v1.')->group(function () {
@@ -87,9 +88,10 @@ Route::prefix('v1')->name('v1.')->group(function () {
 
             Route::get('/tokens', [TokenController::class, 'index'])->name('tokens.index');
             Route::post('/tokens', [TokenController::class, 'store'])->name('tokens.store');
+            Route::get('/tokens/{id}/usage', [TokenController::class, 'usage'])->name('tokens.usage');
             Route::delete('/tokens/{id}', [TokenController::class, 'destroy'])->name('tokens.destroy');
 
-            Route::prefix('mcp')->name('mcp.')->group(function () {
+            Route::prefix('mcp')->name('mcp.')->middleware(TrackMcpUsage::class)->group(function () {
                 Route::get('/overview', OverviewController::class)->name('overview');
                 Route::get('/sites/{siteId}/history', McpSiteHistoryController::class)->name('sites.history');
                 Route::get('/incidents', IncidentsController::class)->name('incidents');
