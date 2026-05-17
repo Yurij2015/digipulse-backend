@@ -16,7 +16,7 @@ class TrackMcpUsage
 
         $token = $request->user()?->currentAccessToken();
 
-        if ($token instanceof PersonalAccessToken) {
+        if ($token instanceof PersonalAccessToken && $token->exists) {
             $endpoint = $request->route()?->getName() ?? 'unknown';
             McpTokenUsage::track($request->user()->id, $token->id, $endpoint);
         }
