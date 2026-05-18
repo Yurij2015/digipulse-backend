@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Redis;
 
@@ -66,8 +67,35 @@ it('does not alert when heartbeat is missing but monitor http health responds', 
     Notification::assertNothingSent();
 });
 
+it('logs redis heartbeat read details when monitor is not operational', function () {
+    Log::spy();
+
+    SiteCheckConfiguration::factory()->create(['is_active' => true]);
+
+    Http::fake([
+        'http://digipulse-monitor:8080/health' => Http::response('Service Unavailable', 503),
+    ]);
+
+    Redis::del('go_monitor:last_heartbeat');
+
+    Artisan::call('app:check-monitor-heartbeat');
+
+    Log::shouldHaveReceived('error')
+        ->once()
+        ->withArgs(function (string $message, array $context): bool {
+            return $message === 'Go monitor liveness probe (not operational)'
+                && $context['go_monitor']['redis_read']['logical_key'] === 'go_monitor:last_heartbeat'
+                && $context['go_monitor']['redis_read']['redis_prefix'] === 'laravel-database-'
+                && $context['go_monitor']['redis_read']['prefixed_key'] === 'laravel-database-go_monitor:last_heartbeat'
+                && $context['go_monitor']['redis_read']['prefixed_value'] === null
+                && $context['go_monitor']['http_health']['status'] === 503
+                && $context['go_monitor']['check_results']['recent'] === false;
+        });
+});
+
 it('alerts admin when heartbeat, http health, and check results are all absent', function () {
     Notification::fake();
+    Log::spy();
     Cache::forget('go_monitor:heartbeat_alert_sent');
 
     SiteCheckConfiguration::factory()->create(['is_active' => true]);

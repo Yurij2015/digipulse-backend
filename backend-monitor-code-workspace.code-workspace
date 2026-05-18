@@ -11,6 +11,9 @@
 		},
 		{
 			"path": "../infrastructure"
+		},
+		{
+			"path": "../mcp-server"
 		}
 	],
 	"settings": {}
