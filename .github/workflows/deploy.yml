@@ -269,6 +269,7 @@ jobs:
             FILAMENT_ADMIN_EMAIL=$(get_val "${{ vars.FILAMENT_ADMIN_EMAIL }}" "")
             FRONTEND_URL=$(get_val "${{ vars.FRONTEND_URL }}" "")
             MCP_SERVER_URL=$(get_val "${{ vars.MCP_SERVER_URL }}" "")
+            TELESCOPE_ENABLED=$(get_val "${{ vars.TELESCOPE_ENABLED }}" "false")
             TELESCOPE_ALLOWED_EMAILS=$(get_val "${{ vars.TELESCOPE_ALLOWED_EMAILS }}" "")
             TELESCOPE_ALLOWED_IPS=$(get_val "${{ vars.TELESCOPE_ALLOWED_IPS }}" "")
             TELESCOPE_RECORD_ALL=$(get_val "${{ vars.TELESCOPE_RECORD_ALL }}" "false")
@@ -366,6 +367,7 @@ jobs:
             MONITOR_HEALTH_TIMEOUT_SEC=5
             MONITOR_HEARTBEAT_LOG_READS=false
 
+            TELESCOPE_ENABLED=$TELESCOPE_ENABLED
             TELESCOPE_ALLOWED_EMAILS=$TELESCOPE_ALLOWED_EMAILS
             TELESCOPE_ALLOWED_IPS=$TELESCOPE_ALLOWED_IPS
             TELESCOPE_RECORD_ALL=$TELESCOPE_RECORD_ALL
