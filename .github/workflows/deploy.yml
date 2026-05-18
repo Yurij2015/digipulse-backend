@@ -282,6 +282,8 @@ jobs:
             SENTRY_LARAVEL_DSN=$(get_val "${{ secrets.SENTRY_LARAVEL_DSN }}" "")
             SENTRY_TRACES_SAMPLE_RATE=$(get_val "${{ vars.SENTRY_TRACES_SAMPLE_RATE }}" "0.2")
 
+            LOG_LEVEL=$(get_val "${{ vars.LOG_LEVEL }}" "error")
+
             # Generate .env file
             cat > ${{ matrix.server.path }}/.env << ENVEOF
             APP_NAME="DigiPulse"
@@ -351,7 +353,7 @@ jobs:
             OCTANE_SERVER=frankenphp
             LOG_CHANNEL=stack
             LOG_STACK=daily
-            LOG_LEVEL=error
+            LOG_LEVEL=$LOG_LEVEL
 
             # Monitoring
             INTERNET_CHECK_ENABLED=true
@@ -362,6 +364,7 @@ jobs:
             MONITOR_RESULTS_CONSUMER_BLOCK_SECONDS=5
             MONITOR_HEALTH_URL=http://digipulse-monitor:8080/health
             MONITOR_HEALTH_TIMEOUT_SEC=5
+            MONITOR_HEARTBEAT_LOG_READS=false
 
             TELESCOPE_ALLOWED_EMAILS=$TELESCOPE_ALLOWED_EMAILS
             TELESCOPE_ALLOWED_IPS=$TELESCOPE_ALLOWED_IPS

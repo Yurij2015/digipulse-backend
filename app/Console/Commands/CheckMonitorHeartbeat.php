@@ -26,7 +26,10 @@ class CheckMonitorHeartbeat extends Command
         $alertAfterMinutes = (int) config('monitoring.heartbeat.alert_after_minutes', 5);
         $alertThrottleMinutes = (int) config('monitoring.heartbeat.alert_throttle_minutes', 30);
 
-        if ($this->heartbeatProbe->isOperational($alertAfterMinutes)) {
+        $evaluation = $this->heartbeatProbe->evaluate($alertAfterMinutes);
+        $this->heartbeatProbe->logProbeCycle($evaluation);
+
+        if ($evaluation['is_operational']) {
             Cache::forget(self::ALERT_THROTTLE_KEY);
 
             return;
@@ -39,8 +42,6 @@ class CheckMonitorHeartbeat extends Command
         }
 
         $minutesSince = $this->heartbeatProbe->minutesSinceLastBeat($alertAfterMinutes);
-
-        $this->heartbeatProbe->logDiagnostics();
 
         Cache::put(self::ALERT_THROTTLE_KEY, true, now()->addMinutes($alertThrottleMinutes));
 

@@ -9,46 +9,69 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
 
-/**
- * Determines whether the Go monitor is operational (Redis heartbeat, HTTP, or DB activity).
- */
 final class MonitorHeartbeatProbe
 {
-    public function lastBeatTimestamp(): ?int
+    public function readHeartbeatFromRedis(int $thresholdMinutes): array
     {
         $logicalKey = (string) config('monitoring.heartbeat.key', 'go_monitor:last_heartbeat');
+        $prefix = (string) config('database.redis.options.prefix', '');
+        $prefixedKey = $prefix.$logicalKey;
 
-        $value = Redis::get($logicalKey);
+        $rawValue = Redis::get($logicalKey);
+        $lastBeat = is_numeric($rawValue) ? (int) $rawValue : null;
+        $ageSeconds = $lastBeat !== null ? time() - $lastBeat : null;
 
-        return is_numeric($value) ? (int) $value : null;
+        return [
+            'logical_key' => $logicalKey,
+            'redis_prefix' => $prefix,
+            'prefixed_key' => $prefixedKey,
+            'prefixed_value' => $this->stringifyRedisValue($rawValue),
+            'last_beat' => $lastBeat,
+            'age_seconds' => $ageSeconds,
+            'heartbeat_healthy' => $lastBeat !== null && $ageSeconds < $thresholdMinutes * 60,
+        ];
+    }
+
+    public function lastBeatTimestamp(): ?int
+    {
+        $thresholdMinutes = (int) config('monitoring.heartbeat.alert_after_minutes', 5);
+
+        return $this->readHeartbeatFromRedis($thresholdMinutes)['last_beat'];
     }
 
     public function isHealthy(int $thresholdMinutes): bool
     {
-        $lastBeat = $this->lastBeatTimestamp();
-
-        return $lastBeat !== null && (time() - $lastBeat) < $thresholdMinutes * 60;
+        return $this->readHeartbeatFromRedis($thresholdMinutes)['heartbeat_healthy'];
     }
 
-    /**
-     * Monitor is considered up when any liveness signal succeeds (not only Redis heartbeat).
-     */
+    public function evaluate(int $thresholdMinutes): array
+    {
+        $redis = $this->readHeartbeatFromRedis($thresholdMinutes);
+        $http = $this->probeHttpHealth();
+        $checkResults = $this->probeRecentCheckResults($thresholdMinutes);
+
+        $isOperational = $redis['heartbeat_healthy']
+            || $checkResults['recent']
+            || $http['reachable'];
+
+        return [
+            'threshold_minutes' => $thresholdMinutes,
+            'redis' => $redis,
+            'http' => $http,
+            'check_results' => $checkResults,
+            'is_operational' => $isOperational,
+        ];
+    }
+
     public function isOperational(int $thresholdMinutes): bool
     {
-        if ($this->isHealthy($thresholdMinutes)) {
-            return true;
-        }
-
-        if ($this->hasRecentCheckResults($thresholdMinutes)) {
-            return true;
-        }
-
-        return $this->isHttpReachable();
+        return $this->evaluate($thresholdMinutes)['is_operational'];
     }
 
     public function minutesSinceLastBeat(int $fallbackMinutes): int
     {
-        $lastBeat = $this->lastBeatTimestamp();
+        $thresholdMinutes = (int) config('monitoring.heartbeat.alert_after_minutes', 5);
+        $lastBeat = $this->readHeartbeatFromRedis($thresholdMinutes)['last_beat'];
 
         if ($lastBeat === null) {
             return $fallbackMinutes;
@@ -57,33 +80,78 @@ final class MonitorHeartbeatProbe
         return (int) round((time() - $lastBeat) / 60);
     }
 
-    /**
-     * Active probe: GET the Go monitor /health endpoint from the app network.
-     */
-    public function isHttpReachable(): bool
+    public function logProbeCycle(array $evaluation): void
+    {
+        $context = [
+            'go_monitor' => [
+                'threshold_minutes' => $evaluation['threshold_minutes'],
+                'is_operational' => $evaluation['is_operational'],
+                'redis_read' => [
+                    'logical_key' => $evaluation['redis']['logical_key'],
+                    'redis_prefix' => $evaluation['redis']['redis_prefix'],
+                    'prefixed_key' => $evaluation['redis']['prefixed_key'],
+                    'prefixed_value' => $evaluation['redis']['prefixed_value'],
+                    'last_beat' => $evaluation['redis']['last_beat'],
+                    'age_seconds' => $evaluation['redis']['age_seconds'],
+                    'heartbeat_healthy' => $evaluation['redis']['heartbeat_healthy'],
+                ],
+                'http_health' => $evaluation['http'],
+                'check_results' => $evaluation['check_results'],
+            ],
+        ];
+
+        if ($evaluation['is_operational']) {
+            if (config('monitoring.heartbeat.log_reads', false)) {
+                Log::info('Go monitor liveness probe (operational)', $context);
+            }
+
+            return;
+        }
+
+        Log::error('Go monitor liveness probe (not operational)', $context);
+    }
+
+    public function probeHttpHealth(): array
     {
         $url = (string) config('monitoring.health.url', '');
 
         if ($url === '') {
-            return false;
+            return [
+                'url' => '',
+                'reachable' => false,
+                'status' => null,
+                'error' => 'MONITOR_HEALTH_URL is empty',
+            ];
         }
 
         try {
             $response = Http::timeout((int) config('monitoring.health.timeout_seconds', 5))
                 ->get($url);
 
-            return $response->successful();
-        } catch (\Throwable) {
-            return false;
+            return [
+                'url' => $url,
+                'reachable' => $response->successful(),
+                'status' => $response->status(),
+                'error' => $response->successful() ? null : 'non-success HTTP status',
+            ];
+        } catch (\Throwable $exception) {
+            return [
+                'url' => $url,
+                'reachable' => false,
+                'status' => null,
+                'error' => $exception->getMessage(),
+            ];
         }
     }
 
-    /**
-     * True when Go monitor + Laravel consumer processed checks recently.
-     */
-    public function hasRecentCheckResults(int $thresholdMinutes): bool
+    public function isHttpReachable(): bool
     {
-        return DB::table('check_results')
+        return $this->probeHttpHealth()['reachable'];
+    }
+
+    public function probeRecentCheckResults(int $thresholdMinutes): array
+    {
+        $recent = DB::table('check_results')
             ->join(
                 'site_check_configurations',
                 'site_check_configurations.id',
@@ -93,19 +161,24 @@ final class MonitorHeartbeatProbe
             ->where('site_check_configurations.is_active', true)
             ->where('check_results.checked_at', '>=', now()->subMinutes($thresholdMinutes))
             ->exists();
+
+        return [
+            'recent' => $recent,
+            'threshold_minutes' => $thresholdMinutes,
+        ];
     }
 
-    public function logDiagnostics(): void
+    public function hasRecentCheckResults(int $thresholdMinutes): bool
     {
-        $thresholdMinutes = (int) config('monitoring.heartbeat.alert_after_minutes', 5);
+        return $this->probeRecentCheckResults($thresholdMinutes)['recent'];
+    }
 
-        Log::warning('Monitor appears down after liveness checks', [
-            'redis_prefix' => config('database.redis.options.prefix'),
-            'heartbeat_key' => config('monitoring.heartbeat.key', 'go_monitor:last_heartbeat'),
-            'last_beat' => $this->lastBeatTimestamp(),
-            'http_url' => config('monitoring.health.url'),
-            'http_reachable' => $this->isHttpReachable(),
-            'recent_check_results' => $this->hasRecentCheckResults($thresholdMinutes),
-        ]);
+    private function stringifyRedisValue(mixed $value): ?string
+    {
+        if ($value === null || $value === false) {
+            return null;
+        }
+
+        return (string) $value;
     }
 }

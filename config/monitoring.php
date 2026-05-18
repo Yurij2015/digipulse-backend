@@ -51,6 +51,7 @@ return [
         'key' => 'go_monitor:last_heartbeat',
         'alert_after_minutes' => max(1, (int) env('MONITOR_HEARTBEAT_ALERT_AFTER_MINUTES', 5)),
         'alert_throttle_minutes' => max(1, (int) env('MONITOR_HEARTBEAT_ALERT_THROTTLE_MINUTES', 30)),
+        'log_reads' => filter_var(env('MONITOR_HEARTBEAT_LOG_READS', false), FILTER_VALIDATE_BOOL),
     ],
 
     /*
