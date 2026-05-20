@@ -17,6 +17,7 @@ jobs:
   backup:
     name: Backup PostgreSQL → Hetzner Storage Box
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
       - name: Run backup on server
