@@ -1,9 +1,20 @@
 name: Export deploy matrix from repository variables
-description: Passes DEPLOYMENT_MATRIX JSON variable to strategy.matrix.server. Set DEPLOYMENT_MATRIX in GitHub Variables as a JSON array, e.g. [{"name":"prod","ip":"1.2.3.4","port":"22","username":"deploy","path":"/var/www"}].
+description: |
+  Passes DEPLOYMENT_MATRIX JSON variable to strategy.matrix.server.
+  Set DEPLOYMENT_MATRIX in GitHub Variables as a JSON array, e.g.:
+  [
+    {"name":"testing",    "ip":"1.2.3.4", "port":"22", "username":"deploy", "path":"/var/www", "environment":"testing",    "container_prefix":"digipulse", "enabled":true},
+    {"name":"production", "ip":"5.6.7.8", "port":"22", "username":"deploy", "path":"/var/www", "environment":"production", "container_prefix":"digipulse", "enabled":true}
+  ]
+  Fields:
+    environment      — GitHub Environment name (must exist in repo Settings → Environments).
+                       Variables/secrets set there override repo-level ones for create-env-file.
+    container_prefix — Docker container name prefix used in after-deploy.sh (default: "digipulse").
+    enabled          — set false to skip a server without removing it from the matrix.
 
 inputs:
   deployment_matrix:
-    description: DEPLOYMENT_MATRIX — JSON array of server objects (name, ip, port, username, path)
+    description: DEPLOYMENT_MATRIX — JSON array of server objects (name, ip, port, username, path, environment, container_prefix)
     required: true
 
 outputs:

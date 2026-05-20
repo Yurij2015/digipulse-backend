@@ -153,6 +153,7 @@ jobs:
   prepare-release-on-servers:
     name: "${{ matrix.server.name }}: Prepare release"
     runs-on: ubuntu-latest
+    environment: ${{ matrix.server.environment }}
     needs: [create-deployment-artifacts, run-tests]
     strategy:
       matrix:
@@ -217,6 +218,9 @@ jobs:
   create-env-file:
     name: "${{ matrix.server.name }}: Write .env to server"
     runs-on: ubuntu-latest
+    # Each environment (testing / production) must be created in GitHub repo Settings → Environments.
+    # Variables set in an environment override the matching repository-level variables for this job.
+    environment: ${{ matrix.server.environment }}
     needs: [create-deployment-artifacts, prepare-release-on-servers]
     strategy:
       matrix:
@@ -235,13 +239,15 @@ jobs:
               if [ -n "$1" ]; then echo "$1"; else echo "$2"; fi
             }
 
+            APP_NAME=$(get_val "${{ vars.APP_NAME }}" "DigiPulse")
+            APP_ENV=$(get_val "${{ vars.APP_ENV }}" "production")
             APP_KEY=$(get_val "${{ vars.APP_KEY_NEW }}" "")
             APP_URL=$(get_val "${{ vars.APP_URL }}" "http://localhost")
             APP_URL="${APP_URL%/}"
             DB_HOST=$(get_val "${{ vars.DB_HOST }}" "digipulse-db")
             DB_DATABASE=$(get_val "${{ vars.DB_DATABASE }}" "digipulse")
             DB_USERNAME=$(get_val "${{ vars.DB_USERNAME }}" "digipulse")
-            DB_PASSWORD=$(get_val "${{ vars.DB_PASSWORD }}" "")
+            DB_PASSWORD=$(get_val "${{ secrets.DB_PASSWORD }}" "")
             REDIS_HOST=$(get_val "${{ vars.REDIS_HOST }}" "digipulse-redis")
             SESSION_DOMAIN=$(get_val "${{ vars.SESSION_DOMAIN }}" "")
             SANCTUM_STATEFUL_DOMAINS=$(get_val "${{ vars.SANCTUM_STATEFUL_DOMAINS }}" "")
@@ -287,8 +293,8 @@ jobs:
 
             # Generate .env file
             cat > ${{ matrix.server.path }}/.env << ENVEOF
-            APP_NAME="DigiPulse"
-            APP_ENV=production
+            APP_NAME="$APP_NAME"
+            APP_ENV=$APP_ENV
             APP_KEY=$APP_KEY
             APP_DEBUG=false
             APP_URL=$APP_URL
@@ -376,6 +382,7 @@ jobs:
   run-before-hooks:
     name: "${{ matrix.server.name }}: Before hook"
     runs-on: ubuntu-latest
+    environment: ${{ matrix.server.environment }}
     needs:
       [create-deployment-artifacts, prepare-release-on-servers, create-env-file]
     strategy:
@@ -404,6 +411,7 @@ jobs:
   activate-release:
     name: "${{ matrix.server.name }}: Activate release"
     runs-on: ubuntu-latest
+    environment: ${{ matrix.server.environment }}
     needs:
       [
         create-deployment-artifacts,
@@ -445,6 +453,7 @@ jobs:
   run-after-hooks:
     name: "${{ matrix.server.name }}: After hook"
     runs-on: ubuntu-latest
+    environment: ${{ matrix.server.environment }}
     needs:
       [
         create-deployment-artifacts,
@@ -465,12 +474,13 @@ jobs:
           ACTIVE_RELEASE_PATH: ${{ matrix.server.path }}/current
           STORAGE_PATH: ${{ matrix.server.path }}/storage
           BASE_PATH: ${{ matrix.server.path }}
+          CONTAINER_PREFIX: ${{ matrix.server.container_prefix || 'digipulse' }}
         with:
           host: ${{ matrix.server.ip }}
           username: ${{ matrix.server.username }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ matrix.server.port }}
-          envs: GITHUB_SHA,RELEASE_PATH,ACTIVE_RELEASE_PATH,STORAGE_PATH,BASE_PATH
+          envs: GITHUB_SHA,RELEASE_PATH,ACTIVE_RELEASE_PATH,STORAGE_PATH,BASE_PATH,CONTAINER_PREFIX
           script_path: .github/scripts/after-deploy.sh
       - name: Optional extra after deploy commands
         if: ${{ vars.DEPLOY_AFTER_HOOKS != '' }}
@@ -487,6 +497,7 @@ jobs:
   clean-up:
     name: "${{ matrix.server.name }}: Clean up"
     runs-on: ubuntu-latest
+    environment: ${{ matrix.server.environment }}
     needs:
       [
         create-deployment-artifacts,
