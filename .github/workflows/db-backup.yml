@@ -1,9 +1,17 @@
 name: Database Backup
 
 on:
-  # Manual trigger via GitHub UI — "Run workflow" button appears in Actions tab
   workflow_dispatch:
     inputs:
+      environment:
+        description: 'Environment to backup'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - production
+          - testing
       note:
         description: 'Reason for backup (optional)'
         required: false
@@ -14,45 +22,82 @@ on:
     - cron: '0 3 * * *'
 
 jobs:
-  backup:
-    name: Backup PostgreSQL → Hetzner Storage Box
+  export-matrix:
+    name: Export deployment matrix
     runs-on: ubuntu-latest
-    environment: production
+    outputs:
+      DEPLOYMENT_MATRIX: ${{ steps.export.outputs.DEPLOYMENT_MATRIX }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Export deployment matrix
+        id: export
+        uses: ./.github/actions/export-deploy-matrix
+        with:
+          deployment_matrix: ${{ vars.DEPLOYMENT_MATRIX }}
+      - name: Filter by environment
+        id: filter
+        env:
+          FILTER_ENV: ${{ github.event.inputs.environment || 'all' }}
+          FULL_MATRIX: ${{ steps.export.outputs.DEPLOYMENT_MATRIX }}
+        run: |
+          if [ "$FILTER_ENV" = "all" ]; then
+            FILTERED="$FULL_MATRIX"
+          else
+            FILTERED=$(echo "$FULL_MATRIX" | jq --arg env "$FILTER_ENV" '[.[] | select(.environment == $env)]')
+          fi
+          delimiter="$(openssl rand -hex 8)"
+          {
+            echo "DEPLOYMENT_MATRIX<<${delimiter}"
+            echo "$FILTERED"
+            echo "${delimiter}"
+          } >> "${GITHUB_OUTPUT}"
+
+  backup:
+    name: "${{ matrix.server.name }}: Backup PostgreSQL → Hetzner"
+    runs-on: ubuntu-latest
+    needs: export-matrix
+    environment: ${{ matrix.server.environment }}
+    strategy:
+      matrix:
+        server: ${{ fromJson(needs.export-matrix.outputs.DEPLOYMENT_MATRIX) }}
 
     steps:
       - name: Run backup on server
         uses: appleboy/ssh-action@v1.2.5
         with:
-          host: ${{ vars.SERVER_IP }}
-          username: ${{ vars.SERVER_USER }}
+          host: ${{ matrix.server.ip }}
+          username: ${{ matrix.server.username }}
           key: ${{ secrets.SSH_KEY }}
-          port: ${{ vars.SERVER_PORT }}
+          port: ${{ matrix.server.port }}
           script: |
             set -euo pipefail
 
-            DB_CONTAINER="digipulse-db"
+            CONTAINER_PREFIX="${{ matrix.server.container_prefix || 'digipulse' }}"
+            DB_CONTAINER="${CONTAINER_PREFIX}-db"
             DB_NAME="${{ vars.DB_DATABASE }}"
             DB_USER="${{ vars.DB_USERNAME }}"
+            DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+
+            ENV="${{ matrix.server.environment }}"
+            if [ "$ENV" = "production" ]; then LABEL="prod"; else LABEL="test"; fi
 
             HETZNER_USER="${{ vars.HETZNER_USER }}"
             HETZNER_HOST="${HETZNER_USER}.your-storagebox.de"
             HETZNER_PORT=23
-            HETZNER_DIR="digipulse/backups/postgres"
+            HETZNER_DIR="digipulse/backups/postgres/${LABEL}"
 
-            LOCAL_DIR="$HOME/backups"
+            LOCAL_DIR="$HOME/backups/${LABEL}"
             DATE=$(date +%Y-%m-%d_%H-%M-%S)
-            FILENAME="digipulse_${DATE}.dump"
+            FILENAME="digipulse_${LABEL}_${DATE}.dump"
 
-            echo "→ Environment Info:"
-            echo "  User: $(whoami)"
-            echo "  Home: $HOME"
-            echo "  Local Dir: $LOCAL_DIR"
-            echo "  Database: $DB_NAME"
+            echo "→ Server: ${{ matrix.server.name }}"
+            echo "→ Container prefix: ${CONTAINER_PREFIX}"
+            echo "→ Database: ${DB_NAME}"
 
             mkdir -p "$LOCAL_DIR"
 
-            echo "→ Step 1: Dumping database from container $DB_CONTAINER..."
-            if ! docker exec "$DB_CONTAINER" pg_dump \
+            echo "→ Step 1: Dumping database from container ${DB_CONTAINER}..."
+            if ! docker exec -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" pg_dump \
               -U "$DB_USER" \
               -d "$DB_NAME" \
               --format=custom \
@@ -66,7 +111,8 @@ jobs:
             SIZE=$(du -sh "${LOCAL_DIR}/${FILENAME}" | cut -f1)
             echo "✓ Dump created: ${FILENAME} (${SIZE})"
 
-            echo "→ Step 2: Uploading to Hetzner Storage Box (path: ${HETZNER_DIR})..."
+            echo "→ Step 2: Uploading to Hetzner (${HETZNER_DIR})..."
+            ssh -p "$HETZNER_PORT" -o StrictHostKeyChecking=no -o BatchMode=yes "${HETZNER_USER}@${HETZNER_HOST}" "mkdir -p ${HETZNER_DIR}"
             if ! rsync -az \
               -e "ssh -p ${HETZNER_PORT} -o StrictHostKeyChecking=no -o BatchMode=yes" \
               "${LOCAL_DIR}/${FILENAME}" \
@@ -76,17 +122,15 @@ jobs:
             fi
             echo "✓ Uploaded to Hetzner"
 
-            echo "→ Step 3: Cleaning up old local backups..."
-            find "$LOCAL_DIR" -name "*.dump" -mtime +3 -delete
+            echo "→ Step 3: Cleaning up old local backups (older than 3 days)..."
+            find "$LOCAL_DIR" -name "digipulse_${LABEL}_*.dump" -mtime +3 -delete
             echo "✓ Local cleanup complete"
 
             echo "→ Step 4: Cleaning up old remote backups (keeping last 30)..."
-            REMOTE_FILES=$(ssh -p "$HETZNER_PORT" -o StrictHostKeyChecking=no -o BatchMode=yes "${HETZNER_USER}@${HETZNER_HOST}" "ls -1 ${HETZNER_DIR}/digipulse_*.dump" | sort -r || true)
-            
+            REMOTE_FILES=$(ssh -p "$HETZNER_PORT" -o StrictHostKeyChecking=no -o BatchMode=yes "${HETZNER_USER}@${HETZNER_HOST}" "ls -1 ${HETZNER_DIR}/digipulse_${LABEL}_*.dump 2>/dev/null" | sort -r || true)
+
             if [ -n "$REMOTE_FILES" ]; then
-              # Get files to delete (everything after the first 30)
               FILES_TO_DELETE=$(echo "$REMOTE_FILES" | tail -n +31)
-              
               if [ -n "$FILES_TO_DELETE" ]; then
                 for FILE in $FILES_TO_DELETE; do
                   echo "  Removing old backup: $FILE"
@@ -94,19 +138,18 @@ jobs:
                 done
                 echo "✓ Remote cleanup complete"
               else
-                echo "  No old backups to remove (less than 30 files found)"
+                echo "  No old backups to remove (less than 30 found)"
               fi
             fi
 
             echo ""
-            echo "Current backups on Storage Box:"
-            ssh -p "$HETZNER_PORT" \
-              -o StrictHostKeyChecking=no \
-              -o BatchMode=yes \
-              "${HETZNER_USER}@${HETZNER_HOST}" \
-              "ls -lht ${HETZNER_DIR}/"
+            echo "Current ${LABEL} backups on Hetzner:"
+            ssh -p "$HETZNER_PORT" -o StrictHostKeyChecking=no -o BatchMode=yes \
+              "${HETZNER_USER}@${HETZNER_HOST}" "ls -lht ${HETZNER_DIR}/"
 
             echo ""
-            echo "✅ Backup process finished successfully!"
+            echo "✅ Backup finished!"
+            echo "  Server: ${{ matrix.server.name }}"
+            echo "  File: ${FILENAME} (${SIZE})"
             echo "  Note: ${{ github.event.inputs.note || 'Scheduled backup' }}"
             echo "  Triggered by: ${{ github.actor }}"
