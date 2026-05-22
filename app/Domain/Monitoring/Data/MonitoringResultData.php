@@ -15,5 +15,7 @@ readonly class MonitoringResultData
         public ?string $errorMessage = null,
         public ?array $metadata = null,
         public ?int $siteId = null,
+        public ?string $scheduledAt = null,
+        public ?string $executedAt = null,
     ) {}
 }

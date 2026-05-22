@@ -79,6 +79,8 @@ class ConsumeMonitorResults extends Command
             'response_time_ms' => ['nullable', 'integer'],
             'error_message' => ['nullable', 'string', 'max:1000'],
             'metadata' => ['nullable', 'array'],
+            'scheduled_at' => ['nullable', 'date'],
+            'executed_at' => ['nullable', 'date'],
         ]);
 
         if ($validator->fails()) {
@@ -95,6 +97,8 @@ class ConsumeMonitorResults extends Command
             responseTimeMs: $validated['response_time_ms'] ?? null,
             errorMessage: $validated['error_message'] ?? null,
             metadata: $validated['metadata'] ?? null,
+            scheduledAt: $validated['scheduled_at'] ?? null,
+            executedAt: $validated['executed_at'] ?? null,
         );
 
         try {

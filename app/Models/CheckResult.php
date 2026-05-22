@@ -19,6 +19,7 @@ class CheckResult extends Model
         'error_message',
         'metadata',
         'checked_at',
+        'scheduled_at',
     ];
 
     /** @var array<string, string> */
