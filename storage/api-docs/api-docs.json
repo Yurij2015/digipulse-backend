@@ -6,13 +6,13 @@
         "version": "1.0.0"
     },
     "paths": {
-        "/api/register": {
+        "/api/v1/register": {
             "post": {
                 "tags": [
                     "Auth"
                 ],
                 "summary": "Register a new user",
-                "operationId": "58fe5a217ef88ae75e9b530a5e5817d1",
+                "operationId": "9779c0d9a71e615951eb1764ed999111",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -54,7 +54,7 @@
                 ]
             }
         },
-        "/api/login": {
+        "/api/v1/login": {
             "post": {
                 "tags": [
                     "Auth"
@@ -99,7 +99,7 @@
                 ]
             }
         },
-        "/api/logout": {
+        "/api/v1/logout": {
             "post": {
                 "tags": [
                     "Auth"
@@ -138,7 +138,7 @@
                 ]
             }
         },
-        "/api/me": {
+        "/api/v1/me": {
             "get": {
                 "tags": [
                     "Auth"
@@ -170,7 +170,7 @@
                 ]
             }
         },
-        "/api/email/verification-notification": {
+        "/api/v1/email/verification-notification": {
             "post": {
                 "tags": [
                     "Auth"
@@ -225,7 +225,7 @@
                 ]
             }
         },
-        "/api/email/verify": {
+        "/api/v1/email/verify": {
             "post": {
                 "tags": [
                     "Auth"
@@ -293,7 +293,7 @@
                 ]
             }
         },
-        "/api/forgot-password": {
+        "/api/v1/forgot-password": {
             "post": {
                 "tags": [
                     "Auth"
@@ -380,7 +380,7 @@
                 ]
             }
         },
-        "/api/reset-password": {
+        "/api/v1/reset-password": {
             "post": {
                 "tags": [
                     "Auth"
@@ -466,7 +466,7 @@
                 ]
             }
         },
-        "/api/profile": {
+        "/api/v1/profile": {
             "put": {
                 "tags": [
                     "Profile"
@@ -568,7 +568,7 @@
                 ]
             }
         },
-        "/api/profile/password": {
+        "/api/v1/profile/password": {
             "put": {
                 "tags": [
                     "Profile"
@@ -639,14 +639,14 @@
                 ]
             }
         },
-        "/api/check-types": {
+        "/api/v1/check-types": {
             "get": {
                 "tags": [
                     "Check Types"
                 ],
                 "summary": "List available check types",
                 "description": "Display a listing of available check types.",
-                "operationId": "84421a098ff2c520c3c691114b6f9c54",
+                "operationId": "e5660fdfe8c94877d065438541710e4e",
                 "responses": {
                     "200": {
                         "description": "Successful operation",
@@ -672,14 +672,518 @@
                 ]
             }
         },
-        "/api/sites": {
+        "/api/v1/mcp/incidents": {
+            "get": {
+                "tags": [
+                    "MCP"
+                ],
+                "summary": "MCP: recent downtime incidents",
+                "description": "Returns recent \"down\" check results for the user's sites. Intended for MCP tool use.",
+                "operationId": "mcpIncidents",
+                "parameters": [
+                    {
+                        "name": "project_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "site_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 50,
+                            "maximum": 200,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "offset",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 0,
+                            "minimum": 0
+                        }
+                    },
+                    {
+                        "name": "from",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "to",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Incidents list",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "properties": {
+                                                "incidents": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "total": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    },
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/mcp/overview": {
+            "get": {
+                "tags": [
+                    "MCP"
+                ],
+                "summary": "MCP: sites and projects overview",
+                "description": "Returns all user sites grouped by project with status summary. Intended for MCP tool use.",
+                "operationId": "mcpOverview",
+                "parameters": [
+                    {
+                        "name": "project_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Overview data",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "properties": {
+                                                "projects": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "sites_without_project": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "summary": {
+                                                    "properties": {
+                                                        "total_sites": {
+                                                            "type": "integer"
+                                                        },
+                                                        "up": {
+                                                            "type": "integer"
+                                                        },
+                                                        "down": {
+                                                            "type": "integer"
+                                                        },
+                                                        "pending": {
+                                                            "type": "integer"
+                                                        },
+                                                        "avg_uptime": {
+                                                            "type": "number"
+                                                        },
+                                                        "avg_response_time": {
+                                                            "type": "number"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    },
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/mcp/sites/{siteId}/history": {
+            "get": {
+                "tags": [
+                    "MCP"
+                ],
+                "summary": "MCP: site check history",
+                "description": "Returns aggregated uptime and response time stats for a site. Intended for MCP tool use.",
+                "operationId": "mcpSiteHistory",
+                "parameters": [
+                    {
+                        "name": "siteId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "from",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "to",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "granularity",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "default": "hour",
+                            "enum": [
+                                "hour",
+                                "day"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Site history",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "properties": {
+                                                "site_id": {
+                                                    "type": "integer"
+                                                },
+                                                "from": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "to": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "granularity": {
+                                                    "type": "string"
+                                                },
+                                                "stats": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "incidents": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Site not found"
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    },
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/projects": {
+            "get": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "List user projects",
+                "operationId": "8a48f62abebb21637942cb7cab09b432",
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Project"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    },
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Create a new project",
+                "operationId": "1fa99730c48063d63c839811a6fac77b",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Client Alpha"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "All sites for Client Alpha",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Project created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Project"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    },
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/projects/{project}": {
+            "get": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Get project details",
+                "operationId": "83d25cc815cf656b2de803efe3d6271d",
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Project"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    },
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Update project",
+                "operationId": "00b25a3a2122a331efb2cebd5967bff4",
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Updated Name"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Updated Description",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Project updated successfully"
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    },
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Delete project",
+                "operationId": "77b89b6fa4311bba4cb15f3b753ae3fc",
+                "parameters": [
+                    {
+                        "name": "project",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Project deleted successfully"
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    },
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/sites": {
             "get": {
                 "tags": [
                     "Sites"
                 ],
                 "summary": "List user sites",
                 "description": "Display a listing of the user's sites.",
-                "operationId": "a80e31c61764092a9710da892b4f6281",
+                "operationId": "6e58a8beda4e71601db82a376906274c",
                 "responses": {
                     "200": {
                         "description": "Successful operation",
@@ -710,7 +1214,7 @@
                 ],
                 "summary": "Store a new site",
                 "description": "Creates a new site for monitoring. You can optionally pass an array of checks to be configured for this site.",
-                "operationId": "1c99621d9a5bfd1e1ba8c7e8b2859cb2",
+                "operationId": "116343b81512106b32b45787bfe506bd",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -746,14 +1250,14 @@
                 ]
             }
         },
-        "/api/sites/{site}": {
+        "/api/v1/sites/{site}": {
             "get": {
                 "tags": [
                     "Sites"
                 ],
                 "summary": "Get site record",
                 "description": "Display the specified site.",
-                "operationId": "de9e22139a42ea7cd4944910230d17f3",
+                "operationId": "4d09623ad6aa048430d0c37ad13de5b1",
                 "parameters": [
                     {
                         "name": "site",
@@ -795,7 +1299,7 @@
                 ],
                 "summary": "Update existing site",
                 "description": "Update the specified site in storage.",
-                "operationId": "c3015a0e584490e7657e48f6080151a5",
+                "operationId": "b961afa1ebd7fa87fe8581d875d36a0c",
                 "parameters": [
                     {
                         "name": "site",
@@ -850,7 +1354,7 @@
                 ],
                 "summary": "Delete site",
                 "description": "Remove the specified site from storage.",
-                "operationId": "b1c78bebaff88b90ddea188faf446ded",
+                "operationId": "27307eb43b9c5627094972a7e1879d6c",
                 "parameters": [
                     {
                         "name": "site",
@@ -880,14 +1384,14 @@
                 ]
             }
         },
-        "/api/sites/{site}/history": {
+        "/api/v1/sites/{site}/history": {
             "get": {
                 "tags": [
                     "Sites"
                 ],
                 "summary": "Get aggregated check history for a site",
                 "description": "Returns hourly aggregated stats (avg response time, uptime %) and a list of individual \"down\" incidents for the given ISO week. Defaults to the current week if no `week` param is provided. For past weeks (older than 7 days), data is served from the weekly archive.",
-                "operationId": "3b0b3e7ba2b9fba26b264a12dcfd67ad",
+                "operationId": "bf6e6973beae9d2e4967b6e69002cf3a",
                 "parameters": [
                     {
                         "name": "site",
@@ -956,14 +1460,14 @@
                 ]
             }
         },
-        "/api/support/tickets": {
+        "/api/v1/support/tickets": {
             "get": {
                 "tags": [
                     "Support"
                 ],
                 "summary": "List user support tickets",
                 "description": "List user's support tickets.",
-                "operationId": "45c7216497473c3d2ca5989d12b2f67b",
+                "operationId": "82c3f6af29ccbd025692377bbdd26c72",
                 "responses": {
                     "200": {
                         "description": "Successful operation",
@@ -994,7 +1498,7 @@
                 ],
                 "summary": "Create a new support ticket",
                 "description": "Store a newly created support ticket.",
-                "operationId": "382a8b3e11ed0a8f753d1470ccb467f6",
+                "operationId": "f707764da336304c25e9e8bbebb8fd63",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -1048,14 +1552,14 @@
                 ]
             }
         },
-        "/api/support/tickets/{ticket}": {
+        "/api/v1/support/tickets/{ticket}": {
             "get": {
                 "tags": [
                     "Support"
                 ],
                 "summary": "Get specific support ticket",
                 "description": "Display a specific support ticket with its messages.",
-                "operationId": "2e94d10278e8777e73bf8b522a572841",
+                "operationId": "d6655102928a24a957cc13ce5e0d1666",
                 "parameters": [
                     {
                         "name": "ticket",
@@ -1092,14 +1596,14 @@
                 ]
             }
         },
-        "/api/support/tickets/{ticket}/reply": {
+        "/api/v1/support/tickets/{ticket}/reply": {
             "post": {
                 "tags": [
                     "Support"
                 ],
                 "summary": "Add a message to an existing ticket",
                 "description": "Add a message to an existing ticket.",
-                "operationId": "0f6785dcf727637816d81c0036a918bb",
+                "operationId": "910624811538dfbae5eb6bad16e3d3ea",
                 "parameters": [
                     {
                         "name": "ticket",
@@ -1155,14 +1659,14 @@
                 ]
             }
         },
-        "/api/telegram/connect": {
+        "/api/v1/telegram/connect": {
             "get": {
                 "tags": [
                     "Telegram"
                 ],
                 "summary": "Get Telegram connection link",
                 "description": "Generate a connection token for the authenticated user.",
-                "operationId": "e99c447db4a0c21e4a11160e27b635f8",
+                "operationId": "960f2bbd24888a6ed8bf202f9824c9a7",
                 "responses": {
                     "200": {
                         "description": "Successful operation",
@@ -1211,14 +1715,14 @@
                 ]
             }
         },
-        "/api/telegram/disconnect": {
+        "/api/v1/telegram/disconnect": {
             "post": {
                 "tags": [
                     "Telegram"
                 ],
                 "summary": "Disconnect Telegram bot",
                 "description": "Disconnect the Telegram bot for the authenticated user.",
-                "operationId": "86f9c075e07f02b335f5368adacba446",
+                "operationId": "803a232b04f347537aa7e364e2cd04b3",
                 "responses": {
                     "200": {
                         "description": "Successful operation",
@@ -1234,6 +1738,241 @@
                                 }
                             }
                         }
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    },
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/tokens": {
+            "get": {
+                "tags": [
+                    "Tokens"
+                ],
+                "summary": "List MCP tokens",
+                "operationId": "listTokens",
+                "responses": {
+                    "200": {
+                        "description": "List of MCP tokens",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "tokens": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "integer"
+                                                    },
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "created_at": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "last_used_at": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "nullable": true
+                                                    },
+                                                    "total_requests": {
+                                                        "type": "integer"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    },
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Tokens"
+                ],
+                "summary": "Create MCP token",
+                "operationId": "createToken",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "My MCP token",
+                                        "maxLength": 64
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Token created. The plain-text token is returned only once.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer"
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "mcp_url": {
+                                            "type": "string",
+                                            "example": "https://api.example.com/mcp?token=1|abc..."
+                                        },
+                                        "created_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "422": {
+                        "description": "Validation failed"
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    },
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/tokens/{id}/usage": {
+            "get": {
+                "tags": [
+                    "Tokens"
+                ],
+                "summary": "MCP token usage stats",
+                "operationId": "tokenUsage",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Token usage breakdown by endpoint and day",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "token_id": {
+                                            "type": "integer"
+                                        },
+                                        "token_name": {
+                                            "type": "string"
+                                        },
+                                        "total_requests": {
+                                            "type": "integer"
+                                        },
+                                        "by_endpoint": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "integer"
+                                            }
+                                        },
+                                        "by_day": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "integer"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Token not found"
+                    }
+                },
+                "security": [
+                    {
+                        "frontendKey": []
+                    },
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/tokens/{id}": {
+            "delete": {
+                "tags": [
+                    "Tokens"
+                ],
+                "summary": "Revoke MCP token",
+                "operationId": "deleteToken",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Token revoked"
+                    },
+                    "401": {
+                        "description": "Unauthorized"
+                    },
+                    "404": {
+                        "description": "Token not found"
                     }
                 },
                 "security": [
@@ -1688,6 +2427,11 @@
                         "type": "boolean",
                         "example": true
                     },
+                    "project_id": {
+                        "type": "integer",
+                        "example": 1,
+                        "nullable": true
+                    },
                     "checks": {
                         "type": "array",
                         "items": {
@@ -1730,6 +2474,11 @@
                         "type": "boolean",
                         "example": true
                     },
+                    "project_id": {
+                        "type": "integer",
+                        "example": 1,
+                        "nullable": true
+                    },
                     "checks": {
                         "type": "array",
                         "items": {
@@ -1753,6 +2502,46 @@
                             },
                             "type": "object"
                         }
+                    }
+                },
+                "type": "object"
+            },
+            "Project": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "user_id": {
+                        "type": "integer",
+                        "example": 42
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Client Alpha"
+                    },
+                    "description": {
+                        "type": "string",
+                        "example": "All sites for Client Alpha",
+                        "nullable": true
+                    },
+                    "sites_count": {
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "sites": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/SiteSchema"
+                        }
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
                     }
                 },
                 "type": "object"
@@ -1787,6 +2576,14 @@
             "description": "Check Types"
         },
         {
+            "name": "MCP",
+            "description": "MCP"
+        },
+        {
+            "name": "Projects",
+            "description": "Projects"
+        },
+        {
             "name": "Sites",
             "description": "Sites"
         },
@@ -1797,6 +2594,10 @@
         {
             "name": "Telegram",
             "description": "Telegram"
+        },
+        {
+            "name": "Tokens",
+            "description": "Tokens"
         }
     ]
 }

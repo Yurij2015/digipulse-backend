@@ -90,21 +90,6 @@ class TokenController extends Controller
         return response()->json($token, 201);
     }
 
-    #[OA\Delete(
-        path: '/api/v1/tokens/{id}',
-        operationId: 'deleteToken',
-        summary: 'Revoke MCP token',
-        security: [['frontendKey' => []], ['bearerAuth' => []]],
-        tags: ['Tokens'],
-        parameters: [
-            new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer')),
-        ],
-        responses: [
-            new OA\Response(response: 204, description: 'Token revoked'),
-            new OA\Response(response: 401, description: 'Unauthorized'),
-            new OA\Response(response: 404, description: 'Token not found'),
-        ]
-    )]
     #[OA\Get(
         path: '/api/v1/tokens/{id}/usage',
         operationId: 'tokenUsage',
