@@ -4,8 +4,15 @@ on:
   # Manual trigger only — restoring always requires explicit human action
   workflow_dispatch:
     inputs:
+      environment:
+        description: 'Environment to restore'
+        required: true
+        type: choice
+        options:
+          - production
+          - testing
       filename:
-        description: 'Backup filename to restore (e.g. digipulse_2026-05-06_03-00-00.dump)'
+        description: 'Backup filename to restore (e.g. digipulse_prod_2026-05-06_03-00-00.dump)'
         required: true
       confirm:
         description: 'Type "yes" to confirm — ALL existing data will be replaced!'
@@ -13,12 +20,46 @@ on:
         default: ''
 
 jobs:
-  restore:
-    name: Restore PostgreSQL from backup
+  export-matrix:
+    name: Export deployment matrix
     runs-on: ubuntu-latest
+    outputs:
+      DEPLOYMENT_MATRIX: ${{ steps.filter.outputs.DEPLOYMENT_MATRIX }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Export deployment matrix
+        id: export
+        uses: ./.github/actions/export-deploy-matrix
+        with:
+          deployment_matrix: ${{ vars.DEPLOYMENT_MATRIX }}
+      - name: Filter by environment
+        id: filter
+        env:
+          FILTER_ENV: ${{ github.event.inputs.environment }}
+          FULL_MATRIX: ${{ steps.export.outputs.DEPLOYMENT_MATRIX }}
+        run: |
+          FILTERED=$(echo "$FULL_MATRIX" | jq --arg env "$FILTER_ENV" '[.[] | select(.environment == $env)]')
+          if [ "$(echo "$FILTERED" | jq 'length')" -eq 0 ]; then
+            echo "No server found for environment: $FILTER_ENV"
+            exit 1
+          fi
+          delimiter="$(openssl rand -hex 8)"
+          {
+            echo "DEPLOYMENT_MATRIX<<${delimiter}"
+            echo "$FILTERED"
+            echo "${delimiter}"
+          } >> "${GITHUB_OUTPUT}"
+
+  restore:
+    name: "${{ matrix.server.name }}: Restore PostgreSQL from backup"
+    runs-on: ubuntu-latest
+    needs: export-matrix
+    environment: ${{ matrix.server.environment }}
+    strategy:
+      matrix:
+        server: ${{ fromJson(needs.export-matrix.outputs.DEPLOYMENT_MATRIX) }}
 
     steps:
-      # Safety gate — workflow exits immediately if confirmation is missing
       - name: Validate confirmation
         run: |
           if [ "${{ github.event.inputs.confirm }}" != "yes" ]; then
@@ -29,34 +70,36 @@ jobs:
       - name: Run restore on server
         uses: appleboy/ssh-action@v1.2.5
         with:
-          host: ${{ vars.SERVER_IP }}
-          username: ${{ vars.SERVER_USER }}
+          host: ${{ matrix.server.ip }}
+          username: ${{ matrix.server.username }}
           key: ${{ secrets.SSH_KEY }}
-          port: ${{ vars.SERVER_PORT }}
-          debug: true
+          port: ${{ matrix.server.port }}
           script: |
             set -euo pipefail
-            set -x
 
-            DB_CONTAINER="digipulse-db"
+            CONTAINER_PREFIX="${{ matrix.server.container_prefix || 'digipulse' }}"
+            DB_CONTAINER="${CONTAINER_PREFIX}-db"
             DB_NAME="${{ vars.DB_DATABASE }}"
             DB_USER="${{ vars.DB_USERNAME }}"
+            DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+
+            ENV="${{ matrix.server.environment }}"
+            if [ "$ENV" = "production" ]; then LABEL="prod"; else LABEL="test"; fi
 
             HETZNER_USER="${{ vars.HETZNER_USER }}"
             HETZNER_HOST="${HETZNER_USER}.your-storagebox.de"
             HETZNER_PORT=23
-            HETZNER_DIR="digipulse/backups/postgres"
+            HETZNER_DIR="digipulse/backups/postgres/${LABEL}"
 
-            LOCAL_DIR="$HOME/backups"
+            LOCAL_DIR="$HOME/backups/${LABEL}"
             FILENAME="${{ github.event.inputs.filename }}"
 
-            if [[ ! "$FILENAME" =~ ^digipulse_[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}\.dump$ ]]; then
-              echo "❌ Invalid filename format. Expected: digipulse_YYYY-MM-DD_HH-MM-SS.dump"
+            if [[ ! "$FILENAME" =~ ^digipulse_(prod|test)_[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}\.dump$ ]]; then
+              echo "❌ Invalid filename format. Expected: digipulse_prod_YYYY-MM-DD_HH-MM-SS.dump"
               exit 1
             fi
 
             TEMP_FILE="${LOCAL_DIR}/restore_temp.dump"
-
             mkdir -p "$LOCAL_DIR"
 
             echo "→ Downloading ${FILENAME} from Hetzner..."
@@ -65,42 +108,33 @@ jobs:
               "${HETZNER_USER}@${HETZNER_HOST}:${HETZNER_DIR}/${FILENAME}" \
               "${TEMP_FILE}"
             echo "✓ Downloaded: $(du -sh ${TEMP_FILE} | cut -f1)"
-            ls -lh "${TEMP_FILE}"
 
-            # Safety net: dump current state before overwriting anything
             EMERGENCY="${LOCAL_DIR}/pre_restore_$(date +%Y-%m-%d_%H-%M-%S).dump"
-            echo "→ Creating emergency dump of current state → ${EMERGENCY}"
-            docker exec "$DB_CONTAINER" pg_dump \
+            echo "→ Creating emergency dump → ${EMERGENCY}"
+            docker exec -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" pg_dump \
               -U "$DB_USER" -d "$DB_NAME" \
               --format=custom > "$EMERGENCY" || echo "⚠ Emergency dump failed — continuing anyway"
-            echo "✓ Emergency dump saved: $(du -sh ${EMERGENCY} | cut -f1)"
+            echo "✓ Emergency dump: $(du -sh ${EMERGENCY} | cut -f1)"
 
-            APP_CONTAINER="digipulse-app"
-            MONITOR_CONTAINER="digipulse-monitor"
+            APP_CONTAINER="${CONTAINER_PREFIX}-app"
+            MONITOR_CONTAINER="${CONTAINER_PREFIX}-monitor"
 
-            echo "→ Stopping application containers to prevent DB writes..."
+            echo "→ Stopping application containers..."
             docker stop "$APP_CONTAINER" "$MONITOR_CONTAINER" || true
 
-            # Terminate all active connections so we can drop the database
-            echo "→ Terminating active connections..."
-            docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d postgres -c \
+            echo "→ Terminating active DB connections..."
+            docker exec -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" psql -U "$DB_USER" -d postgres -c \
               "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='${DB_NAME}' AND pid <> pg_backend_pid();" || true
 
             echo "→ Dropping and recreating database..."
-            docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d postgres \
-              -c "DROP DATABASE IF EXISTS ${DB_NAME};"
-
-            docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d postgres \
-              -c "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};"
+            docker exec -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" psql -U "$DB_USER" -d postgres -c "DROP DATABASE IF EXISTS ${DB_NAME};"
+            docker exec -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" psql -U "$DB_USER" -d postgres -c "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};"
 
             echo "→ Restoring from ${FILENAME}..."
             RESTORE_START=$(date +%s)
-            docker exec -i "$DB_CONTAINER" pg_restore \
-              -U "$DB_USER" \
-              -d "$DB_NAME" \
-              --no-owner \
-              --no-acl \
-              -v \
+            docker exec -i -e PGPASSWORD="$DB_PASSWORD" "$DB_CONTAINER" pg_restore \
+              -U "$DB_USER" -d "$DB_NAME" \
+              --no-owner --no-acl -v \
               < "$TEMP_FILE"
             RESTORE_END=$(date +%s)
             echo "✓ Restore complete in $((RESTORE_END - RESTORE_START))s"
@@ -108,41 +142,36 @@ jobs:
             echo "→ Starting application containers..."
             docker start "$APP_CONTAINER" "$MONITOR_CONTAINER" || true
 
-            # Run migrations in case the backup is older than the current codebase
             echo "→ Running migrations..."
             docker exec "$APP_CONTAINER" php artisan migrate --force \
               && echo "✓ Migrations done" \
-              || echo "⚠ Migrations skipped (container may not be running)"
+              || echo "⚠ Migrations skipped"
 
-            # Clear cache so stale data does not leak through
             echo "→ Clearing cache/config..."
             docker exec "$APP_CONTAINER" php artisan cache:clear || echo "⚠ cache:clear skipped"
             docker exec "$APP_CONTAINER" php artisan config:clear || echo "⚠ config:clear skipped"
-            echo "✓ Cache/config step complete"
 
             rm -f "$TEMP_FILE"
 
             echo ""
-            echo "✓ Restore complete!"
+            echo "✅ Restore complete!"
+            echo "  Server: ${{ matrix.server.name }}"
             echo "  Restored from: ${FILENAME}"
             echo "  Emergency dump: ${EMERGENCY}"
-            echo "  Emergency dump size: $(du -sh ${EMERGENCY} | cut -f1)"
             echo "  Triggered by: ${{ github.actor }}"
 
-      # Show available backups after restore so the operator can verify state
-      - name: List current backups on Hetzner
+      - name: List backups on Hetzner
         uses: appleboy/ssh-action@v1.2.5
         with:
-          host: ${{ vars.SERVER_IP }}
-          username: ${{ vars.SERVER_USER }}
+          host: ${{ matrix.server.ip }}
+          username: ${{ matrix.server.username }}
           key: ${{ secrets.SSH_KEY }}
-          port: ${{ vars.SERVER_PORT }}
-          debug: true
+          port: ${{ matrix.server.port }}
           script: |
-            echo "Available backups on Hetzner:"
-            ssh -p 23 \
-              -o StrictHostKeyChecking=no \
-              -o BatchMode=yes \
+            ENV="${{ matrix.server.environment }}"
+            if [ "$ENV" = "production" ]; then LABEL="prod"; else LABEL="test"; fi
+            echo "Available ${LABEL} backups on Hetzner:"
+            ssh -p 23 -o StrictHostKeyChecking=no -o BatchMode=yes \
               "${{ vars.HETZNER_USER }}@${{ vars.HETZNER_USER }}.your-storagebox.de" \
-              "ls -lht digipulse/backups/postgres/*.dump 2>/dev/null | awk '{print \$5, \$9}' | sed 's|digipulse/backups/postgres/||'" \
+              "ls -lht digipulse/backups/postgres/${LABEL}/digipulse_${LABEL}_*.dump 2>/dev/null | awk '{print \$5, \$9}' | sed \"s|digipulse/backups/postgres/${LABEL}/||\"" \
               || echo "(no backups found)"
