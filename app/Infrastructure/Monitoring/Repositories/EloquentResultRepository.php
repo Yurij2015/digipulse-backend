@@ -6,6 +6,7 @@ use App\Domain\Monitoring\Contracts\ResultRepositoryInterface;
 use App\Domain\Monitoring\Contracts\SiteStatsRepositoryInterface;
 use App\Domain\Monitoring\Data\MonitoringResultData;
 use App\Models\CheckResult;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class EloquentResultRepository implements ResultRepositoryInterface
@@ -23,7 +24,8 @@ class EloquentResultRepository implements ResultRepositoryInterface
             'response_time_ms' => $dto->responseTimeMs,
             'error_message' => $dto->errorMessage,
             'metadata' => $dto->metadata,
-            'checked_at' => now(),
+            'checked_at' => $dto->executedAt !== null ? Carbon::parse($dto->executedAt) : now(),
+            'scheduled_at' => $dto->scheduledAt,
         ]);
 
         $siteId = $result->site_id;
