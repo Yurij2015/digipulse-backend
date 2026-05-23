@@ -35,6 +35,20 @@ class StoreSiteRequest extends FormRequest
     /**
      * Determine if the user is authorized to make this request.
      */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('url')) {
+            $parsed = parse_url((string) $this->url);
+            if ($parsed && isset($parsed['host'])) {
+                $url = ($parsed['scheme'] ?? 'https').'://'.$parsed['host'];
+                if (isset($parsed['port'])) {
+                    $url .= ':'.$parsed['port'];
+                }
+                $this->merge(['url' => $url]);
+            }
+        }
+    }
+
     public function authorize(): bool
     {
         return $this->user()?->hasVerifiedEmail() ?? false;
