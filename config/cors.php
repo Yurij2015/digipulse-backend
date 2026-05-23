@@ -21,7 +21,6 @@ return [
 
     'allowed_origins' => array_filter([
         env('FRONTEND_URL', 'http://localhost:3000'),
-        env('AWS_URL'),
     ]),
 
     'allowed_origins_patterns' => [],
