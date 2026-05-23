@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
 use Laravel\Socialite\Facades\Socialite;
 
 Route::get('/', static function () {
-    return view('welcome');
+    return redirect('/admin');
 });
 
 Route::get('/auth/redirect', static function () {
