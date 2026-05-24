@@ -39,6 +39,8 @@ class AuthService
 
             $token = $user->createToken('auth_token')->plainTextToken;
 
+            Log::info('User registered', ['user_id' => $user->id]);
+
             return [
                 'user' => new UserResource($user),
                 'token' => $token,
@@ -57,10 +59,14 @@ class AuthService
         $passwordToCheck = $user ? $user->password : $dummyHash;
 
         if (! Hash::check($password, $passwordToCheck) || ! $user) {
+            Log::warning('Failed login attempt', ['user_found' => $user !== null]);
+
             return null;
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        Log::info('User logged in', ['user_id' => $user->id]);
 
         return [
             'user' => new UserResource($user),

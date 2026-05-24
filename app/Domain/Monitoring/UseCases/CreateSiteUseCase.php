@@ -8,6 +8,7 @@ use App\Domain\Monitoring\Data\CreateSiteData;
 use App\Domain\Monitoring\Exceptions\SiteLimitExceededException;
 use App\Domain\Monitoring\Models\Site;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Use Case for creating a new site with monitoring configurations.
@@ -40,6 +41,11 @@ readonly class CreateSiteUseCase
                 $siteCount = $this->siteRepository->countByUser($dto->userId);
 
                 if ($siteCount >= $limit) {
+                    Log::warning('Site limit exceeded', [
+                        'user_id' => $dto->userId,
+                        'site_count' => $siteCount,
+                        'limit' => $limit,
+                    ]);
                     throw new SiteLimitExceededException;
                 }
             }
