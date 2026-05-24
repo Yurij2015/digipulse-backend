@@ -8,6 +8,7 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 #[Signature('app:check-ssl-expirations')]
 #[Description('Scan monitored sites for SSL certificates expiring within 7 days and notify owners.')]
@@ -48,11 +49,18 @@ class CheckSSLExpirations extends Command
                     Cache::put($cacheKey, true, now()->endOfDay());
 
                     $this->line("Notified owner of {$site->url} ({$days} days remaining)");
+                    Log::info('SSL expiration notification sent', [
+                        'site_id' => $site->id,
+                        'url' => $site->url,
+                        'days_remaining' => $days,
+                        'user_id' => $site->user->id,
+                    ]);
                     $count++;
                 }
             }
         }
 
         $this->info("Completed. Sent {$count} notifications.");
+        Log::info('CheckSSLExpirations completed', ['sites_checked' => $sites->count(), 'notifications_sent' => $count]);
     }
 }

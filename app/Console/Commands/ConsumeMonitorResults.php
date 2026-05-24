@@ -10,6 +10,7 @@ use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Validator;
 use Throwable;
@@ -66,6 +67,7 @@ class ConsumeMonitorResults extends Command
         $payload = json_decode($result[1], true);
         if (! is_array($payload)) {
             $this->warn('Skipping invalid monitor result payload: invalid JSON.');
+            Log::warning('ConsumeMonitorResults: invalid JSON payload', ['raw' => substr($result[1], 0, 200)]);
 
             return;
         }
@@ -85,6 +87,7 @@ class ConsumeMonitorResults extends Command
 
         if ($validator->fails()) {
             $this->warn('Skipping invalid monitor result payload: '.$validator->errors()->first());
+            Log::warning('ConsumeMonitorResults: validation failed', ['errors' => $validator->errors()->toArray(), 'payload' => $payload]);
 
             return;
         }
@@ -123,6 +126,11 @@ class ConsumeMonitorResults extends Command
                     $failedQueue,
                     $exception->getMessage()
                 ));
+                Log::error('ConsumeMonitorResults: moved to failed queue', [
+                    'configuration_id' => $dto->configurationId,
+                    'attempts' => $attempt,
+                    'error' => $exception->getMessage(),
+                ]);
 
                 return;
             }
@@ -136,6 +144,12 @@ class ConsumeMonitorResults extends Command
                 $queue,
                 $exception->getMessage()
             ));
+            Log::warning('ConsumeMonitorResults: processing failed, requeued', [
+                'configuration_id' => $dto->configurationId,
+                'attempt' => $attempt,
+                'max_attempts' => $maxAttempts,
+                'error' => $exception->getMessage(),
+            ]);
         }
     }
 }
