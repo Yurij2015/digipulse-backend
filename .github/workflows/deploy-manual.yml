@@ -1,0 +1,520 @@
+name: Deploy DigiPulse Backend (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - testing
+          - all
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  DOCKER_IMAGE: ghcr.io/yurij2015/digipulse-backend
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  create-deployment-artifacts:
+    name: Create deployment artifacts
+    runs-on: ubuntu-latest
+    outputs:
+      DEPLOYMENT_MATRIX: ${{ steps.filter.outputs.DEPLOYMENT_MATRIX }}
+      DOCKER_CHANGED: ${{ steps.docker-check.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+      - name: Configure PHP 8.5
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.5
+          coverage: none
+          extensions: mbstring, ctype, fileinfo, openssl, pdo_mysql, pdo_pgsql, bcmath, json, tokenizer, xml, pgsql, gd, zip, curl, intl, redis, pcntl
+          ini-values: post_max_size=256M, upload_max_filesize=256M
+      - name: Create temporary .env for build
+        run: |
+          cp .env.example .env || echo "APP_KEY=base64:test" > .env
+          echo "BROADCAST_CONNECTION=log" >> .env
+      - name: Composer install
+        run: |
+          composer install --no-dev --no-interaction --prefer-dist
+      - name: Create deployment artifact
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          mkdir -p storage/framework/{cache,sessions,testing,views}
+          mkdir -p storage/logs
+          mkdir -p bootstrap/cache
+          touch storage/logs/laravel.log
+          tar -czf "${GITHUB_SHA}".tar.gz --exclude=.git --exclude=node_modules *
+      - name: Store artifact for distribution
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-build
+          path: ${{ github.sha }}.tar.gz
+      - name: Export deployment matrix
+        id: export
+        uses: ./.github/actions/export-deploy-matrix
+        with:
+          deployment_matrix: ${{ vars.DEPLOYMENT_MATRIX }}
+      - name: Filter by environment
+        id: filter
+        env:
+          FILTER_ENV: ${{ github.event.inputs.environment }}
+          FULL_MATRIX: ${{ steps.export.outputs.DEPLOYMENT_MATRIX }}
+        run: |
+          if [ "$FILTER_ENV" = "all" ]; then
+            FILTERED="$FULL_MATRIX"
+          else
+            FILTERED=$(echo "$FULL_MATRIX" | jq --arg env "$FILTER_ENV" '[.[] | select(.environment == $env)]')
+          fi
+          if [ "$(echo "$FILTERED" | jq 'length')" -eq 0 ]; then
+            echo "No server found for environment: $FILTER_ENV"
+            exit 1
+          fi
+          delimiter="$(openssl rand -hex 8)"
+          {
+            echo "DEPLOYMENT_MATRIX<<${delimiter}"
+            echo "$FILTERED"
+            echo "${delimiter}"
+          } >> "${GITHUB_OUTPUT}"
+      - name: Check if Docker image needs rebuild
+        id: docker-check
+        run: |
+          if git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -qE '^docker/'; then
+            echo "changed=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "changed=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+  run-tests:
+    name: Run Pest Tests
+    runs-on: ubuntu-latest
+    needs: create-deployment-artifacts
+    services:
+      pgsql:
+        image: postgres:18.3-alpine
+        env:
+          POSTGRES_USER: testing
+          POSTGRES_PASSWORD: testing
+          POSTGRES_DB: testing
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - uses: actions/checkout@v6
+      - name: Configure PHP 8.5
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.5
+          coverage: none
+          extensions: mbstring, ctype, fileinfo, openssl, pdo_mysql, pdo_pgsql, bcmath, json, tokenizer, xml, pgsql, gd, zip, curl, intl, redis, pcntl
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction
+      - name: Create temporary .env for tests
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+      - name: Run tests
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: testing
+          DB_USERNAME: testing
+          DB_PASSWORD: testing
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6379
+          CACHE_STORE: array
+          QUEUE_CONNECTION: sync
+          MAIL_MAILER: log
+          BROADCAST_CONNECTION: log
+          SITE_LIMIT: 3
+        run: php artisan test --compact
+
+  build-docker-image:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: [create-deployment-artifacts, run-tests]
+    steps:
+      - uses: actions/checkout@v6
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push image
+        uses: docker/build-push-action@v7.1.0
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          tags: |
+            ${{ env.DOCKER_IMAGE }}:latest
+            ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+
+  prepare-release-on-servers:
+    name: "${{ matrix.server.name }}: Prepare release"
+    runs-on: ubuntu-latest
+    environment: ${{ matrix.server.environment }}
+    needs: [create-deployment-artifacts, run-tests]
+    strategy:
+      matrix:
+        server: ${{ fromJson(needs.create-deployment-artifacts.outputs.DEPLOYMENT_MATRIX) }}
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: app-build
+      - name: Bootstrap server directories
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ matrix.server.ip }}
+          username: ${{ matrix.server.username }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ matrix.server.port }}
+          script: |
+            mkdir -p ${{ matrix.server.path }}/{releases,artifacts,storage}
+            mkdir -p ${{ matrix.server.path }}/storage/{app,public,framework,logs}
+            mkdir -p ${{ matrix.server.path }}/storage/framework/{cache,sessions,testing,views}
+            mkdir -p ${{ matrix.server.path }}/storage/framework/cache/data
+            mkdir -p ${{ matrix.server.path }}/storage/framework/views
+            sudo chmod -R 777 ${{ matrix.server.path }}/storage || true
+      - name: Upload
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ matrix.server.ip }}
+          username: ${{ matrix.server.username }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ matrix.server.port }}
+          source: ${{ github.sha }}.tar.gz
+          target: ${{ matrix.server.path }}/artifacts
+      - name: Extract archive and create directories
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        with:
+          host: ${{ matrix.server.ip }}
+          username: ${{ matrix.server.username }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ matrix.server.port }}
+          envs: GITHUB_SHA
+          script: |
+            RELEASE_DIR="${{ matrix.server.path }}/releases/${GITHUB_SHA}"
+            STORAGE_DIR="${{ matrix.server.path }}/storage"
+
+            docker run --rm -v "${{ matrix.server.path }}/releases":/data alpine rm -rf "/data/${GITHUB_SHA}" 2>/dev/null || true
+
+            mkdir -p "$RELEASE_DIR"
+            tar xzf ${{ matrix.server.path }}/artifacts/${GITHUB_SHA}.tar.gz --no-same-owner --no-same-permissions -C "$RELEASE_DIR"
+            rm -rf "$RELEASE_DIR/storage"
+
+            mkdir -p "$STORAGE_DIR/app" "$STORAGE_DIR/public" "$STORAGE_DIR/framework" "$STORAGE_DIR/logs"
+            mkdir -p "$STORAGE_DIR/framework/cache" "$STORAGE_DIR/framework/sessions" "$STORAGE_DIR/framework/testing" "$STORAGE_DIR/framework/views"
+
+            docker run --rm -v "$STORAGE_DIR":/data -v "$RELEASE_DIR":/release alpine sh -c "chmod -R 777 /data && chmod -R 777 /release/bootstrap/cache" 2>/dev/null || true
+
+  create-env-file:
+    name: "${{ matrix.server.name }}: Write .env to server"
+    runs-on: ubuntu-latest
+    environment: ${{ matrix.server.environment }}
+    needs: [create-deployment-artifacts, prepare-release-on-servers]
+    strategy:
+      matrix:
+        server: ${{ fromJson(needs.create-deployment-artifacts.outputs.DEPLOYMENT_MATRIX) }}
+    steps:
+      - name: Write production .env
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ matrix.server.ip }}
+          username: ${{ matrix.server.username }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ matrix.server.port }}
+          script: |
+            get_val() {
+              if [ -n "$1" ]; then echo "$1"; else echo "$2"; fi
+            }
+
+            APP_NAME=$(get_val "${{ vars.APP_NAME }}" "DigiPulse")
+            APP_ENV=$(get_val "${{ vars.APP_ENV }}" "production")
+            APP_KEY=$(get_val "${{ vars.APP_KEY_NEW }}" "")
+            APP_URL=$(get_val "${{ vars.APP_URL }}" "http://localhost")
+            APP_URL="${APP_URL%/}"
+            DB_HOST=$(get_val "${{ vars.DB_HOST }}" "digipulse-db")
+            DB_DATABASE=$(get_val "${{ vars.DB_DATABASE }}" "digipulse")
+            DB_USERNAME=$(get_val "${{ vars.DB_USERNAME }}" "digipulse")
+            DB_PASSWORD=$(get_val "${{ secrets.DB_PASSWORD }}" "")
+            REDIS_HOST=$(get_val "${{ vars.REDIS_HOST }}" "digipulse-redis")
+            SESSION_DOMAIN=$(get_val "${{ vars.SESSION_DOMAIN }}" "")
+            SANCTUM_STATEFUL_DOMAINS=$(get_val "${{ vars.SANCTUM_STATEFUL_DOMAINS }}" "")
+
+            MINIO_ENDPOINT=$(get_val "${{ vars.MINIO_ENDPOINT }}" "")
+            AWS_ACCESS_KEY_ID=$(get_val "${{ vars.AWS_ACCESS_KEY_ID }}" "")
+            AWS_SECRET_ACCESS_KEY=$(get_val "${{ vars.AWS_SECRET_ACCESS_KEY }}" "")
+            AWS_DEFAULT_REGION=$(get_val "${{ vars.AWS_DEFAULT_REGION }}" "eus3")
+            AWS_BUCKET=$(get_val "${{ vars.AWS_BUCKET }}" "")
+            AWS_USE_PATH_STYLE_ENDPOINT=$(get_val "${{ vars.AWS_USE_PATH_STYLE_ENDPOINT }}" "true")
+            AWS_URL=$(get_val "${{ vars.AWS_URL }}" "")
+
+            FRONTEND_KEY=$(get_val "${{ secrets.FRONTEND_KEY }}" "")
+            MAIL_FROM_ADDRESS=$(get_val "${{ vars.MAIL_FROM_ADDRESS }}" "support@pulse.digispace.pro")
+            RESEND_API_KEY=$(get_val "${{ secrets.RESEND_API_KEY }}" "")
+
+            GOOGLE_CLIENT_ID=$(get_val "${{ vars.GOOGLE_CLIENT_ID }}" "")
+            GOOGLE_CLIENT_SECRET=$(get_val "${{ vars.GOOGLE_CLIENT_SECRET }}" "")
+            TELEGRAM_BOT_TOKEN=$(get_val "${{ vars.TELEGRAM_BOT_TOKEN }}" "")
+            TELEGRAM_BOT_USERNAME=$(get_val "${{ vars.TELEGRAM_BOT_USERNAME }}" "")
+            TELEGRAM_WEBHOOK_SECRET=$(get_val "${{ secrets.TELEGRAM_WEBHOOK_SECRET }}" "")
+            TURNSTILE_ACTIVE=$(get_val "${{ vars.TURNSTILE_ACTIVE }}" "false")
+            TURNSTILE_SITE_KEY=$(get_val "${{ vars.TURNSTILE_SITE_KEY }}" "")
+            TURNSTILE_SECRET_KEY=$(get_val "${{ vars.TURNSTILE_SECRET_KEY }}" "")
+            FILAMENT_ADMIN_EMAIL=$(get_val "${{ vars.FILAMENT_ADMIN_EMAIL }}" "")
+            FRONTEND_URL=$(get_val "${{ vars.FRONTEND_URL }}" "")
+            MCP_SERVER_URL=$(get_val "${{ vars.MCP_SERVER_URL }}" "")
+            TELESCOPE_ENABLED=$(get_val "${{ vars.TELESCOPE_ENABLED }}" "false")
+            TELESCOPE_ALLOWED_EMAILS=$(get_val "${{ vars.TELESCOPE_ALLOWED_EMAILS }}" "")
+            TELESCOPE_ALLOWED_IPS=$(get_val "${{ vars.TELESCOPE_ALLOWED_IPS }}" "")
+            TELESCOPE_RECORD_ALL=$(get_val "${{ vars.TELESCOPE_RECORD_ALL }}" "false")
+
+            BROADCAST_CONNECTION=$(get_val "${{ vars.BROADCAST_CONNECTION }}" "pusher")
+            PUSHER_APP_ID=$(get_val "${{ vars.PUSHER_APP_ID }}" "")
+            PUSHER_APP_KEY=$(get_val "${{ vars.PUSHER_APP_KEY }}" "")
+            PUSHER_APP_SECRET=$(get_val "${{ secrets.PUSHER_APP_SECRET }}" "")
+            PUSHER_APP_CLUSTER=$(get_val "${{ vars.PUSHER_APP_CLUSTER }}" "eu")
+
+            SENTRY_LARAVEL_DSN=$(get_val "${{ secrets.SENTRY_LARAVEL_DSN }}" "")
+            SENTRY_TRACES_SAMPLE_RATE=$(get_val "${{ vars.SENTRY_TRACES_SAMPLE_RATE }}" "0.2")
+
+            LOG_LEVEL=$(get_val "${{ vars.LOG_LEVEL }}" "error")
+
+            cat > ${{ matrix.server.path }}/.env << ENVEOF
+            APP_NAME="$APP_NAME"
+            APP_ENV=$APP_ENV
+            APP_KEY=$APP_KEY
+            APP_DEBUG=false
+            APP_URL=$APP_URL
+            FRONTEND_URL=$FRONTEND_URL
+            MCP_SERVER_URL=$MCP_SERVER_URL
+            FRONTEND_KEY=$FRONTEND_KEY
+            FILAMENT_ADMIN_EMAIL=$FILAMENT_ADMIN_EMAIL
+
+            DB_CONNECTION=pgsql
+            DB_HOST=$DB_HOST
+            DB_PORT=5432
+            DB_DATABASE=$DB_DATABASE
+            DB_USERNAME=$DB_USERNAME
+            DB_PASSWORD=$DB_PASSWORD
+
+            REDIS_HOST=$REDIS_HOST
+            REDIS_PORT=6379
+            QUEUE_CONNECTION=redis
+            CACHE_STORE=redis
+            SESSION_DRIVER=redis
+            SESSION_LIFETIME=120
+            SESSION_DOMAIN=$SESSION_DOMAIN
+            SANCTUM_STATEFUL_DOMAINS=$SANCTUM_STATEFUL_DOMAINS
+
+            FILESYSTEM_DISK=local
+
+            MINIO_ENDPOINT=$MINIO_ENDPOINT
+            AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+            AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+            AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
+            AWS_BUCKET=$AWS_BUCKET
+            AWS_USE_PATH_STYLE_ENDPOINT=$AWS_USE_PATH_STYLE_ENDPOINT
+            AWS_URL=$AWS_URL
+
+            MAIL_MAILER=resend
+            MAIL_FROM_ADDRESS=$MAIL_FROM_ADDRESS
+            MAIL_FROM_NAME="${APP_NAME}"
+            RESEND_API_KEY=$RESEND_API_KEY
+
+            GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID
+            GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET
+            GOOGLE_REDIRECT_URI=${APP_URL%/}/auth/callback
+
+            TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN
+            TELEGRAM_BOT_USERNAME=$TELEGRAM_BOT_USERNAME
+            TELEGRAM_WEBHOOK_SECRET=$TELEGRAM_WEBHOOK_SECRET
+
+            TURNSTILE_ACTIVE=$TURNSTILE_ACTIVE
+            TURNSTILE_SITE_KEY=$TURNSTILE_SITE_KEY
+            TURNSTILE_SECRET_KEY=$TURNSTILE_SECRET_KEY
+
+            BROADCAST_CONNECTION=pusher
+            PUSHER_APP_ID=$PUSHER_APP_ID
+            PUSHER_APP_KEY=$PUSHER_APP_KEY
+            PUSHER_APP_SECRET=$PUSHER_APP_SECRET
+            PUSHER_APP_CLUSTER=$PUSHER_APP_CLUSTER
+
+            SENTRY_LARAVEL_DSN=$SENTRY_LARAVEL_DSN
+            SENTRY_TRACES_SAMPLE_RATE=$SENTRY_TRACES_SAMPLE_RATE
+
+            REDIS_PREFIX=laravel-database-
+            OCTANE_SERVER=frankenphp
+            LOG_CHANNEL=stack
+            LOG_STACK=daily
+            LOG_LEVEL=$LOG_LEVEL
+
+            INTERNET_CHECK_ENABLED=true
+            INTERNET_PROBE_URL=https://www.cloudflare.com
+            INTERNET_PROBE_TIMEOUT_SEC=5
+            MONITOR_RESULTS_CONSUMER_ENABLED=true
+            MONITOR_RESULTS_QUEUE=monitoring:results
+            MONITOR_RESULTS_CONSUMER_BLOCK_SECONDS=5
+            MONITOR_HEALTH_URL=http://digipulse-monitor:8080/health
+            MONITOR_HEALTH_TIMEOUT_SEC=5
+            MONITOR_HEARTBEAT_LOG_READS=false
+
+            TELESCOPE_ENABLED=$TELESCOPE_ENABLED
+            TELESCOPE_ALLOWED_EMAILS=$TELESCOPE_ALLOWED_EMAILS
+            TELESCOPE_ALLOWED_IPS=$TELESCOPE_ALLOWED_IPS
+            TELESCOPE_RECORD_ALL=$TELESCOPE_RECORD_ALL
+            ENVEOF
+
+  run-before-hooks:
+    name: "${{ matrix.server.name }}: Before hook"
+    runs-on: ubuntu-latest
+    environment: ${{ matrix.server.environment }}
+    needs: [create-deployment-artifacts, prepare-release-on-servers, create-env-file]
+    strategy:
+      matrix:
+        server: ${{ fromJson(needs.create-deployment-artifacts.outputs.DEPLOYMENT_MATRIX) }}
+    steps:
+      - name: Run before hooks
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          RELEASE_PATH: ${{ matrix.server.path }}/releases/${{ github.sha }}
+          ACTIVE_RELEASE_PATH: ${{ matrix.server.path }}/current
+          STORAGE_PATH: ${{ matrix.server.path }}/storage
+          BASE_PATH: ${{ matrix.server.path }}
+        with:
+          host: ${{ matrix.server.ip }}
+          username: ${{ matrix.server.username }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ matrix.server.port }}
+          envs: GITHUB_SHA,RELEASE_PATH,ACTIVE_RELEASE_PATH,STORAGE_PATH,BASE_PATH
+          script: |
+            if [ -n "${{ vars.DEPLOY_BEFORE_HOOKS }}" ]; then
+              eval "${{ vars.DEPLOY_BEFORE_HOOKS }}"
+            fi
+
+  activate-release:
+    name: "${{ matrix.server.name }}: Activate release"
+    runs-on: ubuntu-latest
+    environment: ${{ matrix.server.environment }}
+    needs: [create-deployment-artifacts, prepare-release-on-servers, run-before-hooks]
+    strategy:
+      matrix:
+        server: ${{ fromJson(needs.create-deployment-artifacts.outputs.DEPLOYMENT_MATRIX) }}
+    steps:
+      - name: Activate release
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          RELEASE_PATH: ${{ matrix.server.path }}/releases/${{ github.sha }}
+          ACTIVE_RELEASE_PATH: ${{ matrix.server.path }}/current
+          STORAGE_PATH: ${{ matrix.server.path }}/storage
+          BASE_PATH: ${{ matrix.server.path }}
+        with:
+          host: ${{ matrix.server.ip }}
+          username: ${{ matrix.server.username }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ matrix.server.port }}
+          envs: GITHUB_SHA,RELEASE_PATH,ACTIVE_RELEASE_PATH,STORAGE_PATH,BASE_PATH
+          script: |
+            if [ -d "$ACTIVE_RELEASE_PATH" ] && [ ! -L "$ACTIVE_RELEASE_PATH" ]; then
+              sudo rm -rf "$ACTIVE_RELEASE_PATH"
+            fi
+
+            if [ -f "${BASE_PATH}/.env" ]; then
+              cp -a "${BASE_PATH}/.env" "${BASE_PATH}/.env_prev" || true
+              ln -s -f "${BASE_PATH}/.env" "${RELEASE_PATH}/.env"
+            fi
+
+            ln -s -f $STORAGE_PATH $RELEASE_PATH
+            ln -s -n -f $RELEASE_PATH $ACTIVE_RELEASE_PATH
+
+  run-after-hooks:
+    name: "${{ matrix.server.name }}: After hook"
+    runs-on: ubuntu-latest
+    environment: ${{ matrix.server.environment }}
+    needs: [create-deployment-artifacts, prepare-release-on-servers, run-before-hooks, activate-release]
+    strategy:
+      matrix:
+        server: ${{ fromJson(needs.create-deployment-artifacts.outputs.DEPLOYMENT_MATRIX) }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run after deploy
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          RELEASE_PATH: ${{ matrix.server.path }}/releases/${{ github.sha }}
+          ACTIVE_RELEASE_PATH: ${{ matrix.server.path }}/current
+          STORAGE_PATH: ${{ matrix.server.path }}/storage
+          BASE_PATH: ${{ matrix.server.path }}
+          CONTAINER_PREFIX: ${{ matrix.server.container_prefix || 'digipulse' }}
+        with:
+          host: ${{ matrix.server.ip }}
+          username: ${{ matrix.server.username }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ matrix.server.port }}
+          envs: GITHUB_SHA,RELEASE_PATH,ACTIVE_RELEASE_PATH,STORAGE_PATH,BASE_PATH,CONTAINER_PREFIX
+          script_path: .github/scripts/after-deploy.sh
+      - name: Optional extra after deploy commands
+        if: ${{ vars.DEPLOY_AFTER_HOOKS != '' }}
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ matrix.server.ip }}
+          username: ${{ matrix.server.username }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ matrix.server.port }}
+          script: |
+            set -euo pipefail
+            eval "${{ vars.DEPLOY_AFTER_HOOKS }}"
+
+  clean-up:
+    name: "${{ matrix.server.name }}: Clean up"
+    runs-on: ubuntu-latest
+    environment: ${{ matrix.server.environment }}
+    needs: [create-deployment-artifacts, prepare-release-on-servers, run-before-hooks, activate-release, run-after-hooks]
+    strategy:
+      matrix:
+        server: ${{ fromJson(needs.create-deployment-artifacts.outputs.DEPLOYMENT_MATRIX) }}
+    steps:
+      - name: Clean up old releases
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          RELEASES_PATH: ${{ matrix.server.path }}/releases
+          ARTIFACTS_PATH: ${{ matrix.server.path }}/artifacts
+        with:
+          host: ${{ matrix.server.ip }}
+          username: ${{ matrix.server.username }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ matrix.server.port }}
+          envs: RELEASES_PATH,ARTIFACTS_PATH
+          script: |
+            cd $RELEASES_PATH && ls -t -1 | tail -n +6 | xargs sudo rm -rf || true
+            cd $ARTIFACTS_PATH && ls -t -1 | tail -n +6 | xargs sudo rm -rf || true
