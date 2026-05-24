@@ -51,7 +51,20 @@ class TelegramController extends Controller
     {
         $user = $request->user();
 
-        // If already connected
+        $botToken = config('services.telegram.bot_token');
+        $botUsername = config('services.telegram.bot_username');
+
+        Log::info('Telegram connect attempt', [
+            'user_id' => $user->id,
+            'already_connected' => (bool) $user->telegram_chat_id,
+            'bot_username' => $botUsername,
+            'bot_token_set' => ! empty($botToken),
+        ]);
+
+        if (! $botToken || ! $botUsername) {
+            Log::error('Telegram connect failed: bot_token or bot_username not configured');
+        }
+
         if ($user->telegram_chat_id) {
             return response()->json([
                 'connected' => true,
@@ -64,8 +77,6 @@ class TelegramController extends Controller
         $user->update([
             'telegram_connection_token' => $token,
         ]);
-
-        $botUsername = config('services.telegram.bot_username', 'DigiPulseBot');
 
         return response()->json([
             'connected' => false,
@@ -103,6 +114,12 @@ class TelegramController extends Controller
         $user = $request->user();
         $chatId = $user->telegram_chat_id;
 
+        Log::info('Telegram disconnect attempt', [
+            'user_id' => $user->id,
+            'chat_id' => $chatId,
+            'was_connected' => (bool) $chatId,
+        ]);
+
         if ($chatId) {
             $this->telegram->sendMessage($chatId, [
                 'text' => "🔌 *Disconnected*\n\nYou have successfully disconnected Telegram notifications for DigiPulse\. You will no longer receive alerts here\.",
@@ -129,9 +146,20 @@ class TelegramController extends Controller
     {
         // Verify the request comes from Telegram using the secret token
         $secretToken = config('services.telegram.webhook_secret');
+
+        Log::info('Telegram webhook received', [
+            'has_secret_configured' => ! empty($secretToken),
+            'has_secret_header' => $request->hasHeader('X-Telegram-Bot-Api-Secret-Token'),
+            'ip' => $request->ip(),
+        ]);
+
         if ($secretToken) {
             $receivedToken = $request->header('X-Telegram-Bot-Api-Secret-Token');
             if (! hash_equals((string) $secretToken, (string) $receivedToken)) {
+                Log::warning('Telegram webhook forbidden: secret token mismatch', [
+                    'received_token' => $receivedToken ? substr($receivedToken, 0, 6).'...' : null,
+                ]);
+
                 return response()->json(['status' => 'forbidden'], 403);
             }
         }
