@@ -393,11 +393,32 @@ jobs:
             TELESCOPE_RECORD_ALL=$TELESCOPE_RECORD_ALL
             ENVEOF
 
+  verify-telegram-config:
+    name: "${{ matrix.server.name }}: Verify Telegram config"
+    runs-on: ubuntu-latest
+    environment: ${{ matrix.server.environment }}
+    needs: [create-deployment-artifacts, create-env-file]
+    strategy:
+      matrix:
+        server: ${{ fromJson(needs.create-deployment-artifacts.outputs.DEPLOYMENT_MATRIX) }}
+    steps:
+      - name: Check Telegram vars
+        run: |
+          MISSING=""
+          [ -z "${{ vars.TELEGRAM_BOT_USERNAME }}" ] && MISSING="$MISSING TELEGRAM_BOT_USERNAME"
+          [ -z "${{ secrets.TELEGRAM_WEBHOOK_SECRET }}" ] && MISSING="$MISSING TELEGRAM_WEBHOOK_SECRET"
+          if [ -n "$MISSING" ]; then
+            echo "⚠️ Warning: missing Telegram vars:$MISSING"
+            echo "Telegram integration may not work correctly."
+          else
+            echo "✓ Telegram vars are set"
+          fi
+
   run-before-hooks:
     name: "${{ matrix.server.name }}: Before hook"
     runs-on: ubuntu-latest
     environment: ${{ matrix.server.environment }}
-    needs: [create-deployment-artifacts, prepare-release-on-servers, create-env-file]
+    needs: [create-deployment-artifacts, prepare-release-on-servers, create-env-file, verify-telegram-config]
     strategy:
       matrix:
         server: ${{ fromJson(needs.create-deployment-artifacts.outputs.DEPLOYMENT_MATRIX) }}
