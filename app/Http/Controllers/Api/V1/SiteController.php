@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Monitoring\Contracts\CachePortInterface;
 use App\Domain\Monitoring\Contracts\SiteManagementRepositoryInterface;
 use App\Domain\Monitoring\Data\CreateSiteData;
 use App\Domain\Monitoring\Models\Site;
@@ -21,11 +22,10 @@ use Symfony\Component\HttpFoundation\Response as ResponseAlias;
 
 class SiteController extends Controller
 {
-    private const string CACHE_VERSION = 'v9';
-
     public function __construct(
         private readonly SiteManagementRepositoryInterface $siteRepository,
         private readonly CreateSiteUseCase $createSiteUseCase,
+        private readonly CachePortInterface $cachePort,
     ) {}
 
     #[OA\Get(
@@ -51,7 +51,7 @@ class SiteController extends Controller
     {
         $userId = $request->user()->id;
         $projectId = $request->integer('project_id') ?: null;
-        $version = self::CACHE_VERSION;
+        $version = CachePortInterface::SITES_CACHE_VERSION;
         $cacheKey = "user_sites_{$version}:{$userId}".($projectId ? ":project_{$projectId}" : '');
 
         $sitesData = Cache::remember($cacheKey, 60, function () use ($userId, $projectId) {
@@ -223,7 +223,7 @@ class SiteController extends Controller
                 $site = $this->siteRepository->findById($id);
             }
 
-            self::clearUserSitesCache($request->user()->id);
+            $this->cachePort->clearUserSitesCache($request->user()->id);
 
             return new SiteResource($site);
         });
@@ -269,17 +269,8 @@ class SiteController extends Controller
 
         $this->siteRepository->delete($id);
 
-        self::clearUserSitesCache($userId);
+        $this->cachePort->clearUserSitesCache($userId);
 
         return response()->noContent();
-    }
-
-    /**
-     * Clear the site cache for a specific user.
-     */
-    public static function clearUserSitesCache(int $userId): void
-    {
-        $version = self::CACHE_VERSION;
-        Cache::forget("user_sites_{$version}:{$userId}");
     }
 }

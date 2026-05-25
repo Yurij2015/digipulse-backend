@@ -38,13 +38,29 @@ class StoreSiteRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         if ($this->has('url')) {
-            $parsed = parse_url((string) $this->url);
+            $raw = (string) $this->url;
+
+            // Handle bare domains (e.g. "example.com") so parse_url can identify the host.
+            if (! str_contains($raw, '://')) {
+                $raw = 'https://'.$raw;
+            }
+
+            $parsed = parse_url($raw);
+
             if ($parsed && isset($parsed['host'])) {
-                $url = ($parsed['scheme'] ?? 'https').'://'.$parsed['host'];
-                if (isset($parsed['port'])) {
-                    $url .= ':'.$parsed['port'];
+                $scheme = $parsed['scheme'] ?? 'https';
+                $host = $parsed['host'];
+                $port = isset($parsed['port']) ? ':'.$parsed['port'] : '';
+                $path = ltrim($parsed['path'] ?? '', '/');
+
+                if ($path !== '') {
+                    // Preserve the path so the path-rejection rule in rules() can surface
+                    // ERROR_URL_PATH_NOT_SUPPORTED instead of silently stripping it and
+                    // producing a misleading ERROR_URL_TAKEN from the unique constraint.
+                    $this->merge(['url' => "{$scheme}://{$host}{$port}/{$path}"]);
+                } else {
+                    $this->merge(['url' => "{$scheme}://{$host}{$port}"]);
                 }
-                $this->merge(['url' => $url]);
             }
         }
     }
@@ -63,7 +79,18 @@ class StoreSiteRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'url' => ['required', 'url', 'max:255', 'unique:sites,url'],
+            'url' => [
+                'bail',
+                'required',
+                'url',
+                'max:255',
+                static function (string $attribute, mixed $value, \Closure $fail): void {
+                    if (ltrim(parse_url($value, PHP_URL_PATH) ?? '', '/') !== '') {
+                        $fail('ERROR_URL_PATH_NOT_SUPPORTED');
+                    }
+                },
+                'unique:sites,url',
+            ],
             'project_id' => [
                 'sometimes',
                 'nullable',
