@@ -166,15 +166,16 @@ class TelegramController extends Controller
 
         $payload = $request->all();
 
-        Log::info('Telegram webhook payload', ['payload' => $payload]);
+        Log::info('Telegram webhook payload', [
+            'update_id' => $payload['update_id'] ?? null,
+            'type' => isset($payload['callback_query']) ? 'callback_query' : (isset($payload['message']) ? 'message' : 'other'),
+        ]);
 
         if (isset($payload['callback_query'])) {
             return $this->processTelegramCallback($payload['callback_query']);
         }
 
         $message = $payload['message'] ?? null;
-
-        Log::info('Telegram webhook message', ['message' => $message]);
 
         if (! $message) {
             return response()->json(['status' => 'ok']);
