@@ -64,15 +64,16 @@ class SiteController extends Controller
             return array_map(static fn (Site $site) => $site->toArray(), $sites);
         });
 
-        $all = array_map(fn (array $data) => $this->siteRepository->fromArray($data), $sitesData);
-
-        $statusCounts = array_map(static fn(Site $site) => $site->status, $all)
+        $statusCounts = array_column($sitesData, 'status')
                 |> array_count_values(...)
                 |> (static fn($x) => array_merge(['up' => 0, 'down' => 0, 'slow' => 0, 'pending' => 0], $x));
 
+        $pageData = array_slice($sitesData, ($page - 1) * $perPage, $perPage);
+        $pageItems = array_map(fn (array $data) => $this->siteRepository->fromArray($data), $pageData);
+
         $paginator = new LengthAwarePaginator(
-            items: array_slice($all, ($page - 1) * $perPage, $perPage),
-            total: count($all),
+            items: $pageItems,
+            total: count($sitesData),
             perPage: $perPage,
             currentPage: $page,
             options: ['path' => $request->url(), 'query' => $request->query()],
