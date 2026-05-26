@@ -37,9 +37,11 @@ class ProjectController extends Controller
     )]
     public function index(Request $request): AnonymousResourceCollection
     {
-        $projects = $this->projectRepository->findByUser($request->user()->id);
+        $perPage = min($request->integer('per_page', 10), 50);
 
-        return ProjectResource::collection($projects);
+        return ProjectResource::collection(
+            $this->projectRepository->paginateByUser($request->user()->id, $perPage)
+        );
     }
 
     #[OA\Post(

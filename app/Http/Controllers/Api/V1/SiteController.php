@@ -15,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use OpenApi\Attributes as OA;
@@ -51,6 +52,9 @@ class SiteController extends Controller
     {
         $userId = $request->user()->id;
         $projectId = $request->integer('project_id') ?: null;
+        $perPage = min($request->integer('per_page', 10), 50);
+        $page = max(1, $request->integer('page', 1));
+
         $version = CachePortInterface::SITES_CACHE_VERSION;
         $cacheKey = "user_sites_{$version}:{$userId}".($projectId ? ":project_{$projectId}" : '');
 
@@ -60,9 +64,17 @@ class SiteController extends Controller
             return array_map(static fn (Site $site) => $site->toArray(), $sites);
         });
 
-        $sites = array_map(fn (array $data) => $this->siteRepository->fromArray($data), $sitesData);
+        $all = array_map(fn (array $data) => $this->siteRepository->fromArray($data), $sitesData);
 
-        return SiteResource::collection($sites);
+        $paginator = new LengthAwarePaginator(
+            items: array_slice($all, ($page - 1) * $perPage, $perPage),
+            total: count($all),
+            perPage: $perPage,
+            currentPage: $page,
+            options: ['path' => $request->url(), 'query' => $request->query()],
+        );
+
+        return SiteResource::collection($paginator);
     }
 
     #[OA\Post(
