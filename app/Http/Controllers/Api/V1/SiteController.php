@@ -66,6 +66,10 @@ class SiteController extends Controller
 
         $all = array_map(fn (array $data) => $this->siteRepository->fromArray($data), $sitesData);
 
+        $statusCounts = array_map(static fn(Site $site) => $site->status, $all)
+                |> array_count_values(...)
+                |> (static fn($x) => array_merge(['up' => 0, 'down' => 0, 'slow' => 0, 'pending' => 0], $x));
+
         $paginator = new LengthAwarePaginator(
             items: array_slice($all, ($page - 1) * $perPage, $perPage),
             total: count($all),
@@ -74,7 +78,9 @@ class SiteController extends Controller
             options: ['path' => $request->url(), 'query' => $request->query()],
         );
 
-        return SiteResource::collection($paginator);
+        return SiteResource::collection($paginator)->additional([
+            'meta' => ['status_counts' => $statusCounts],
+        ]);
     }
 
     #[OA\Post(
