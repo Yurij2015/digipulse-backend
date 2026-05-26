@@ -39,6 +39,28 @@ snip -- vendor/bin/sail artisan app:consume-monitor-results --once
 snip -- vendor/bin/sail artisan app:schedule-checks
 ```
 
+## Server Diagnostics
+
+Connection: `ssh -p <PORT> <USER>@<HOST>` (see `infrastructure/envs/*.tfvars` for hosts/ports)
+
+```bash
+# Container status
+ssh -p <PORT> <USER>@<HOST> "docker ps --format 'table {{.Names}}\t{{.Status}}'"
+
+# Redis queue sizes
+ssh -p <PORT> <USER>@<HOST> "docker exec digipulse-redis redis-cli LLEN 'laravel-database-monitoring:tasks'"
+ssh -p <PORT> <USER>@<HOST> "docker exec digipulse-redis redis-cli LLEN 'laravel-database-monitoring:results'"
+
+# Container logs (last 50 lines)
+ssh -p <PORT> <USER>@<HOST> "docker logs digipulse-results-consumer --tail 50"
+ssh -p <PORT> <USER>@<HOST> "docker logs digipulse-monitor --tail 50"
+ssh -p <PORT> <USER>@<HOST> "docker logs digipulse-worker --tail 50"
+
+# Follow logs live
+ssh -p <PORT> <USER>@<HOST> "docker logs digipulse-results-consumer -f"
+ssh -p <PORT> <USER>@<HOST> "docker logs digipulse-monitor -f"
+```
+
 ## Architecture
 
 ### Hexagonal (Ports & Adapters) for the Monitoring Module
