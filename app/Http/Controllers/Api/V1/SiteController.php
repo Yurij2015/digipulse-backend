@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\V1;
 use App\Domain\Monitoring\Contracts\CachePortInterface;
 use App\Domain\Monitoring\Contracts\SiteManagementRepositoryInterface;
 use App\Domain\Monitoring\Data\CreateSiteData;
-use App\Domain\Monitoring\Models\Site;
 use App\Domain\Monitoring\UseCases\CreateSiteUseCase;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\Sites\StoreSiteRequest;
@@ -16,7 +15,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use OpenApi\Attributes as OA;
 use Symfony\Component\HttpFoundation\Response as ResponseAlias;
@@ -55,25 +53,13 @@ class SiteController extends Controller
         $perPage = min($request->integer('per_page', 10), 50);
         $page = max(1, $request->integer('page', 1));
 
-        $version = CachePortInterface::SITES_CACHE_VERSION;
-        $cacheKey = "user_sites_{$version}:{$userId}".($projectId ? ":project_{$projectId}" : '');
-
-        $sitesData = Cache::remember($cacheKey, 60, function () use ($userId, $projectId) {
-            $sites = $this->siteRepository->findByUser($userId, $projectId);
-
-            return array_map(static fn (Site $site) => $site->toArray(), $sites);
-        });
-
-        $statusCounts = array_column($sitesData, 'status')
-                |> array_count_values(...)
-                |> (static fn($x) => array_merge(['up' => 0, 'down' => 0, 'slow' => 0, 'pending' => 0], $x));
-
-        $pageData = array_slice($sitesData, ($page - 1) * $perPage, $perPage);
-        $pageItems = array_map(fn (array $data) => $this->siteRepository->fromArray($data), $pageData);
+        $statusCounts = $this->siteRepository->getStatusCounts($userId, $projectId);
+        $total = $this->siteRepository->countByFilter($userId, $projectId);
+        $sites = $this->siteRepository->findPage($userId, $projectId, $perPage, $page);
 
         $paginator = new LengthAwarePaginator(
-            items: $pageItems,
-            total: count($sitesData),
+            items: $sites,
+            total: $total,
             perPage: $perPage,
             currentPage: $page,
             options: ['path' => $request->url(), 'query' => $request->query()],

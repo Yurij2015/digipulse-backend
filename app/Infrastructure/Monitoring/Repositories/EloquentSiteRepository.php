@@ -182,9 +182,65 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
         ];
     }
 
-    public function fromArray(array $data): DomainSite
+    public function findPage(int $userId, ?int $projectId, int $perPage, int $page): array
     {
-        return $this->mapper->arrayToSite($data);
+        $sites = EloquentSite::where('user_id', $userId)
+            ->with(['latestCheck', 'latestHttpCheck', 'latestSslCheck', 'latestPingCheck'])
+            ->when($projectId !== null, fn ($q) => $q->where('project_id', $projectId))
+            ->latest()
+            ->forPage($page, $perPage)
+            ->get();
+
+        $siteIntervals = $sites->pluck('update_interval', 'id')->toArray();
+        $statsBySiteId = $this->statsRepository->loadForSites($siteIntervals);
+
+        return $sites
+            ->map(fn (EloquentSite $site) => $this->mapper->toDomain(
+                $site,
+                $statsBySiteId[$site->id] ?? null,
+                $this->getCachedConfigurations($site->id),
+            ))
+            ->toArray();
+    }
+
+    public function countByFilter(int $userId, ?int $projectId): int
+    {
+        return EloquentSite::where('user_id', $userId)
+            ->when($projectId !== null, fn ($q) => $q->where('project_id', $projectId))
+            ->count();
+    }
+
+    public function getStatusCounts(int $userId, ?int $projectId): array
+    {
+        $projectClause = '';
+        $params = [$userId, $userId];
+        if ($projectId !== null) {
+            $projectClause = 'AND s.project_id = ?';
+            $params[] = $projectId;
+        }
+
+        $rows = DB::select("
+            WITH latest AS (
+                SELECT DISTINCT ON (r.site_id) r.site_id, r.status
+                FROM check_results r
+                JOIN sites s ON s.id = r.site_id AND s.user_id = ?
+                ORDER BY r.site_id, r.checked_at DESC, r.id DESC
+            )
+            SELECT
+                COALESCE(l.status, 'pending') AS status,
+                COUNT(*) AS cnt
+            FROM sites s
+            LEFT JOIN latest l ON l.site_id = s.id
+            WHERE s.user_id = ? {$projectClause}
+            GROUP BY 1
+        ", $params);
+
+        $counts = ['up' => 0, 'down' => 0, 'slow' => 0, 'pending' => 0];
+        foreach ($rows as $row) {
+            $counts[$row->status] = (int) $row->cnt;
+        }
+
+        return $counts;
     }
 
     /** @return DomainConfiguration[] */
