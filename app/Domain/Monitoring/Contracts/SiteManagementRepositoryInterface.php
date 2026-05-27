@@ -56,7 +56,22 @@ interface SiteManagementRepositoryInterface
     public function delete(int $id): bool;
 
     /**
-     * Reconstruct a site from array data (e.g. from cache).
+     * Get one page of sites with full data (DB-level pagination).
+     *
+     * @return Site[]
      */
-    public function fromArray(array $data): Site;
+    public function findPage(int $userId, ?int $projectId, int $perPage, int $page): array;
+
+    /**
+     * Count total sites matching the user/project filter.
+     */
+    public function countByFilter(int $userId, ?int $projectId): int;
+
+    /**
+     * Get status counts for all the user's sites via a single lightweight query.
+     * Keys: up, down, slow, pending. Any missing status defaults to 0.
+     *
+     * @return array{up: int, down: int, slow: int, pending: int}
+     */
+    public function getStatusCounts(int $userId, ?int $projectId): array;
 }
