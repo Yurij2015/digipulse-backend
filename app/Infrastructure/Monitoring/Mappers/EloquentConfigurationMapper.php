@@ -22,6 +22,8 @@ final class EloquentConfigurationMapper
             params: $configuration->params,
             lastStatus: $configuration->last_status,
             lastCheckedAt: $this->formatDate($configuration->last_checked_at),
+            consecutiveFailures: (int) ($configuration->consecutive_failures ?? 0),
+            confirmedDownAt: $this->formatDate($configuration->confirmed_down_at),
             checkType: $configuration->relationLoaded('checkType') && $configuration->checkType
                 ? $this->checkTypeMapper->toDomain($configuration->checkType)
                 : null,
@@ -38,6 +40,8 @@ final class EloquentConfigurationMapper
             params: $data['params'] ?? null,
             lastStatus: $data['last_status'] ?? null,
             lastCheckedAt: $data['last_checked_at'] ?? null,
+            consecutiveFailures: (int) ($data['consecutive_failures'] ?? 0),
+            confirmedDownAt: $data['confirmed_down_at'] ?? null,
             checkType: isset($data['check_type']) ? $this->checkTypeMapper->arrayToDomain($data['check_type']) : null,
         );
     }

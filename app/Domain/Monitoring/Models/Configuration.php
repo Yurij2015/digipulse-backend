@@ -12,6 +12,8 @@ readonly class Configuration
         public ?array $params,
         public ?string $lastStatus,
         public ?string $lastCheckedAt,
+        public int $consecutiveFailures = 0,
+        public ?string $confirmedDownAt = null,
         public ?CheckType $checkType = null,
     ) {}
 
@@ -25,6 +27,8 @@ readonly class Configuration
             'params' => $this->params,
             'last_status' => $this->lastStatus,
             'last_checked_at' => $this->lastCheckedAt,
+            'consecutive_failures' => $this->consecutiveFailures,
+            'confirmed_down_at' => $this->confirmedDownAt,
             'check_type' => $this->checkType?->toArray(),
         ];
     }
