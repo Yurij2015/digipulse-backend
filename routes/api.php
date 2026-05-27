@@ -85,6 +85,7 @@ Route::prefix('v1')->name('v1.')->group(function () {
 
             Route::get('/telegram/connect', [TelegramController::class, 'connect'])->name('telegram.connect');
             Route::post('/telegram/disconnect', [TelegramController::class, 'disconnect'])->name('telegram.disconnect');
+            Route::post('/telegram/test', [TelegramController::class, 'test'])->name('telegram.test');
 
             Route::get('/tokens', [TokenController::class, 'index'])->name('tokens.index');
             Route::post('/tokens', [TokenController::class, 'store'])->name('tokens.store');

@@ -137,6 +137,34 @@ class TelegramController extends Controller
         ]);
     }
 
+    #[OA\Post(
+        path: '/api/v1/telegram/test',
+        summary: 'Send a test Telegram message to the authenticated user',
+        security: [['frontendKey' => []], ['bearerAuth' => []]],
+        tags: ['Telegram'],
+        responses: [
+            new OA\Response(response: 200, description: 'Message sent'),
+            new OA\Response(response: 422, description: 'Telegram not connected'),
+        ]
+    )]
+    public function test(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user->telegram_chat_id) {
+            return response()->json(['message' => 'Telegram is not connected.'], 422);
+        }
+
+        $this->telegram->sendMessage($user->telegram_chat_id, [
+            'text' => "🔔 <b>Test notification</b>\n\nYour DigiPulse Telegram notifications are working correctly.",
+            'parse_mode' => 'HTML',
+        ]);
+
+        Log::info('Telegram test message sent', ['user_id' => $user->id, 'chat_id' => $user->telegram_chat_id]);
+
+        return response()->json(['message' => 'Test message sent.']);
+    }
+
     /**
      * Handle incoming webhooks from Telegram.
      *
@@ -166,9 +194,16 @@ class TelegramController extends Controller
 
         $payload = $request->all();
 
+        $type = 'other';
+        if (isset($payload['callback_query'])) {
+            $type = 'callback_query';
+        } elseif (isset($payload['message'])) {
+            $type = 'message';
+        }
+
         Log::info('Telegram webhook payload', [
             'update_id' => $payload['update_id'] ?? null,
-            'type' => isset($payload['callback_query']) ? 'callback_query' : (isset($payload['message']) ? 'message' : 'other'),
+            'type' => $type,
         ]);
 
         if (isset($payload['callback_query'])) {
