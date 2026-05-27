@@ -153,16 +153,22 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
         return (bool) EloquentSite::where('id', $id)->delete();
     }
 
-    public function updateStatus(int $configurationId, string $status): void
-    {
+    public function updateStatus(
+        int $configurationId,
+        string $status,
+        int $consecutiveFailures,
+        ?\DateTimeInterface $confirmedDownAt,
+    ): void {
         SiteCheckConfiguration::where('id', $configurationId)->update([
             'last_status' => $status,
             'last_checked_at' => now(),
+            'consecutive_failures' => $consecutiveFailures,
+            'confirmed_down_at' => $confirmedDownAt,
         ]);
     }
 
     /**
-     * @return array{site_id: int, user_id: int, last_status: ?string}
+     * @return array{site_id: int, user_id: int, last_status: ?string, consecutive_failures: int, confirmed_down_at: ?string}
      */
     public function getConfigurationContext(int $configurationId): array
     {
@@ -171,6 +177,8 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
             ->select([
                 'site_check_configurations.site_id',
                 'site_check_configurations.last_status',
+                'site_check_configurations.consecutive_failures',
+                'site_check_configurations.confirmed_down_at',
                 'sites.user_id',
             ])
             ->firstOrFail();
@@ -179,6 +187,8 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
             'site_id' => (int) $row->site_id,
             'user_id' => (int) $row->user_id,
             'last_status' => $row->last_status,
+            'consecutive_failures' => (int) ($row->consecutive_failures ?? 0),
+            'confirmed_down_at' => $row->confirmed_down_at,
         ];
     }
 

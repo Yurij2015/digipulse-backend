@@ -8,6 +8,7 @@ use App\Domain\Monitoring\Contracts\ResultRepositoryInterface;
 use App\Domain\Monitoring\Contracts\SiteRepositoryInterface;
 use App\Domain\Monitoring\Data\MonitoringResultData;
 use App\Events\SiteStatusUpdated;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Use Case for processing a new monitoring result.
@@ -15,6 +16,9 @@ use App\Events\SiteStatusUpdated;
  */
 readonly class ProcessMonitoringResult
 {
+    // Number of consecutive failures required before sending a down alert.
+    private const int FAILURE_THRESHOLD = 2;
+
     public function __construct(
         private SiteRepositoryInterface $siteRepository,
         private ResultRepositoryInterface $resultRepository,
@@ -22,9 +26,6 @@ readonly class ProcessMonitoringResult
         private CachePortInterface $cachePort,
     ) {}
 
-    /**
-     * Execute the use case.
-     */
     public function execute(MonitoringResultData $dto): void
     {
         $context = $this->siteRepository->getConfigurationContext($dto->configurationId);
@@ -38,7 +39,9 @@ readonly class ProcessMonitoringResult
             siteId: $context['site_id'],
         );
 
-        $this->siteRepository->updateStatus($dto->configurationId, $dto->status);
+        [$consecutiveFailures, $confirmedDownAt] = $this->computeFailureState($dto->status, $context);
+
+        $this->siteRepository->updateStatus($dto->configurationId, $dto->status, $consecutiveFailures, $confirmedDownAt);
         $this->resultRepository->save($enrichedDto);
 
         event(new SiteStatusUpdated(
@@ -52,14 +55,73 @@ readonly class ProcessMonitoringResult
             ],
         ));
 
-        if (($context['last_status'] ?? 'up') !== 'down' && $dto->status === 'down') {
-            $this->alertService->sendSiteDownAlert($dto->configurationId);
-        }
-
-        if (($context['last_status'] ?? 'up') === 'down' && $dto->status === 'up') {
-            $this->alertService->sendSiteUpAlert($dto->configurationId);
-        }
+        $this->dispatchAlerts($dto->status, $dto->configurationId, $context, $consecutiveFailures, $confirmedDownAt);
 
         $this->cachePort->clearUserSitesCache($context['user_id']);
+    }
+
+    /**
+     * @return array{0: int, 1: ?\DateTimeInterface}
+     */
+    private function computeFailureState(string $status, array $context): array
+    {
+        if ($status !== 'down') {
+            return [0, null];
+        }
+
+        $consecutiveFailures = $context['consecutive_failures'] + 1;
+
+        // Preserve existing confirmed_down_at (raw DB string → Carbon); stamp when threshold is first reached.
+        $existingConfirmedAt = $context['confirmed_down_at'] !== null
+            ? now()->parse($context['confirmed_down_at'])
+            : null;
+
+        $confirmedDownAt = $existingConfirmedAt
+            ?? ($consecutiveFailures >= self::FAILURE_THRESHOLD ? now() : null);
+
+        return [$consecutiveFailures, $confirmedDownAt];
+    }
+
+    private function dispatchAlerts(
+        string $status,
+        int $configurationId,
+        array $context,
+        int $consecutiveFailures,
+        mixed $confirmedDownAt,
+    ): void {
+        if ($status === 'down') {
+            Log::info('ProcessMonitoringResult: down result recorded', [
+                'configuration_id' => $configurationId,
+                'site_id' => $context['site_id'],
+                'consecutive_failures' => $consecutiveFailures,
+                'threshold' => self::FAILURE_THRESHOLD,
+                'confirmed' => $confirmedDownAt !== null,
+            ]);
+
+            if ($consecutiveFailures >= self::FAILURE_THRESHOLD && $context['confirmed_down_at'] === null) {
+                Log::warning('ProcessMonitoringResult: site confirmed down, sending alert', [
+                    'configuration_id' => $configurationId,
+                    'site_id' => $context['site_id'],
+                    'consecutive_failures' => $consecutiveFailures,
+                ]);
+                $this->alertService->sendSiteDownAlert($configurationId);
+            }
+
+            return;
+        }
+
+        if ($context['confirmed_down_at'] !== null) {
+            Log::info('ProcessMonitoringResult: site recovered from confirmed down, sending recovery alert', [
+                'configuration_id' => $configurationId,
+                'site_id' => $context['site_id'],
+            ]);
+            $this->alertService->sendSiteUpAlert($configurationId);
+        } elseif ($context['consecutive_failures'] > 0) {
+            Log::info('ProcessMonitoringResult: site recovered before confirmation, no alert sent', [
+                'configuration_id' => $configurationId,
+                'site_id' => $context['site_id'],
+                'consecutive_failures_reset_from' => $context['consecutive_failures'],
+            ]);
+        }
     }
 }

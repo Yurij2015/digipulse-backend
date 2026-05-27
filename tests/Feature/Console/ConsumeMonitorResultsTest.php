@@ -103,10 +103,15 @@ it('dispatches SiteStatusUpdated event after processing', function () {
     });
 });
 
-it('sends a site down notification when transitioning from up to down', function () {
+it('sends a site down notification when consecutive failures reach the threshold', function () {
     Notification::fake();
 
-    $configuration = SiteCheckConfiguration::factory()->create(['last_status' => 'up']);
+    // consecutive_failures = 1 means one more down result hits threshold (2)
+    $configuration = SiteCheckConfiguration::factory()->create([
+        'last_status' => 'down',
+        'consecutive_failures' => 1,
+        'confirmed_down_at' => null,
+    ]);
 
     $payload = json_encode([
         'configuration_id' => $configuration->id,
@@ -144,10 +149,13 @@ it('does not send a notification when site is already down', function () {
     Notification::assertNothingSent();
 });
 
-it('sends a notification on first check when site is immediately down', function () {
+it('does not send a notification on the first down result (below threshold)', function () {
     Notification::fake();
 
-    $configuration = SiteCheckConfiguration::factory()->create(['last_status' => null]);
+    $configuration = SiteCheckConfiguration::factory()->create([
+        'last_status' => null,
+        'consecutive_failures' => 0,
+    ]);
 
     $payload = json_encode([
         'configuration_id' => $configuration->id,
@@ -161,7 +169,8 @@ it('sends a notification on first check when site is immediately down', function
     $this->artisan('app:consume-monitor-results', ['--once' => true])
         ->assertExitCode(0);
 
-    Notification::assertSentTo($configuration->site->user, SiteDownNotification::class);
+    Notification::assertNothingSent();
+    expect($configuration->fresh()->consecutive_failures)->toBe(1);
 });
 
 it('moves payload to failed queue when max attempts reached', function () {

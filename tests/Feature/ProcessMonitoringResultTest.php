@@ -26,22 +26,20 @@ beforeEach(function () {
         'site_id' => 1,
         'user_id' => 10,
         'last_status' => 'up',
+        'consecutive_failures' => 0,
+        'confirmed_down_at' => null,
     ];
 });
 
-it('sends a down alert when status transitions from up to down', function () {
-    $this->context['last_status'] = 'up';
-
+it('does not send an alert on the first down result (below threshold)', function () {
     $this->siteRepository->shouldReceive('getConfigurationContext')
         ->once()->with(5)->andReturn($this->context);
     $this->siteRepository->shouldReceive('updateStatus')
-        ->once()->with(5, 'down');
+        ->once()->with(5, 'down', 1, null);
     $this->resultRepository->shouldReceive('save')->once();
-    $this->alertService->shouldReceive('sendSiteDownAlert')
-        ->once()->with(5);
+    $this->alertService->shouldNotReceive('sendSiteDownAlert');
     $this->alertService->shouldNotReceive('sendSiteUpAlert');
-    $this->cachePort->shouldReceive('clearUserSitesCache')
-        ->once()->with(10);
+    $this->cachePort->shouldReceive('clearUserSitesCache')->once()->with(10);
 
     Event::fake();
 
@@ -49,19 +47,55 @@ it('sends a down alert when status transitions from up to down', function () {
     $this->useCase->execute($dto);
 });
 
-it('sends an up alert when status transitions from down to up', function () {
-    $this->context['last_status'] = 'down';
+it('sends a down alert when consecutive failures reach the threshold', function () {
+    $this->context['consecutive_failures'] = 1;
 
     $this->siteRepository->shouldReceive('getConfigurationContext')
         ->once()->with(5)->andReturn($this->context);
     $this->siteRepository->shouldReceive('updateStatus')
-        ->once()->with(5, 'up');
+        ->once()->with(5, 'down', 2, Mockery::type(DateTimeInterface::class));
+    $this->resultRepository->shouldReceive('save')->once();
+    $this->alertService->shouldReceive('sendSiteDownAlert')->once()->with(5);
+    $this->alertService->shouldNotReceive('sendSiteUpAlert');
+    $this->cachePort->shouldReceive('clearUserSitesCache')->once()->with(10);
+
+    Event::fake();
+
+    $dto = new MonitoringResultData(configurationId: 5, status: 'down', responseTimeMs: 500);
+    $this->useCase->execute($dto);
+});
+
+it('does not send another down alert when already confirmed down', function () {
+    $this->context['consecutive_failures'] = 2;
+    $this->context['confirmed_down_at'] = now()->toISOString();
+
+    $this->siteRepository->shouldReceive('getConfigurationContext')
+        ->once()->with(5)->andReturn($this->context);
+    $this->siteRepository->shouldReceive('updateStatus')
+        ->once()->with(5, 'down', 3, Mockery::not(null));
     $this->resultRepository->shouldReceive('save')->once();
     $this->alertService->shouldNotReceive('sendSiteDownAlert');
-    $this->alertService->shouldReceive('sendSiteUpAlert')
-        ->once()->with(5);
-    $this->cachePort->shouldReceive('clearUserSitesCache')
-        ->once()->with(10);
+    $this->alertService->shouldNotReceive('sendSiteUpAlert');
+    $this->cachePort->shouldReceive('clearUserSitesCache')->once()->with(10);
+
+    Event::fake();
+
+    $dto = new MonitoringResultData(configurationId: 5, status: 'down', responseTimeMs: 0, errorMessage: 'timeout');
+    $this->useCase->execute($dto);
+});
+
+it('sends a recovery alert when site comes up after a confirmed down', function () {
+    $this->context['consecutive_failures'] = 2;
+    $this->context['confirmed_down_at'] = now()->toISOString();
+
+    $this->siteRepository->shouldReceive('getConfigurationContext')
+        ->once()->with(5)->andReturn($this->context);
+    $this->siteRepository->shouldReceive('updateStatus')
+        ->once()->with(5, 'up', 0, null);
+    $this->resultRepository->shouldReceive('save')->once();
+    $this->alertService->shouldNotReceive('sendSiteDownAlert');
+    $this->alertService->shouldReceive('sendSiteUpAlert')->once()->with(5);
+    $this->cachePort->shouldReceive('clearUserSitesCache')->once()->with(10);
 
     Event::fake();
 
@@ -69,18 +103,18 @@ it('sends an up alert when status transitions from down to up', function () {
     $this->useCase->execute($dto);
 });
 
-it('does not send any alert when status remains up', function () {
-    $this->context['last_status'] = 'up';
+it('does not send a recovery alert when site recovers before confirmation', function () {
+    $this->context['consecutive_failures'] = 1;
+    $this->context['confirmed_down_at'] = null;
 
     $this->siteRepository->shouldReceive('getConfigurationContext')
         ->once()->with(5)->andReturn($this->context);
     $this->siteRepository->shouldReceive('updateStatus')
-        ->once()->with(5, 'up');
+        ->once()->with(5, 'up', 0, null);
     $this->resultRepository->shouldReceive('save')->once();
     $this->alertService->shouldNotReceive('sendSiteDownAlert');
     $this->alertService->shouldNotReceive('sendSiteUpAlert');
-    $this->cachePort->shouldReceive('clearUserSitesCache')
-        ->once()->with(10);
+    $this->cachePort->shouldReceive('clearUserSitesCache')->once()->with(10);
 
     Event::fake();
 
@@ -88,22 +122,19 @@ it('does not send any alert when status remains up', function () {
     $this->useCase->execute($dto);
 });
 
-it('does not send any alert when status remains down', function () {
-    $this->context['last_status'] = 'down';
-
+it('does not send any alert when status remains up', function () {
     $this->siteRepository->shouldReceive('getConfigurationContext')
         ->once()->with(5)->andReturn($this->context);
     $this->siteRepository->shouldReceive('updateStatus')
-        ->once()->with(5, 'down');
+        ->once()->with(5, 'up', 0, null);
     $this->resultRepository->shouldReceive('save')->once();
     $this->alertService->shouldNotReceive('sendSiteDownAlert');
     $this->alertService->shouldNotReceive('sendSiteUpAlert');
-    $this->cachePort->shouldReceive('clearUserSitesCache')
-        ->once()->with(10);
+    $this->cachePort->shouldReceive('clearUserSitesCache')->once()->with(10);
 
     Event::fake();
 
-    $dto = new MonitoringResultData(configurationId: 5, status: 'down', responseTimeMs: 0, errorMessage: 'timeout');
+    $dto = new MonitoringResultData(configurationId: 5, status: 'up', responseTimeMs: 80);
     $this->useCase->execute($dto);
 });
 
