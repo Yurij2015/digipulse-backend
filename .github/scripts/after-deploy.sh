@@ -6,7 +6,7 @@ PREFIX="${CONTAINER_PREFIX:-digipulse}"
 # Post-deploy on the app server (restarts backend stack after release activation).
 if docker ps -a --format '{{.Names}}' | grep -q "${PREFIX}-app"; then
   docker pull ghcr.io/yurij2015/digipulse-backend
-  docker restart "${PREFIX}-app" "${PREFIX}-worker" "${PREFIX}-scheduler" "${PREFIX}-results-consumer"
+  docker restart "${PREFIX}-app" "${PREFIX}-worker" "${PREFIX}-scheduler" "${PREFIX}-results-consumer" "${PREFIX}-reverb"
   sleep 10
   docker exec "${PREFIX}-app" php artisan config:cache
   docker exec "${PREFIX}-app" php artisan route:cache
