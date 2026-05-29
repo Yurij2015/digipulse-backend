@@ -71,7 +71,7 @@ describe('User Registration', function () {
             ->assertJsonValidationErrors(['email']);
     });
 
-it('fails registration with weak password', function () {
+    it('fails registration with weak password', function () {
         $this->postJson('/api/v1/register', [
             'email' => 'weak@example.pro',
             'password' => 'short',
@@ -79,6 +79,26 @@ it('fails registration with weak password', function () {
         ], ['X-Frontend-Key' => FRONTEND_KEY])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['password']);
+    });
+
+    it('fails registration with numeric-only password', function () {
+        $this->postJson('/api/v1/register', [
+            'email' => 'numeric@example.pro',
+            'password' => '12345678910',
+            'password_confirmation' => '12345678910',
+        ], ['X-Frontend-Key' => FRONTEND_KEY])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
+    });
+
+    it('fails registration with email without valid domain', function () {
+        $this->postJson('/api/v1/register', [
+            'email' => 'user@nodomain',
+            'password' => 'StrongPass123!',
+            'password_confirmation' => 'StrongPass123!',
+        ], ['X-Frontend-Key' => FRONTEND_KEY])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['email']);
     });
 
     it('fails registration with invalid email format', function () {

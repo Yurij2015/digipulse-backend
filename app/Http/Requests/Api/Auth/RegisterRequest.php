@@ -51,11 +51,11 @@ class RegisterRequest extends FormRequest
                 'required',
                 'string',
                 'lowercase',
-                'email',
+                'email:rfc,filter',
                 'max:255',
                 function ($attribute, $value, $fail) {
                     $bindex = User::generateBlindIndex($value);
-                    if ($bindex && \App\Models\User::where('email_bindex', $bindex)->exists()) {
+                    if ($bindex && User::where('email_bindex', $bindex)->exists()) {
                         $fail('The email has already been taken.');
                     }
                 },
@@ -66,7 +66,7 @@ class RegisterRequest extends FormRequest
                 'required',
                 'string',
                 'confirmed',
-                Password::min(10),
+                Password::min(10)->letters()->numbers(),
                 function ($attribute, $value, $fail) {
                     if (count(array_unique(str_split($value))) < 6) {
                         $fail('The :attribute must contain at least 6 unique characters.');
