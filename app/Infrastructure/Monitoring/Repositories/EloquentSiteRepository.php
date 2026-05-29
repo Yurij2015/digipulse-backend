@@ -181,6 +181,7 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
                 'site_check_configurations.confirmed_down_at',
                 'sites.user_id',
             ])
+            ->lockForUpdate()
             ->firstOrFail();
 
         return [

@@ -17,15 +17,26 @@ final class OutboundInternetProbe
 
         $url = (string) config('monitoring.scheduler.internet_probe_url', 'https://www.cloudflare.com');
         $timeout = (int) config('monitoring.scheduler.internet_probe_timeout', 5);
+        $retries = (int) config('monitoring.scheduler.internet_probe_retries', 3);
 
-        try {
-            $response = Http::timeout($timeout)
-                ->withHeaders(['User-Agent' => 'DigiPulse-Scheduler/Connectivity-Probe'])
-                ->get($url);
+        for ($attempt = 1; $attempt <= $retries; $attempt++) {
+            try {
+                $response = Http::timeout($timeout)
+                    ->withHeaders(['User-Agent' => 'DigiPulse-Scheduler/Connectivity-Probe'])
+                    ->get($url);
 
-            return $response->status() > 0;
-        } catch (Throwable) {
-            return false;
+                if ($response->status() > 0) {
+                    return true;
+                }
+            } catch (Throwable) {
+                // fall through to retry
+            }
+
+            if ($attempt < $retries) {
+                sleep(2);
+            }
         }
+
+        return false;
     }
 }

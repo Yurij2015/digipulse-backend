@@ -48,12 +48,12 @@ it('does not send an alert on the first down result (below threshold)', function
 });
 
 it('sends a down alert when consecutive failures reach the threshold', function () {
-    $this->context['consecutive_failures'] = 1;
+    $this->context['consecutive_failures'] = 2;
 
     $this->siteRepository->shouldReceive('getConfigurationContext')
         ->once()->with(5)->andReturn($this->context);
     $this->siteRepository->shouldReceive('updateStatus')
-        ->once()->with(5, 'down', 2, Mockery::type(DateTimeInterface::class));
+        ->once()->with(5, 'down', 3, Mockery::type(DateTimeInterface::class));
     $this->resultRepository->shouldReceive('save')->once();
     $this->alertService->shouldReceive('sendSiteDownAlert')->once()->with(5);
     $this->alertService->shouldNotReceive('sendSiteUpAlert');

@@ -106,10 +106,10 @@ it('dispatches SiteStatusUpdated event after processing', function () {
 it('sends a site down notification when consecutive failures reach the threshold', function () {
     Notification::fake();
 
-    // consecutive_failures = 1 means one more down result hits threshold (2)
+    // consecutive_failures = 2 means one more down result hits threshold (3)
     $configuration = SiteCheckConfiguration::factory()->create([
         'last_status' => 'down',
-        'consecutive_failures' => 1,
+        'consecutive_failures' => 2,
         'confirmed_down_at' => null,
     ]);
 
