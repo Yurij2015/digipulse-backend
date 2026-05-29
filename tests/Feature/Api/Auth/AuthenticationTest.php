@@ -43,10 +43,62 @@ describe('User Registration', function () {
         expect($createdUser->name)->toBe('johndoe');
     });
 
+    it('can register without optional fields', function () {
+        $this->postJson('/api/v1/register', [
+            'email' => 'minimal@example.pro',
+            'password' => 'StrongPass123!',
+            'password_confirmation' => 'StrongPass123!',
+        ], ['X-Frontend-Key' => FRONTEND_KEY])
+            ->assertStatus(201)
+            ->assertJsonStructure(['user', 'token']);
+    });
+
     it('fails registration with validation errors', function () {
         $this->postJson('/api/v1/register', [], ['X-Frontend-Key' => FRONTEND_KEY])
             ->assertStatus(422)
-            ->assertJsonValidationErrors(['name', 'email', 'password', 'first_name', 'last_name']);
+            ->assertJsonValidationErrors(['email', 'password']);
+    });
+
+    it('fails registration with duplicate email', function () {
+        User::factory()->create(['email' => 'taken@example.pro']);
+
+        $this->postJson('/api/v1/register', [
+            'email' => 'taken@example.pro',
+            'password' => 'StrongPass123!',
+            'password_confirmation' => 'StrongPass123!',
+        ], ['X-Frontend-Key' => FRONTEND_KEY])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['email']);
+    });
+
+it('fails registration with weak password', function () {
+        $this->postJson('/api/v1/register', [
+            'email' => 'weak@example.pro',
+            'password' => 'short',
+            'password_confirmation' => 'short',
+        ], ['X-Frontend-Key' => FRONTEND_KEY])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
+    });
+
+    it('fails registration with invalid email format', function () {
+        $this->postJson('/api/v1/register', [
+            'email' => 'not-an-email',
+            'password' => 'StrongPass123!',
+            'password_confirmation' => 'StrongPass123!',
+        ], ['X-Frontend-Key' => FRONTEND_KEY])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['email']);
+    });
+
+    it('fails registration when passwords do not match', function () {
+        $this->postJson('/api/v1/register', [
+            'email' => 'mismatch@example.pro',
+            'password' => 'StrongPass123!',
+            'password_confirmation' => 'DifferentPass123!',
+        ], ['X-Frontend-Key' => FRONTEND_KEY])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['password']);
     });
 });
 

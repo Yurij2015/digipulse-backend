@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Api\Auth;
 
+use App\Models\User;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
@@ -52,7 +53,12 @@ class RegisterRequest extends FormRequest
                 'lowercase',
                 'email',
                 'max:255',
-                'unique:users',
+                function ($attribute, $value, $fail) {
+                    $bindex = User::generateBlindIndex($value);
+                    if ($bindex && \App\Models\User::where('email_bindex', $bindex)->exists()) {
+                        $fail('The email has already been taken.');
+                    }
+                },
             ],
             'first_name' => 'nullable|string|max:255',
             'last_name' => 'nullable|string|max:255',
