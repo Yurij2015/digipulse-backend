@@ -107,7 +107,17 @@ Defined in `routes/console.php`:
 
 ### Realtime / Broadcasting
 
-Support chat (`SupportTicket`/`SupportTicketMessage`) uses `ShouldBroadcastNow` on `MessageSent` event for synchronous delivery. Broadcast auth uses `auth:sanctum` middleware on `/broadcasting/auth`. Channel authorization is in `routes/channels.php`.
+**Broadcasting driver is Laravel Reverb — never Pusher.** `BROADCAST_CONNECTION=reverb` is hardcoded in the deploy workflow and must never be changed to `pusher`.
+
+- `SiteStatusUpdated` uses `ShouldBroadcastNow` (fired by `digipulse-results-consumer`)
+- `MessageSent` uses `ShouldBroadcastNow` for support chat
+- Broadcast auth endpoint: `/api/v1/broadcasting/auth` (requires `auth:sanctum`)
+- Channel authorization: `routes/channels.php`
+- Reverb server runs in `digipulse-reverb` container on port 6001
+- Laravel app connects to Reverb internally via `REVERB_INTERNAL_HOST=digipulse-reverb`, `REVERB_INTERNAL_PORT=6001`, `REVERB_INTERNAL_SCHEME=http`
+- Public WebSocket clients connect via Caddy → `wss://ws.<domain>`
+
+**Critical**: The Reverb app key (`REVERB_APP_KEY`) must match what the Reverb server is configured with.
 
 ### Admin Panel
 
@@ -125,7 +135,9 @@ Singletons persist across requests. Never:
 | Variable | Purpose |
 |---|---|
 | `FRONTEND_KEY` | Required header for all API requests (`X-Frontend-Key`) |
-| `BROADCAST_CONNECTION` | Set to `pusher` for realtime; `null` disables broadcasting |
+| `BROADCAST_CONNECTION` | Always `reverb` in production/staging — hardcoded in deploy.yml, never change to `pusher` |
+| `REVERB_APP_KEY` / `REVERB_APP_SECRET` | Reverb app credentials — must match the Reverb server config |
+| `REVERB_INTERNAL_HOST` / `REVERB_INTERNAL_PORT` / `REVERB_INTERNAL_SCHEME` | Internal Docker network address for Laravel→Reverb HTTP publishing (`digipulse-reverb:6001` over `http`) |
 | `MONITOR_RESULTS_QUEUE` | Redis key for Go→Laravel result ingestion (default: `monitoring:results`) |
 | `TURNSTILE_ACTIVE` | Set `false` to disable Cloudflare Turnstile in local dev |
 | `TELEGRAM_BOT_TOKEN` / `TELEGRAM_WEBHOOK_SECRET` | Telegram bot integration |

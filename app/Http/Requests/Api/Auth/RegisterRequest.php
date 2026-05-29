@@ -10,7 +10,7 @@ use OpenApi\Attributes as OA;
 #[OA\Schema(
     schema: 'RegisterRequest',
     type: 'object',
-    required: ['name', 'email', 'first_name', 'last_name', 'password', 'password_confirmation'],
+    required: ['email', 'password', 'password_confirmation'],
     properties: [
         new OA\Property(property: 'name', type: 'string', example: 'johndou'),
         new OA\Property(property: 'email', type: 'string', format: 'email', example: 'johndou@gmail.pro'),
@@ -39,7 +39,7 @@ class RegisterRequest extends FormRequest
     {
         return [
             'name' => [
-                'required',
+                'nullable',
                 'string',
                 'min:3',
                 'max:40',
@@ -54,8 +54,8 @@ class RegisterRequest extends FormRequest
                 'max:255',
                 'unique:users',
             ],
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
+            'first_name' => 'nullable|string|max:255',
+            'last_name' => 'nullable|string|max:255',
             'password' => [
                 'required',
                 'string',
