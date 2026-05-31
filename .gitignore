@@ -4,6 +4,9 @@
 .env.backup
 .env.production
 deployment-config.json
+
+# Internal team notes (not for public repo)
+docs/internal/
 .phpactor.json
 .phpunit.result.cache
 /.fleet
