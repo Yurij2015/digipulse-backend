@@ -168,7 +168,7 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
     }
 
     /**
-     * @return array{site_id: int, user_id: int, last_status: ?string, consecutive_failures: int, confirmed_down_at: ?string}
+     * @return array{site_id: int, user_id: int, last_status: ?string, consecutive_failures: int, confirmed_down_at: ?string, failure_threshold: int}
      */
     public function getConfigurationContext(int $configurationId): array
     {
@@ -179,6 +179,7 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
                 'site_check_configurations.last_status',
                 'site_check_configurations.consecutive_failures',
                 'site_check_configurations.confirmed_down_at',
+                'site_check_configurations.failure_threshold',
                 'sites.user_id',
             ])
             ->lockForUpdate()
@@ -190,6 +191,7 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
             'last_status' => $row->last_status,
             'consecutive_failures' => (int) ($row->consecutive_failures ?? 0),
             'confirmed_down_at' => $row->confirmed_down_at,
+            'failure_threshold' => (int) ($row->failure_threshold ?? 3),
         ];
     }
 

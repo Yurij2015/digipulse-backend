@@ -12,7 +12,7 @@ class SiteCheckConfiguration extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['site_id', 'check_type_id', 'params', 'is_active', 'last_status', 'last_checked_at', 'consecutive_failures', 'confirmed_down_at'];
+    protected $fillable = ['site_id', 'check_type_id', 'params', 'is_active', 'last_status', 'last_checked_at', 'consecutive_failures', 'confirmed_down_at', 'failure_threshold'];
 
     protected $casts = [
         'params' => 'array',

@@ -28,6 +28,7 @@ beforeEach(function () {
         'last_status' => 'up',
         'consecutive_failures' => 0,
         'confirmed_down_at' => null,
+        'failure_threshold' => 3,
     ];
 });
 

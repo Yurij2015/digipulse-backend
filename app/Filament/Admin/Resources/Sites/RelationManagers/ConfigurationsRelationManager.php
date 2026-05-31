@@ -9,6 +9,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
@@ -30,6 +31,14 @@ class ConfigurationsRelationManager extends RelationManager
                     ->native(false),
                 Toggle::make('is_active')
                     ->default(true)
+                    ->required(),
+                TextInput::make('failure_threshold')
+                    ->label('Failure threshold')
+                    ->helperText('Consecutive failures before an alert is sent.')
+                    ->numeric()
+                    ->default(3)
+                    ->minValue(1)
+                    ->maxValue(10)
                     ->required(),
                 KeyValue::make('params')
                     ->keyLabel('Parameter')

@@ -17,8 +17,8 @@ use Illuminate\Support\Facades\Log;
  */
 readonly class ProcessMonitoringResult
 {
-    // Number of consecutive failures required before sending a down alert.
-    private const int FAILURE_THRESHOLD = 3;
+    // Fallback threshold used when the per-site value is missing from context.
+    private const int DEFAULT_FAILURE_THRESHOLD = 3;
 
     public function __construct(
         private SiteRepositoryInterface $siteRepository,
@@ -35,7 +35,7 @@ readonly class ProcessMonitoringResult
         [$context, $consecutiveFailures, $confirmedDownAt] = DB::transaction(
             function () use ($dto): array {
                 $context = $this->siteRepository->getConfigurationContext($dto->configurationId);
-                [$consecutiveFailures, $confirmedDownAt] = $this->computeFailureState($dto->status, $context);
+                [$consecutiveFailures, $confirmedDownAt] = $this->computeFailureState($dto->status, $context, (int) ($context['failure_threshold'] ?? self::DEFAULT_FAILURE_THRESHOLD));
                 $this->siteRepository->updateStatus($dto->configurationId, $dto->status, $consecutiveFailures, $confirmedDownAt);
 
                 return [$context, $consecutiveFailures, $confirmedDownAt];
@@ -72,7 +72,7 @@ readonly class ProcessMonitoringResult
     /**
      * @return array{0: int, 1: ?\DateTimeInterface}
      */
-    private function computeFailureState(string $status, array $context): array
+    private function computeFailureState(string $status, array $context, int $threshold): array
     {
         if ($status === 'up') {
             return [0, null];
@@ -94,7 +94,7 @@ readonly class ProcessMonitoringResult
             : null;
 
         $confirmedDownAt = $existingConfirmedAt
-            ?? ($consecutiveFailures >= self::FAILURE_THRESHOLD ? now() : null);
+            ?? ($consecutiveFailures >= $threshold ? now() : null);
 
         return [$consecutiveFailures, $confirmedDownAt];
     }
@@ -111,11 +111,12 @@ readonly class ProcessMonitoringResult
                 'configuration_id' => $configurationId,
                 'site_id' => $context['site_id'],
                 'consecutive_failures' => $consecutiveFailures,
-                'threshold' => self::FAILURE_THRESHOLD,
+                'threshold' => $context['failure_threshold'] ?? self::DEFAULT_FAILURE_THRESHOLD,
                 'confirmed' => $confirmedDownAt !== null,
             ]);
 
-            if ($consecutiveFailures >= self::FAILURE_THRESHOLD && $context['confirmed_down_at'] === null) {
+            // $confirmedDownAt was just stamped (previously null) → threshold crossed for the first time.
+            if ($confirmedDownAt !== null && $context['confirmed_down_at'] === null) {
                 Log::warning('ProcessMonitoringResult: site confirmed down, sending alert', [
                     'configuration_id' => $configurationId,
                     'site_id' => $context['site_id'],
