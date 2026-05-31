@@ -42,6 +42,18 @@ class SSLExpiringNotification extends Notification implements ShouldQueue, Teleg
      */
     public function toMail(object $notifiable): MailMessage
     {
+        if ($this->daysRemaining < 0) {
+            $expiredDaysAgo = abs($this->daysRemaining);
+
+            return (new MailMessage)
+                ->subject("🚨 SSL Certificate Expired: {$this->site->name}")
+                ->greeting('Urgent!')
+                ->line("The SSL certificate for your site **{$this->site->name}** ({$this->site->url}) has already **expired**.")
+                ->line("It expired **{$expiredDaysAgo} days ago**.")
+                ->action('View Site Dashboard', rtrim(config('app.frontend_url', config('app.url')), '/').'/dashboard')
+                ->line('Renew it immediately to restore secure HTTPS connections.');
+        }
+
         return (new MailMessage)
             ->subject("⚠️ SSL Certificate Expiration: {$this->site->name}")
             ->greeting('Hello!')
@@ -58,6 +70,14 @@ class SSLExpiringNotification extends Notification implements ShouldQueue, Teleg
     {
         $safeName = htmlspecialchars($this->site->name ?? '');
         $safeUrl = htmlspecialchars($this->site->url ?? '');
+
+        if ($this->daysRemaining < 0) {
+            $expiredDaysAgo = abs($this->daysRemaining);
+
+            return "🚨 <b>SSL Certificate Expired!</b>\n\n".
+                   "The SSL certificate for <b>{$safeName}</b> ({$safeUrl}) expired <code>{$expiredDaysAgo}</code> days ago.\n\n".
+                   'Renew it immediately to restore secure connections.';
+        }
 
         return "⚠️ <b>SSL Expiration Warning!</b>\n\n".
                "The SSL certificate for <b>{$safeName}</b> ({$safeUrl}) expires in <code>{$this->daysRemaining}</code> days.\n\n".
