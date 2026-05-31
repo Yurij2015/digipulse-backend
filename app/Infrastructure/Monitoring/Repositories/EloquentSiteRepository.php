@@ -21,6 +21,8 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
 
     private const int CONFIG_CACHE_TTL = 3600;
 
+    private const int SITES_CACHE_TTL = 60;
+
     public function __construct(
         private EloquentSiteMapper $mapper,
         private EloquentConfigurationMapper $configurationMapper,
@@ -218,42 +220,58 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
 
     public function countByFilter(int $userId, ?int $projectId): int
     {
-        return EloquentSite::where('user_id', $userId)
-            ->when($projectId !== null, fn ($q) => $q->where('project_id', $projectId))
-            ->count();
+        $key = $this->sitesCacheKey($userId, $projectId, 'count');
+
+        return Cache::remember($key, self::SITES_CACHE_TTL, static function () use ($userId, $projectId) {
+            return EloquentSite::where('user_id', $userId)
+                ->when($projectId !== null, fn ($q) => $q->where('project_id', $projectId))
+                ->count();
+        });
     }
 
     public function getStatusCounts(int $userId, ?int $projectId): array
     {
-        $projectClause = '';
-        $params = [$userId, $userId];
-        if ($projectId !== null) {
-            $projectClause = 'AND s.project_id = ?';
-            $params[] = $projectId;
-        }
+        $key = $this->sitesCacheKey($userId, $projectId, 'status_counts');
 
-        $rows = DB::select("
-            WITH latest AS (
-                SELECT DISTINCT ON (r.site_id) r.site_id, r.status
-                FROM check_results r
-                JOIN sites s ON s.id = r.site_id AND s.user_id = ?
-                ORDER BY r.site_id, r.checked_at DESC, r.id DESC
-            )
-            SELECT
-                COALESCE(l.status, 'pending') AS status,
-                COUNT(*) AS cnt
-            FROM sites s
-            LEFT JOIN latest l ON l.site_id = s.id
-            WHERE s.user_id = ? {$projectClause}
-            GROUP BY 1
-        ", $params);
+        return Cache::remember($key, self::SITES_CACHE_TTL, function () use ($userId, $projectId) {
+            $projectClause = '';
+            $params = [$userId, $userId];
+            if ($projectId !== null) {
+                $projectClause = 'AND s.project_id = ?';
+                $params[] = $projectId;
+            }
 
-        $counts = ['up' => 0, 'down' => 0, 'slow' => 0, 'pending' => 0];
-        foreach ($rows as $row) {
-            $counts[$row->status] = (int) $row->cnt;
-        }
+            $rows = DB::select("
+                WITH latest AS (
+                    SELECT DISTINCT ON (r.site_id) r.site_id, r.status
+                    FROM check_results r
+                    JOIN sites s ON s.id = r.site_id AND s.user_id = ?
+                    ORDER BY r.site_id, r.checked_at DESC, r.id DESC
+                )
+                SELECT
+                    COALESCE(l.status, 'pending') AS status,
+                    COUNT(*) AS cnt
+                FROM sites s
+                LEFT JOIN latest l ON l.site_id = s.id
+                WHERE s.user_id = ? {$projectClause}
+                GROUP BY 1
+            ", $params);
 
-        return $counts;
+            $counts = ['up' => 0, 'down' => 0, 'slow' => 0, 'pending' => 0];
+            foreach ($rows as $row) {
+                $counts[$row->status] = (int) $row->cnt;
+            }
+
+            return $counts;
+        });
+    }
+
+    private function sitesCacheKey(int $userId, ?int $projectId, string $suffix): string
+    {
+        $gen = (int) Cache::get("user_sites_gen:{$userId}", 0);
+        $scope = $projectId !== null ? "project:{$projectId}" : 'all';
+
+        return "user_sites_v9:{$userId}:{$scope}:gen{$gen}:{$suffix}";
     }
 
     /** @return DomainConfiguration[] */
