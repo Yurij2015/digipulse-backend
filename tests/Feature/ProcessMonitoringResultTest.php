@@ -86,6 +86,7 @@ it('does not send another down alert when already confirmed down', function () {
 });
 
 it('sends a recovery alert when site comes up after a confirmed down', function () {
+    $this->context['last_status'] = 'down';
     $this->context['consecutive_failures'] = 2;
     $this->context['confirmed_down_at'] = now()->toISOString();
 
@@ -105,6 +106,7 @@ it('sends a recovery alert when site comes up after a confirmed down', function 
 });
 
 it('does not send a recovery alert when site recovers before confirmation', function () {
+    $this->context['last_status'] = 'down';
     $this->context['consecutive_failures'] = 1;
     $this->context['confirmed_down_at'] = null;
 
@@ -125,13 +127,13 @@ it('does not send a recovery alert when site recovers before confirmation', func
 
 it('does not send any alert when status remains up', function () {
     $this->siteRepository->shouldReceive('getConfigurationContext')
-        ->once()->with(5)->andReturn($this->context);
+        ->once()->with(5)->andReturn($this->context); // last_status = 'up'
     $this->siteRepository->shouldReceive('updateStatus')
         ->once()->with(5, 'up', 0, null);
     $this->resultRepository->shouldReceive('save')->once();
     $this->alertService->shouldNotReceive('sendSiteDownAlert');
     $this->alertService->shouldNotReceive('sendSiteUpAlert');
-    $this->cachePort->shouldReceive('clearUserSitesCache')->once()->with(10);
+    $this->cachePort->shouldNotReceive('clearUserSitesCache'); // status unchanged → no invalidation
 
     Event::fake();
 
@@ -140,6 +142,7 @@ it('does not send any alert when status remains up', function () {
 });
 
 it('dispatches SiteStatusUpdated event with correct payload', function () {
+    $this->context['last_status'] = 'down'; // status changes → cache cleared
     $this->siteRepository->shouldReceive('getConfigurationContext')
         ->once()->with(5)->andReturn($this->context);
     $this->siteRepository->shouldReceive('updateStatus')->once();

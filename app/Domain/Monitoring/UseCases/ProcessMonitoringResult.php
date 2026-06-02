@@ -66,7 +66,9 @@ readonly class ProcessMonitoringResult
 
         $this->dispatchAlerts($dto->status, $dto->configurationId, $context, $consecutiveFailures, $confirmedDownAt);
 
-        $this->cachePort->clearUserSitesCache($context['user_id']);
+        if ($dto->status !== $context['last_status']) {
+            $this->cachePort->clearUserSitesCache($context['user_id']);
+        }
     }
 
     /**
