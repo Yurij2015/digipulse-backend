@@ -198,11 +198,19 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
         ];
     }
 
-    public function findPage(int $userId, ?int $projectId, int $perPage, int $page): array
+    public function findPage(int $userId, ?int $projectId, int $perPage, int $page, ?string $status = null): array
     {
         $sites = EloquentSite::where('user_id', $userId)
             ->with(['latestCheck', 'latestHttpCheck', 'latestSslCheck', 'latestPingCheck'])
             ->when($projectId !== null, fn($q) => $q->where('project_id', $projectId))
+            ->when($status !== null, function ($q) use ($status) {
+                $subquery = DB::raw('(SELECT status FROM check_results WHERE site_id = sites.id ORDER BY checked_at DESC, id DESC LIMIT 1)');
+                if ($status === 'pending') {
+                    $q->whereNull($subquery);
+                } else {
+                    $q->where($subquery, $status);
+                }
+            })
             ->latest()
             ->forPage($page, $perPage)
             ->get();
@@ -219,13 +227,21 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
             ->toArray();
     }
 
-    public function countByFilter(int $userId, ?int $projectId): int
+    public function countByFilter(int $userId, ?int $projectId, ?string $status = null): int
     {
-        $key = $this->sitesCacheKey($userId, $projectId, 'count');
+        $key = $this->sitesCacheKey($userId, $projectId, 'count', $status);
 
-        return Cache::remember($key, self::SITES_CACHE_TTL, static function () use ($userId, $projectId) {
+        return Cache::remember($key, self::SITES_CACHE_TTL, static function () use ($userId, $projectId, $status) {
             return EloquentSite::where('user_id', $userId)
                 ->when($projectId !== null, fn($q) => $q->where('project_id', $projectId))
+                ->when($status !== null, function ($q) use ($status) {
+                    $subquery = DB::raw('(SELECT status FROM check_results WHERE site_id = sites.id ORDER BY checked_at DESC, id DESC LIMIT 1)');
+                    if ($status === 'pending') {
+                        $q->whereNull($subquery);
+                    } else {
+                        $q->where($subquery, $status);
+                    }
+                })
                 ->count();
         });
     }
@@ -270,12 +286,13 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
         });
     }
 
-    private function sitesCacheKey(int $userId, ?int $projectId, string $suffix): string
+    private function sitesCacheKey(int $userId, ?int $projectId, string $suffix, ?string $status = null): string
     {
         $gen = (int)Cache::get("user_sites_gen:{$userId}", 0);
         $scope = $projectId !== null ? "project:{$projectId}" : 'all';
+        $statusPart = $status !== null ? "status:{$status}" : 'all';
 
-        return "user_sites_v9:{$userId}:{$scope}:gen{$gen}:{$suffix}";
+        return "user_sites_v9:{$userId}:{$scope}:{$statusPart}:gen{$gen}:{$suffix}";
     }
 
     /** @return DomainConfiguration[] */

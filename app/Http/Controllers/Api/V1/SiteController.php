@@ -52,10 +52,15 @@ class SiteController extends Controller
         $projectId = $request->integer('project_id') ?: null;
         $perPage = min($request->integer('per_page', 10), 50);
         $page = max(1, $request->integer('page', 1));
+        
+        $status = $request->query('status') ?: null;
+        if ($status && !in_array($status, ['up', 'down', 'slow', 'pending'], true)) {
+            $status = null;
+        }
 
         $statusCounts = $this->siteRepository->getStatusCounts($userId, $projectId);
-        $total = $this->siteRepository->countByFilter($userId, $projectId);
-        $sites = $this->siteRepository->findPage($userId, $projectId, $perPage, $page);
+        $total = $this->siteRepository->countByFilter($userId, $projectId, $status);
+        $sites = $this->siteRepository->findPage($userId, $projectId, $perPage, $page, $status);
 
         $paginator = new LengthAwarePaginator(
             items: $sites,

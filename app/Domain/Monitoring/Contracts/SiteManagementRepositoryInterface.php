@@ -60,12 +60,12 @@ interface SiteManagementRepositoryInterface
      *
      * @return Site[]
      */
-    public function findPage(int $userId, ?int $projectId, int $perPage, int $page): array;
+    public function findPage(int $userId, ?int $projectId, int $perPage, int $page, ?string $status = null): array;
 
     /**
      * Count total sites matching the user/project filter.
      */
-    public function countByFilter(int $userId, ?int $projectId): int;
+    public function countByFilter(int $userId, ?int $projectId, ?string $status = null): int;
 
     /**
      * Get status counts for all the user's sites via a single lightweight query.
