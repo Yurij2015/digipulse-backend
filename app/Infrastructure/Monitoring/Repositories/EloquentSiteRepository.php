@@ -14,6 +14,7 @@ use App\Models\Site as EloquentSite;
 use App\Models\SiteCheckConfiguration;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 readonly class EloquentSiteRepository implements SiteManagementRepositoryInterface, SiteRepositoryInterface
 {
@@ -199,6 +200,8 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
 
     public function findPage(int $userId, ?int $projectId, int $perPage, int $page): array
     {
+        $t0 = microtime(true);
+
         $sites = EloquentSite::where('user_id', $userId)
             ->with(['latestCheck', 'latestHttpCheck', 'latestSslCheck', 'latestPingCheck'])
             ->when($projectId !== null, fn ($q) => $q->where('project_id', $projectId))
@@ -206,16 +209,35 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
             ->forPage($page, $perPage)
             ->get();
 
+        $t1 = microtime(true);
+
         $siteIntervals = $sites->pluck('update_interval', 'id')->toArray();
         $statsBySiteId = $this->statsRepository->loadForSites($siteIntervals);
 
-        return $sites
+        $t2 = microtime(true);
+
+        $result = $sites
             ->map(fn (EloquentSite $site) => $this->mapper->toDomain(
                 $site,
                 $statsBySiteId[$site->id] ?? null,
                 $this->getCachedConfigurations($site->id),
             ))
             ->toArray();
+
+        $t3 = microtime(true);
+
+        Log::debug('findPage timing', [
+            'user_id'       => $userId,
+            'project_id'    => $projectId,
+            'page'          => $page,
+            'sites_count'   => $sites->count(),
+            'query_ms'      => round(($t1 - $t0) * 1000, 2),
+            'stats_ms'      => round(($t2 - $t1) * 1000, 2),
+            'mapping_ms'    => round(($t3 - $t2) * 1000, 2),
+            'total_ms'      => round(($t3 - $t0) * 1000, 2),
+        ]);
+
+        return $result;
     }
 
     public function countByFilter(int $userId, ?int $projectId): int
