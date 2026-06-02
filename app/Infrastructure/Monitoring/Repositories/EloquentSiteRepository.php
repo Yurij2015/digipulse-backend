@@ -227,7 +227,7 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
 
         $t3 = microtime(true);
 
-        Log::debug('findPage timing', [
+        Log::info('findPage timing', [
             'user_id' => $userId,
             'project_id' => $projectId,
             'page' => $page,

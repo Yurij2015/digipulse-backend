@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Facades\DB;
 
 class Site extends Model
 {
@@ -45,7 +47,7 @@ class Site extends Model
             'checked_at' => 'max',
             'id' => 'max',
         ], function ($query) {
-            $query->whereHas('configuration.checkType', fn ($q) => $q->where('slug', 'http'));
+            $query->whereIn('configuration_id', $this->configIdsForType('http'));
         });
     }
 
@@ -55,7 +57,7 @@ class Site extends Model
             'checked_at' => 'max',
             'id' => 'max',
         ], function ($query) {
-            $query->whereHas('configuration.checkType', fn ($q) => $q->where('slug', 'ssl'));
+            $query->whereIn('configuration_id', $this->configIdsForType('ssl'));
         });
     }
 
@@ -65,7 +67,15 @@ class Site extends Model
             'checked_at' => 'max',
             'id' => 'max',
         ], function ($query) {
-            $query->whereHas('configuration.checkType', fn ($q) => $q->where('slug', 'ping'));
+            $query->whereIn('configuration_id', $this->configIdsForType('ping'));
         });
+    }
+
+    private function configIdsForType(string $slug): Builder
+    {
+        return DB::table('site_check_configurations')
+            ->join('check_types', 'check_types.id', '=', 'site_check_configurations.check_type_id')
+            ->where('check_types.slug', $slug)
+            ->select('site_check_configurations.id');
     }
 }
