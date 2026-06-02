@@ -86,7 +86,7 @@ it('does not send another down alert when already confirmed down', function () {
 });
 
 it('sends a recovery alert when site comes up after a confirmed down', function () {
-    $this->context['last_status'] = 'down';
+        $this->context['last_status'] = 'down';
     $this->context['consecutive_failures'] = 2;
     $this->context['confirmed_down_at'] = now()->toISOString();
 
