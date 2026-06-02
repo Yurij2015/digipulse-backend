@@ -28,7 +28,8 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
         private EloquentSiteMapper $mapper,
         private EloquentConfigurationMapper $configurationMapper,
         private SiteStatsRepositoryInterface $statsRepository,
-    ) {}
+    ) {
+    }
 
     public function findById(int $id): ?DomainSite
     {
@@ -39,7 +40,7 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
             'latestPingCheck',
         ])->find($id);
 
-        if (! $site) {
+        if (!$site) {
             return null;
         }
 
@@ -70,7 +71,7 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
         $statsBySiteId = $this->statsRepository->loadForSites($siteIntervals);
 
         return $sites
-            ->map(fn (EloquentSite $site) => $this->mapper->toDomain(
+            ->map(fn(EloquentSite $site) => $this->mapper->toDomain(
                 $site,
                 $statsBySiteId[$site->id] ?? null,
                 $this->getCachedConfigurations($site->id),
@@ -81,8 +82,8 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
     public function findIdsByUser(int $userId, ?int $projectId = null, ?int $siteId = null): array
     {
         return EloquentSite::where('user_id', $userId)
-            ->when($projectId !== null, fn ($q) => $q->where('project_id', $projectId))
-            ->when($siteId !== null, fn ($q) => $q->where('id', $siteId))
+            ->when($projectId !== null, fn($q) => $q->where('project_id', $projectId))
+            ->when($siteId !== null, fn($q) => $q->where('id', $siteId))
             ->pluck('id')
             ->toArray();
     }
@@ -153,7 +154,7 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
     {
         $this->clearConfigurationsCache($id);
 
-        return (bool) EloquentSite::where('id', $id)->delete();
+        return (bool)EloquentSite::where('id', $id)->delete();
     }
 
     public function updateStatus(
@@ -189,12 +190,12 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
             ->firstOrFail();
 
         return [
-            'site_id' => (int) $row->site_id,
-            'user_id' => (int) $row->user_id,
+            'site_id' => (int)$row->site_id,
+            'user_id' => (int)$row->user_id,
             'last_status' => $row->last_status,
-            'consecutive_failures' => (int) ($row->consecutive_failures ?? 0),
+            'consecutive_failures' => (int)($row->consecutive_failures ?? 0),
             'confirmed_down_at' => $row->confirmed_down_at,
-            'failure_threshold' => (int) ($row->failure_threshold ?? 3),
+            'failure_threshold' => (int)($row->failure_threshold ?? 3),
         ];
     }
 
@@ -204,7 +205,7 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
 
         $sites = EloquentSite::where('user_id', $userId)
             ->with(['latestCheck', 'latestHttpCheck', 'latestSslCheck', 'latestPingCheck'])
-            ->when($projectId !== null, fn ($q) => $q->where('project_id', $projectId))
+            ->when($projectId !== null, fn($q) => $q->where('project_id', $projectId))
             ->latest()
             ->forPage($page, $perPage)
             ->get();
@@ -217,7 +218,7 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
         $t2 = microtime(true);
 
         $result = $sites
-            ->map(fn (EloquentSite $site) => $this->mapper->toDomain(
+            ->map(fn(EloquentSite $site) => $this->mapper->toDomain(
                 $site,
                 $statsBySiteId[$site->id] ?? null,
                 $this->getCachedConfigurations($site->id),
@@ -227,14 +228,14 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
         $t3 = microtime(true);
 
         Log::debug('findPage timing', [
-            'user_id'       => $userId,
-            'project_id'    => $projectId,
-            'page'          => $page,
-            'sites_count'   => $sites->count(),
-            'query_ms'      => round(($t1 - $t0) * 1000, 2),
-            'stats_ms'      => round(($t2 - $t1) * 1000, 2),
-            'mapping_ms'    => round(($t3 - $t2) * 1000, 2),
-            'total_ms'      => round(($t3 - $t0) * 1000, 2),
+            'user_id' => $userId,
+            'project_id' => $projectId,
+            'page' => $page,
+            'sites_count' => $sites->count(),
+            'query_ms' => round(($t1 - $t0) * 1000, 2),
+            'stats_ms' => round(($t2 - $t1) * 1000, 2),
+            'mapping_ms' => round(($t3 - $t2) * 1000, 2),
+            'total_ms' => round(($t3 - $t0) * 1000, 2),
         ]);
 
         return $result;
@@ -246,7 +247,7 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
 
         return Cache::remember($key, self::SITES_CACHE_TTL, static function () use ($userId, $projectId) {
             return EloquentSite::where('user_id', $userId)
-                ->when($projectId !== null, fn ($q) => $q->where('project_id', $projectId))
+                ->when($projectId !== null, fn($q) => $q->where('project_id', $projectId))
                 ->count();
         });
     }
@@ -263,7 +264,8 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
                 $params[] = $projectId;
             }
 
-            $rows = DB::select("
+            $rows = DB::select(
+                "
                 WITH latest AS (
                     SELECT DISTINCT ON (r.site_id) r.site_id, r.status
                     FROM check_results r
@@ -277,11 +279,13 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
                 LEFT JOIN latest l ON l.site_id = s.id
                 WHERE s.user_id = ? {$projectClause}
                 GROUP BY 1
-            ", $params);
+            ",
+                $params
+            );
 
             $counts = ['up' => 0, 'down' => 0, 'slow' => 0, 'pending' => 0];
             foreach ($rows as $row) {
-                $counts[$row->status] = (int) $row->cnt;
+                $counts[$row->status] = (int)$row->cnt;
             }
 
             return $counts;
@@ -290,7 +294,7 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
 
     private function sitesCacheKey(int $userId, ?int $projectId, string $suffix): string
     {
-        $gen = (int) Cache::get("user_sites_gen:{$userId}", 0);
+        $gen = (int)Cache::get("user_sites_gen:{$userId}", 0);
         $scope = $projectId !== null ? "project:{$projectId}" : 'all';
 
         return "user_sites_v9:{$userId}:{$scope}:gen{$gen}:{$suffix}";
@@ -300,16 +304,20 @@ readonly class EloquentSiteRepository implements SiteManagementRepositoryInterfa
     private function getCachedConfigurations(int $siteId): array
     {
         $version = self::CONFIG_CACHE_VERSION;
-        $cached = Cache::remember("site_{$siteId}_configurations_{$version}", self::CONFIG_CACHE_TTL, function () use ($siteId) {
-            return SiteCheckConfiguration::where('site_id', $siteId)
-                ->where('is_active', true)
-                ->with('checkType')
-                ->get()
-                ->map(fn (SiteCheckConfiguration $c) => $this->configurationMapper->toDomain($c)->toArray())
-                ->toArray();
-        });
+        $cached = Cache::remember(
+            "site_{$siteId}_configurations_{$version}",
+            self::CONFIG_CACHE_TTL,
+            function () use ($siteId) {
+                return SiteCheckConfiguration::where('site_id', $siteId)
+                    ->where('is_active', true)
+                    ->with('checkType')
+                    ->get()
+                    ->map(fn(SiteCheckConfiguration $c) => $this->configurationMapper->toDomain($c)->toArray())
+                    ->toArray();
+            }
+        );
 
-        return array_map(fn (array $data) => $this->configurationMapper->arrayToDomain($data), $cached);
+        return array_map(fn(array $data) => $this->configurationMapper->arrayToDomain($data), $cached);
     }
 
     private function clearConfigurationsCache(int $siteId): void
