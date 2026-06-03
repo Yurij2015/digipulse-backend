@@ -14,6 +14,9 @@ class UserResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
+        $isAdmin = $this->hasRole('admin');
+        $isAgency = $this->hasRole('agency');
+
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -28,7 +31,13 @@ class UserResource extends JsonResource
             'notify_telegram' => $this->notify_telegram,
             'email_verified_at' => $this->email_verified_at,
             'is_verified' => $this->email_verified_at !== null,
-            'is_admin' => $this->hasRole('admin'),
+            'is_admin' => $isAdmin,
+            'plan' => $isAgency ? 'agency' : 'start',
+            'site_limit' => $isAdmin ? null : (
+                $isAgency
+                    ? config('monitoring.site_limits.agency', 60)
+                    : config('monitoring.site_limits.default', 6)
+            ),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
