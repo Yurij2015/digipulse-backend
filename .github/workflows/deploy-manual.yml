@@ -283,7 +283,7 @@ jobs:
 
             GOOGLE_CLIENT_ID=$(get_val "${{ vars.GOOGLE_CLIENT_ID }}" "")
             GOOGLE_CLIENT_SECRET=$(get_val "${{ vars.GOOGLE_CLIENT_SECRET }}" "")
-            TELEGRAM_BOT_TOKEN=$(get_val "${{ vars.TELEGRAM_BOT_TOKEN }}" "")
+            TELEGRAM_BOT_TOKEN=$(get_val "${{ secrets.TELEGRAM_BOT_TOKEN }}" "")
             TELEGRAM_BOT_USERNAME=$(get_val "${{ vars.TELEGRAM_BOT_USERNAME }}" "")
             TELEGRAM_WEBHOOK_SECRET=$(get_val "${{ secrets.TELEGRAM_WEBHOOK_SECRET }}" "")
             TURNSTILE_ACTIVE=$(get_val "${{ vars.TURNSTILE_ACTIVE }}" "false")
