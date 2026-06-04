@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Auth\ProfileController;
 use App\Http\Controllers\Api\V1\CheckTypeController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\KnowledgeBaseController;
+use App\Http\Controllers\Api\V1\LegalDocumentController;
 use App\Http\Controllers\Api\V1\Mcp\IncidentsController;
 use App\Http\Controllers\Api\V1\Mcp\OverviewController;
 use App\Http\Controllers\Api\V1\Mcp\SiteHistoryController as McpSiteHistoryController;
@@ -47,6 +48,11 @@ Route::prefix('v1')->name('v1.')->group(function () {
             Route::get('/categories', [KnowledgeBaseController::class, 'categories'])->name('categories');
             Route::get('/categories/{slug}', [KnowledgeBaseController::class, 'category'])->name('category');
             Route::get('/articles/{slug}', [KnowledgeBaseController::class, 'article'])->name('article');
+        });
+
+        Route::prefix('legal')->name('legal.')->group(function () {
+            Route::get('/privacy-policy', [LegalDocumentController::class, 'privacyPolicy'])->name('privacy-policy');
+            Route::get('/terms-of-service', [LegalDocumentController::class, 'termsOfService'])->name('terms-of-service');
         });
 
         Route::middleware('auth:sanctum')->group(function () {
